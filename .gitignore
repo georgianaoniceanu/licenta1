@@ -1,0 +1,72 @@
+# Documentation & Research Files
+articles/
+articles_text/
+*.md
+*.sql
+*.db
+
+# AI & Development
+.claude/
+
+# Nested git repos
+backend/.git/
+frontend/.git/
+
+# Node Dependencies
+node_modules/
+frontend/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+backend/.venv/
+backend/venv/
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Firebase
+serviceAccountKey.json
+
+# Expo/EAS
+.expo/
+.expo-shared/
+dist/
+.env.production
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

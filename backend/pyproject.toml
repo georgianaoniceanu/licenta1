@@ -1,0 +1,25 @@
+[project]
+name = "backend"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "georgianaoniceanu",email = "georgiana939@yahoo.com"}
+]
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "fastapi (>=0.120.0,<0.121.0)",
+    "uvicorn[standard] (>=0.38.0,<0.39.0)",
+    "python-multipart (>=0.0.20,<0.0.21)",
+    "aiofiles (>=25.1.0,<26.0.0)",
+    "python-dotenv (>=1.2.1,<2.0.0)",
+    "httpx (>=0.28.1,<0.29.0)",
+    "eng-to-ipa (>=0.0.2)",
+    "g2p-en (>=0.0.15)",
+    "elevenlabs (>=0.2.28,<0.3.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

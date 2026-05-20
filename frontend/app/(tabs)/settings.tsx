@@ -1,0 +1,811 @@
+import { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  SafeAreaView,
+  Switch,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { getAuth, signOut } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Colors } from '@/constants/theme';
+import { loadDemoProfile, clearDemoData, type DemoPreset } from '@/utils/demoMode';
+import { HEALTH_ENDPOINT } from '@/constants/api';
+import { useDarkMode } from '@/context/DarkMode';
+import { useLanguage } from '@/context/Language';
+import { tr } from '@/constants/translations';
+
+type HealthCheck = { ok: boolean; latency_ms?: number; error?: string; characters_used?: number; characters_limit?: number };
+type HealthData = {
+  ok: boolean;
+  checks: { groq: HealthCheck; elevenlabs: HealthCheck; firebase: HealthCheck };
+  cache: { size: number; max_size: number; hits: number; misses: number; hit_rate: number };
+  now: string;
+};
+
+interface Settings {
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  language: 'en' | 'ro';
+  dailyGoal: number;
+  sessionDuration: number;
+  notifications: {
+    dailyReminder: boolean;
+    achievementAlerts: boolean;
+    reviewReminders: boolean;
+  };
+  darkMode: boolean;
+  soundEnabled: boolean;
+  volume: number;
+}
+
+const DEFAULT_SETTINGS: Settings = {
+  difficulty: 'intermediate',
+  language: 'en',
+  dailyGoal: 10,
+  sessionDuration: 20,
+  notifications: {
+    dailyReminder: true,
+    achievementAlerts: true,
+    reviewReminders: true,
+  },
+  darkMode: true,
+  soundEnabled: true,
+  volume: 100,
+};
+
+function makeTheme(dark: boolean) {
+  return {
+    bg:       dark ? '#0A1628' : '#F8FAFC',
+    card:     dark ? '#0F1F3A' : '#FFFFFF',
+    border:   dark ? 'rgba(255,255,255,0.10)' : '#E5E7EB',
+    text:     dark ? '#F0F6FF' : '#0F172A',
+    text2:    dark ? '#8BA0B8' : '#64748B',
+    active:   '#a855f7',
+    activeBg: dark ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.08)',
+  };
+}
+
+export default function SettingsScreen() {
+  const router = useRouter();
+  const auth = getAuth();
+  const { isDark, toggle: toggleDarkMode } = useDarkMode();
+  const { lang, setLang } = useLanguage();
+  const T = makeTheme(isDark);
+
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [activeSection, setActiveSection] = useState<
+    'general' | 'learning' | 'notifications' | 'account'
+  >('general');
+  const [health, setHealth]           = useState<HealthData | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [demoLoading, setDemoLoading] = useState<DemoPreset | null>(null);
+
+  const runHealthCheck = async () => {
+    setHealthLoading(true);
+    try {
+      const r = await fetch(HEALTH_ENDPOINT);
+      if (r.ok) setHealth(await r.json());
+      else setHealth(null);
+    } catch {
+      setHealth(null);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const stored = await AsyncStorage.getItem('app_settings');
+      if (stored) {
+        setSettings(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Error loading settings:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSettings = async (newSettings: Settings) => {
+    setSaving(true);
+    try {
+      await AsyncStorage.setItem('app_settings', JSON.stringify(newSettings));
+      setSettings(newSettings);
+    } catch (e) {
+      Alert.alert('Error', 'Could not save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDifficultyChange = (level: 'beginner' | 'intermediate' | 'advanced') => {
+    const newSettings = { ...settings, difficulty: level };
+    saveSettings(newSettings);
+  };
+
+  const handleLanguageChange = (l: 'en' | 'ro') => {
+    setLang(l);
+    const newSettings = { ...settings, language: l };
+    saveSettings(newSettings);
+  };
+
+  const handleNotificationToggle = (key: keyof Settings['notifications']) => {
+    const newSettings = {
+      ...settings,
+      notifications: {
+        ...settings.notifications,
+        [key]: !settings.notifications[key],
+      },
+    };
+    saveSettings(newSettings);
+  };
+
+  const handleDailyGoalChange = (value: number) => {
+    const newSettings = { ...settings, dailyGoal: value };
+    saveSettings(newSettings);
+  };
+
+  const handleSessionDurationChange = (value: number) => {
+    const newSettings = { ...settings, sessionDuration: value };
+    saveSettings(newSettings);
+  };
+
+  const handleSignOut = () => {
+    Alert.alert(tr('signOutTitle', lang), tr('signOutMsg', lang), [
+      { text: tr('cancel', lang), style: 'cancel' },
+      {
+        text: tr('signOut', lang),
+        onPress: async () => {
+          try {
+            await signOut(auth);
+            router.replace('/login');
+          } catch (e) {
+            Alert.alert(tr('error', lang), 'Failed to sign out');
+          }
+        },
+        style: 'destructive',
+      },
+    ]);
+  };
+
+  const handleResetData = () => {
+    Alert.alert(
+      tr('resetProgress', lang),
+      tr('resetProgressMsg', lang),
+      [
+        { text: tr('cancel', lang), style: 'cancel' },
+        {
+          text: tr('reset', lang),
+          onPress: async () => {
+            try {
+              await AsyncStorage.removeItem('learner_profile_anonymous');
+              router.push('index');
+            } catch (e) {
+              Alert.alert(tr('error', lang), 'Could not reset data');
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.root}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator color="#a855f7" size="large" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={[styles.root, { backgroundColor: T.bg }]}>
+      <View style={[styles.header, { borderBottomColor: T.border }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backText}>{tr('back', lang)}</Text>
+        </TouchableOpacity>
+        <Text style={[styles.headerTitle, { color: T.text }]}>{tr('settingsTitle', lang)}</Text>
+        <View style={{ width: 60 }} />
+      </View>
+
+      <View style={[styles.tabsContainer, { borderBottomColor: T.border }]}>
+        {(['general', 'learning', 'notifications', 'account'] as const).map((tab) => {
+          const tabKey = tab === 'general' ? 'tabGeneral' : tab === 'learning' ? 'tabLearning' : tab === 'notifications' ? 'tabNotifications' : 'tabAccount';
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.tab, activeSection === tab && styles.tabActive]}
+              onPress={() => setActiveSection(tab)}
+            >
+              <Text style={styles.tabText}>
+                {tab === 'general' ? '⚙️' : tab === 'learning' ? '📚' : tab === 'notifications' ? '🔔' : '👤'}
+              </Text>
+              <Text style={[styles.tabLabel, { color: activeSection === tab ? T.active : T.text2 }]}>
+                {tr(tabKey as any, lang)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* GENERAL SETTINGS */}
+        {activeSection === 'general' && (
+          <>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('difficultyLevel', lang)}</Text>
+              {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
+                const active = settings.difficulty === level;
+                const labelKey = level === 'beginner' ? 'beginner' : level === 'intermediate' ? 'intermediate' : 'advanced';
+                const subKey   = level === 'beginner' ? 'beginnerSub' : level === 'intermediate' ? 'intermediateSub' : 'advancedSub';
+                return (
+                  <TouchableOpacity
+                    key={level}
+                    activeOpacity={0.7}
+                    style={[styles.optionCard, { backgroundColor: active ? T.activeBg : T.card, borderColor: active ? T.active : T.border }]}
+                    onPress={() => handleDifficultyChange(level)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.optionTitle, { color: active ? T.active : T.text, fontWeight: active ? '700' : '600' }]}>
+                        {tr(labelKey as any, lang)}
+                      </Text>
+                      <Text style={[styles.optionSubtitle, { color: T.text2 }]}>
+                        {tr(subKey as any, lang)}
+                      </Text>
+                    </View>
+                    <View style={[styles.radioOuter, { borderColor: active ? T.active : T.border }]}>
+                      {active && <View style={[styles.radioInner, { backgroundColor: T.active }]} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('language', lang)}</Text>
+              <Text style={[styles.optionSubtitle, { color: T.text2, marginBottom: 12 }]}>
+                {tr('languageNote', lang)}
+              </Text>
+              {(['en', 'ro'] as const).map((l) => {
+                const active = lang === l;
+                return (
+                  <TouchableOpacity
+                    key={l}
+                    activeOpacity={0.7}
+                    style={[styles.optionCard, { backgroundColor: active ? T.activeBg : T.card, borderColor: active ? T.active : T.border }]}
+                    onPress={() => handleLanguageChange(l)}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.optionTitle, { color: active ? T.active : T.text, fontWeight: active ? '700' : '600' }]}>
+                        {l === 'en' ? '🇬🇧 English' : '🇷🇴 Română'}
+                      </Text>
+                      <Text style={[styles.optionSubtitle, { color: T.text2 }]}>
+                        {l === 'en' ? tr('englishInterface', lang) : tr('romanianInterface', lang)}
+                      </Text>
+                    </View>
+                    <View style={[styles.radioOuter, { borderColor: active ? T.active : T.border }]}>
+                      {active && <View style={[styles.radioInner, { backgroundColor: T.active }]} />}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('sound', lang)}</Text>
+              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('enableSound', lang)}</Text>
+                  <Text style={[styles.settingDescription, { color: T.text2 }]}>{tr('soundDesc', lang)}</Text>
+                </View>
+                <Switch
+                  value={settings.soundEnabled}
+                  onValueChange={() => saveSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
+                  trackColor={{ false: '#445566', true: '#a855f7' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('appearance', lang)}</Text>
+              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('darkMode', lang)}</Text>
+                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                    {isDark ? tr('darkModeActive', lang) : tr('lightModeActive', lang)}
+                  </Text>
+                </View>
+                <Switch
+                  value={isDark}
+                  onValueChange={toggleDarkMode}
+                  trackColor={{ false: '#445566', true: '#a855f7' }}
+                  thumbColor="#fff"
+                />
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* LEARNING SETTINGS */}
+        {activeSection === 'learning' && (
+          <>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('dailyGoals', lang)}</Text>
+              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+                <View>
+                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('wordsPerSession', lang)}</Text>
+                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                    {tr('wordsTarget', lang, { n: settings.dailyGoal })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.sliderContainer}>
+                {[5, 10, 15, 20].map((goal) => (
+                  <TouchableOpacity
+                    key={goal}
+                    style={[
+                      styles.sliderOption,
+                      settings.dailyGoal === goal && styles.sliderOptionActive,
+                    ]}
+                    onPress={() => handleDailyGoalChange(goal)}
+                  >
+                    <Text
+                      style={[
+                        styles.sliderOptionText,
+                        settings.dailyGoal === goal && styles.sliderOptionTextActive,
+                      ]}
+                    >
+                      {goal}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('sessionDuration', lang)}</Text>
+              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+                <View>
+                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('preferredDuration', lang)}</Text>
+                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                    {tr('minutesPerSession', lang, { n: settings.sessionDuration })}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.sliderContainer}>
+                {[10, 20, 30, 45].map((duration) => (
+                  <TouchableOpacity
+                    key={duration}
+                    style={[
+                      styles.sliderOption,
+                      settings.sessionDuration === duration && styles.sliderOptionActive,
+                    ]}
+                    onPress={() => handleSessionDurationChange(duration)}
+                  >
+                    <Text
+                      style={[
+                        styles.sliderOptionText,
+                        settings.sessionDuration === duration &&
+                          styles.sliderOptionTextActive,
+                      ]}
+                    >
+                      {duration}m
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* NOTIFICATION SETTINGS */}
+        {activeSection === 'notifications' && (
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('inAppReminders', lang)}</Text>
+            <Text style={[styles.settingDescription, { color: T.text2, marginBottom: 16 }]}>
+              {tr('remindersDesc', lang)}
+            </Text>
+
+            <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingLabel, { color: T.text }]}>{tr('dailyReminder', lang)}</Text>
+                <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                  {tr('dailyReminderDesc', lang)}
+                </Text>
+              </View>
+              <Switch
+                value={settings.notifications.dailyReminder}
+                onValueChange={() => handleNotificationToggle('dailyReminder')}
+                trackColor={{ false: '#445566', true: '#a855f7' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingLabel, { color: T.text }]}>{tr('achievementAlerts', lang)}</Text>
+                <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                  {tr('achievementDesc', lang)}
+                </Text>
+              </View>
+              <Switch
+                value={settings.notifications.achievementAlerts}
+                onValueChange={() => handleNotificationToggle('achievementAlerts')}
+                trackColor={{ false: '#445566', true: '#a855f7' }}
+                thumbColor="#fff"
+              />
+            </View>
+
+            <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingLabel, { color: T.text }]}>{tr('reviewReminders', lang)}</Text>
+                <Text style={[styles.settingDescription, { color: T.text2 }]}>
+                  {tr('reviewDesc', lang)}
+                </Text>
+              </View>
+              <Switch
+                value={settings.notifications.reviewReminders}
+                onValueChange={() => handleNotificationToggle('reviewReminders')}
+                trackColor={{ false: '#445566', true: '#a855f7' }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        )}
+
+        {/* ACCOUNT SETTINGS */}
+        {activeSection === 'account' && (
+          <>
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('accountLabel', lang)}</Text>
+              <View style={[styles.accountInfo, { backgroundColor: T.card }]}>
+                <Text style={[styles.accountLabel, { color: T.text2 }]}>{tr('loggedInAs', lang)}</Text>
+                <Text style={[styles.accountEmail, { color: T.text }]}>
+                  {auth.currentUser?.email || 'Anonymous'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('apiStatus', lang)}</Text>
+              <Text style={[styles.demoDescription, { marginBottom: 12 }]}>
+                {tr('apiStatusDesc', lang)}
+              </Text>
+              <TouchableOpacity
+                style={[styles.healthBtn, healthLoading && { opacity: 0.7 }]}
+                onPress={runHealthCheck}
+                disabled={healthLoading}
+                activeOpacity={0.85}
+              >
+                {healthLoading
+                  ? <ActivityIndicator size="small" color="#fff" />
+                  : <Text style={styles.healthBtnText}>{tr('runHealthCheck', lang)}</Text>}
+              </TouchableOpacity>
+
+              {health && (
+                <View style={styles.healthCard}>
+                  <View style={styles.healthHeaderRow}>
+                    <View style={[styles.healthDot, {
+                      backgroundColor: health.ok ? '#10B981' : '#EF4444',
+                    }]} />
+                    <Text style={[styles.healthHeader, {
+                      color: health.ok ? '#10B981' : '#EF4444',
+                    }]}>
+                      {health.ok ? tr('allSystemsOk', lang) : tr('issuesDetected', lang)}
+                    </Text>
+                  </View>
+
+                  {(['groq', 'elevenlabs', 'firebase'] as const).map(svc => {
+                    const c = health.checks[svc];
+                    const label = svc === 'groq' ? 'Groq (Whisper + LLaMA)'
+                                : svc === 'elevenlabs' ? 'ElevenLabs (TTS)'
+                                : 'Firebase (Auth)';
+                    return (
+                      <View key={svc} style={styles.healthRow}>
+                        <View style={[styles.healthDot, {
+                          backgroundColor: c.ok ? '#10B981' : '#EF4444',
+                        }]} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.healthSvc}>{label}</Text>
+                          <Text style={styles.healthDetail}>
+                            {c.ok
+                              ? `OK · ${c.latency_ms ?? 0}ms`
+                              : `FAIL · ${c.error || 'unknown'}`}
+                            {svc === 'elevenlabs' && c.characters_used != null && c.characters_limit != null && (
+                              ` · ${c.characters_used}/${c.characters_limit} chars used`
+                            )}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })}
+
+                  <Text style={styles.healthCacheInfo}>
+                    Cache: {health.cache.hits} hits / {health.cache.misses} misses
+                    ({health.cache.hit_rate}% hit rate) · {health.cache.size}/{health.cache.max_size} entries
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('demoDataTitle', lang)}</Text>
+              <Text style={[styles.demoDescription, { marginBottom: 12 }]}>
+                {tr('demoChoose', lang)}
+              </Text>
+
+              {(
+                [
+                  { preset: 'weak'   as DemoPreset, emoji: '📉', color: '#EF4444', label: tr('demoWeakLabel', lang),   range: tr('demoWeakRange', lang)   },
+                  { preset: 'medium' as DemoPreset, emoji: '📈', color: '#a855f7', label: tr('demoMedLabel', lang),    range: tr('demoMedRange', lang)    },
+                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#F59E0B', label: tr('demoStrongLabel', lang), range: tr('demoStrongRange', lang) },
+                ] as const
+              ).map(({ preset, emoji, color, label, range }) => {
+                const busy = demoLoading === preset;
+                return (
+                  <TouchableOpacity
+                    key={preset}
+                    style={[styles.demoProfileCard, { borderColor: color + '50', backgroundColor: busy ? color + '18' : T.card }]}
+                    activeOpacity={0.75}
+                    disabled={demoLoading !== null}
+                    onPress={async () => {
+                      setDemoLoading(preset);
+                      try {
+                        await loadDemoProfile(preset);
+                        Alert.alert('Demo', `${label} profile loaded. Open Progress to see results.`);
+                      } catch (e: any) {
+                        Alert.alert(tr('error', lang), String(e?.message || e));
+                      } finally {
+                        setDemoLoading(null);
+                      }
+                    }}
+                  >
+                    <Text style={{ fontSize: 20 }}>{busy ? '⏳' : emoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.demoProfileLabel, { color }]}>{label}</Text>
+                    </View>
+                    <View style={[styles.demoRangeBadge, { backgroundColor: color + '18', borderColor: color + '40' }]}>
+                      <Text style={[styles.demoRangeText, { color }]}>{range}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+
+              <TouchableOpacity
+                style={[styles.demoCard, { borderColor: '#94A3B8', marginTop: 10 }]}
+                onPress={() => {
+                  Alert.alert(
+                    tr('clearDemoTitle', lang),
+                    tr('clearDemoMsg', lang),
+                    [
+                      { text: tr('cancel', lang), style: 'cancel' },
+                      {
+                        text: tr('clear', lang),
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            await clearDemoData();
+                            Alert.alert('✓', 'Demo data cleared. Go to Home to pick a new profile.');
+                          } catch (e: any) {
+                            Alert.alert(tr('error', lang), String(e?.message || e));
+                          }
+                        },
+                      },
+                    ]
+                  );
+                }}
+              >
+                <Text style={[styles.demoTitle, { color: '#475569' }]}>{tr('clearDemo', lang)}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('resetProgress', lang)}</Text>
+
+              <TouchableOpacity
+                style={styles.dangerCard}
+                onPress={handleResetData}
+              >
+                <View>
+                  <Text style={styles.dangerTitle}>{tr('resetProgressBtn', lang)}</Text>
+                  <Text style={styles.dangerDescription}>
+                    {tr('resetProgressMsg', lang)}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.section}>
+              <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+                <Text style={styles.signOutText}>{tr('signOut', lang)}</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.footerText}>
+              <Text style={styles.versionText}>VocaFlow v1.0.0</Text>
+              <Text style={styles.copyrightText}>© 2026 All rights reserved</Text>
+            </View>
+          </>
+        )}
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: '#F8FAFC' },
+
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backBtn: { paddingVertical: 6, paddingRight: 12 },
+  backText: { color: '#a855f7', fontSize: 15, fontWeight: '600' },
+  headerTitle: { color: '#0F172A', fontSize: 18, fontWeight: '700' },
+
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  tabsContainer: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingHorizontal: 20,
+  },
+  tab:      { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
+  tabActive:{ borderBottomColor: '#a855f7' },
+  tabText:  { fontSize: 18 },
+  tabLabel: { fontSize: 10, fontWeight: '600' },
+
+  contentContainer: { paddingHorizontal: 20, paddingTop: 20 },
+
+  section: { marginBottom: 28 },
+  sectionTitle: { color: '#0F172A', fontSize: 16, fontWeight: '700', marginBottom: 14 },
+
+  optionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionTitle:    { fontSize: 14 },
+  optionSubtitle: { fontSize: 12, marginTop: 2 },
+  radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  radioInner: { width: 10, height: 10, borderRadius: 5 },
+
+  settingRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+  },
+  settingLabel: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
+  settingDescription: { color: '#64748B', fontSize: 12, marginTop: 2 },
+
+  sliderContainer: { flexDirection: 'row', gap: 10 },
+  sliderOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+  },
+  sliderOptionActive: { backgroundColor: '#a855f7', borderColor: '#a855f7' },
+  sliderOptionText: { color: '#6688aa', fontSize: 13, fontWeight: '600' },
+  sliderOptionTextActive: { color: '#0F172A' },
+
+  accountInfo: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16 },
+  accountLabel: { color: '#64748B', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  accountEmail: { color: '#8899aa', fontSize: 14 },
+
+  dangerCard: {
+    backgroundColor: '#7f1d1d',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#dc262660',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 14,
+  },
+  dangerTitle: { color: '#fca5a5', fontSize: 14, fontWeight: '600' },
+  dangerDescription: { color: '#f87171', fontSize: 12, marginTop: 4 },
+
+  demoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#0FBA9A',
+    padding: 14,
+  },
+  demoTitle:       { color: '#0FBA9A', fontSize: 14, fontWeight: '800' },
+  demoDescription: { color: '#64748B', fontSize: 12, marginTop: 4, lineHeight: 16 },
+  demoProfileCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderRadius: 12, borderWidth: 1.5,
+    paddingHorizontal: 14, paddingVertical: 12, marginBottom: 8,
+  },
+  demoProfileLabel: { fontSize: 14, fontWeight: '800' },
+  demoRangeBadge:   { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1 },
+  demoRangeText:    { fontSize: 11, fontWeight: '900' },
+
+  healthBtn: {
+    backgroundColor: '#0FBA9A',
+    paddingVertical: 12, paddingHorizontal: 16,
+    borderRadius: 11, alignItems: 'center',
+    shadowColor: '#0FBA9A', shadowOpacity: 0.3, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 }, elevation: 3,
+  },
+  healthBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
+  healthCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 12,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    padding: 14, marginTop: 12,
+  },
+  healthHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  healthHeader: { fontSize: 13, fontWeight: '800' },
+  healthRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+  },
+  healthDot: { width: 10, height: 10, borderRadius: 5 },
+  healthSvc: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  healthDetail: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  healthCacheInfo: {
+    fontSize: 10, color: '#94A3B8', fontStyle: 'italic',
+    textAlign: 'center', marginTop: 10, paddingTop: 8,
+    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+  },
+
+  signOutBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  signOutText: { color: '#ef4444', fontSize: 14, fontWeight: '700' },
+
+  footerText: { alignItems: 'center', gap: 4, marginTop: 20 },
+  versionText: { color: '#64748B', fontSize: 12 },
+  copyrightText: { color: '#2d3a47', fontSize: 11 },
+});
