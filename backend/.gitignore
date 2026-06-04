@@ -1,2 +1,30 @@
-firebase_key.json
+# Secrets / credentials
 .env
+.env.*
+*.env
+firebase_key.json
+serviceAccountKey.json
+*serviceAccount*.json
+
+# Voice-clone / API caches
+scripts/.eleven_voices.json
+.eleven_voices.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+.Python
+*.egg-info/
+*.egg
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Logs / temp
+*.log
+*.tmp

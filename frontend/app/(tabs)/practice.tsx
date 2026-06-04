@@ -13,10 +13,12 @@
  *                  ≥ 21 days (Cepeda et al. 2006).
  *
  *   • Reading    — CEFR-calibrated passage + 5 multiple-choice questions
- *                  (Cambridge ESOL reading-test framework). LLM-generated.
+ *                  (Cambridge ESOL reading-test framework). LLM or local bank.
  *
- *   • Listening  — TTS reads a sentence; learner transcribes; system scores
- *                  word-level accuracy (SequenceMatcher diff). LLM sentence.
+ *   • Grammar    — Romanian L1-interference drills (Neumanová 2021): articles,
+ *                  prepositions, tense, word order, double negation,
+ *                  collocations, false friends, agreement. Static local bank,
+ *                  targets the Grammar Accuracy indicator.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
@@ -29,9 +31,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { PRACTICE_ENDPOINTS, VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
+import {
+  LOCAL_VOCAB_CARDS, buildVocabMCQ,
+  pickReadingPassage, pickGrammarItem, GRAMMAR_CATEGORY_LABEL,
+  type LocalGrammarItem,
+} from '@/constants/practiceContent';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
-type Mode = 'adaptive' | 'retention' | 'reading' | 'listening';
+type Mode = 'adaptive' | 'retention' | 'reading' | 'grammar' | 'targeted';
 
 // SM-2 vocabulary exercise card returned by GET /vocabulary/exercise
 type ExerciseCard = {
@@ -108,6 +115,7 @@ function pickCEFR(cafSessions: any[]): string {
   return cafSessions[cafSessions.length - 1]?.cefr || 'B1';
 }
 
+
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function PracticeScreen() {
   const router = useRouter();
@@ -122,12 +130,18 @@ export default function PracticeScreen() {
         <Text style={styles.title}>🎯 Practice Hub</Text>
       </View>
 
-      <View style={styles.tabBar}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabBarOuter}
+        contentContainerStyle={styles.tabBar}
+      >
         {([
           { k: 'adaptive',  label: '⚡ Adaptive' },
           { k: 'retention', label: '🧠 Retention' },
           { k: 'reading',   label: '📖 Reading' },
-          { k: 'listening', label: '🎧 Listening' },
+          { k: 'grammar',   label: '✏️ Grammar' },
+          { k: 'targeted',  label: '🎯 Targeted' },
         ] as { k: Mode; label: string }[]).map(t => (
           <TouchableOpacity
             key={t.k}
@@ -138,13 +152,14 @@ export default function PracticeScreen() {
             <Text style={[styles.tabText, mode === t.k && styles.tabTextActive]}>{t.label}</Text>
           </TouchableOpacity>
         ))}
-      </View>
+      </ScrollView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {mode === 'adaptive'  && <AdaptiveBlock />}
         {mode === 'retention' && <RetentionBlock />}
         {mode === 'reading'   && <ReadingBlock />}
-        {mode === 'listening' && <ListeningBlock />}
+        {mode === 'grammar'   && <GrammarBlock />}
+        {mode === 'targeted'  && <TargetedBlock />}
       </ScrollView>
     </View>
   );
@@ -179,10 +194,39 @@ function AdaptiveBlock() {
 
   useEffect(() => {
     AsyncStorage.getItem('active_demo_preset').then(v => {
-      if (v) setIsDemo(true);
+      if (v) { setIsDemo(true); loadLocalCard(); }
       else loadCard();
     });
   }, []);
+
+  // Build an ExerciseCard from the local AWL bank (offline / demo).
+  const loadLocalCard = () => {
+    setSelected(null); setSubmitted(false); setResult(null);
+    const lc = LOCAL_VOCAB_CARDS[Math.floor(Math.random() * LOCAL_VOCAB_CARDS.length)];
+    const { options, correctIndex } = buildVocabMCQ(lc);
+    setCard({
+      vocab_id: `local_${lc.word}`,
+      word: lc.word,
+      pronunciation: lc.pronunciation,
+      definition: lc.definition,
+      example_sentence: lc.example_sentence,
+      synonyms: lc.synonyms,
+      difficulty: lc.difficulty,
+      category: 'AWL',
+      sublist: lc.sublist,
+      exercise_format: 'word_to_def',
+      question: lc.word,
+      instruction: 'Which definition is correct?',
+      options,
+      correct_index: correctIndex,
+      correct_answer: lc.definition,
+      is_new: true,
+      sm2_interval: 0,
+      sm2_next_review: null,
+      attempts: 0,
+    });
+    setStartMs(Date.now());
+  };
 
   const loadCard = async () => {
     setLoading(true);
@@ -191,7 +235,7 @@ function AdaptiveBlock() {
     setResult(null);
     try {
       const token = await getFreshToken();
-      if (!token) { Alert.alert('Auth', 'Please sign in again.'); return; }
+      if (!token) { loadLocalCard(); return; }   // offline fallback
       const r = await fetch(VOCABULARY_ENDPOINTS.EXERCISE, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -199,8 +243,8 @@ function AdaptiveBlock() {
       const j = await r.json();
       setCard(j.data ?? j);
       setStartMs(Date.now());
-    } catch (e: any) {
-      Alert.alert('Error', e?.message || String(e));
+    } catch {
+      loadLocalCard();   // backend unreachable → use local bank
     } finally { setLoading(false); }
   };
 
@@ -211,6 +255,22 @@ function AdaptiveBlock() {
     setSubmitted(true);
     const isCorrect = idx === card.correct_index;
     setSession(s => ({ correct: s.correct + (isCorrect ? 1 : 0), total: s.total + 1 }));
+
+    // Demo / local cards: compute SM-2-style feedback locally, no backend.
+    if (isDemo || card.vocab_id.startsWith('local_')) {
+      const grade = !isCorrect ? 2 : rt < 2000 ? 5 : rt < 5000 ? 4 : 3;
+      const interval = grade <= 2 ? 1 : grade === 3 ? 1 : grade === 4 ? 3 : 6;
+      setResult({
+        is_correct: isCorrect,
+        grade,
+        accuracy: isCorrect ? 100 : 0,
+        mastery_level: isCorrect ? 'learning' : 'new',
+        sm2_interval: interval,
+        sm2_next_review: new Date(Date.now() + interval * 86400000).toISOString(),
+        message: isCorrect ? 'Correct' : 'Incorrect',
+      });
+      return;
+    }
 
     try {
       const token = await getFreshToken();
@@ -233,34 +293,21 @@ function AdaptiveBlock() {
     } catch {}
   };
 
+  const nextCard = () => { if (isDemo) loadLocalCard(); else loadCard(); };
+
   const diffLabel = (ivl: number) => {
     if (ivl <= 0)  return 'New word';
     if (ivl === 1) return 'Review: tomorrow';
     return `Review: in ${ivl} days`;
   };
 
-  if (isDemo) {
-    return (
-      <View style={styles.demoNotice}>
-        <Text style={styles.demoNoticeTitle}>⚡ Adaptive Practice</Text>
-        <Text style={styles.demoNoticeText}>
-          SM-2 spaced repetition exercises (Wozniak 1987) run against the live backend vocabulary engine.
-          Sign in with a real account to practice Academic Word List (AWL) cards selected by your personal SM-2 schedule.
-        </Text>
-        <Text style={[styles.demoNoticeText, { marginTop: 8 }]}>
-          Your demo profile shows {'→'} use the Retention tab to see your SM-2 state snapshot.
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View>
       <View style={styles.srsInfo}>
         <Text style={styles.srsInfoText}>
-          SM-2 spaced repetition (Wozniak 1987). Overdue cards appear first,
-          then new AWL words by sublist. No AI — all content from
-          Academic Word List (Coxhead 2000).
+          {isDemo
+            ? 'Demo mode — practising the Academic Word List (Coxhead 2000) offline. Word→definition multiple choice, graded by response time (DeKeyser & Suzuki 2025).'
+            : 'SM-2 spaced repetition (Wozniak 1987). Overdue cards appear first, then new AWL words by sublist. No AI — all content from Academic Word List (Coxhead 2000).'}
         </Text>
         {session.total > 0 && (
           <Text style={styles.sessionCounter}>
@@ -348,13 +395,13 @@ function AdaptiveBlock() {
       )}
 
       {submitted && (
-        <TouchableOpacity style={styles.primaryBtn} onPress={loadCard} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.primaryBtn} onPress={nextCard} activeOpacity={0.85}>
           <Text style={styles.primaryBtnText}>Next word →</Text>
         </TouchableOpacity>
       )}
 
       {!card && !loading && (
-        <TouchableOpacity style={styles.primaryBtn} onPress={loadCard} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.primaryBtn} onPress={nextCard} activeOpacity={0.85}>
           <Text style={styles.primaryBtnText}>Start practice</Text>
         </TouchableOpacity>
       )}
@@ -509,23 +556,27 @@ function ReadingBlock() {
     AsyncStorage.getItem('active_demo_preset').then(v => { if (v) setIsDemo(true); });
   }, []);
 
-  if (isDemo) {
-    return (
-      <View style={styles.demoNotice}>
-        <Text style={styles.demoNoticeTitle}>📖 Reading Comprehension</Text>
-        <Text style={styles.demoNoticeText}>
-          CEFR-calibrated passages with comprehension questions are generated by the AI backend (Cambridge ESOL framework).
-          Sign in with a real account to access this feature.
-        </Text>
-      </View>
-    );
-  }
+  const correctCount = useMemo(() => {
+    if (!data) return 0;
+    let n = 0;
+    data.questions.forEach((q, i) => { if (answers[i] === q.correct) n++; });
+    return n;
+  }, [data, answers]);
+
+  const loadLocalPassage = async () => {
+    setLoading(true); setData(null); setAnswers({}); setSubmitted(false);
+    const caf = await loadJSON<any[]>('vf_caf_sessions', []);
+    const p = pickReadingPassage(pickCEFR(caf));
+    setData({ title: p.title, passage: p.passage, word_count: p.word_count, questions: p.questions });
+    setLoading(false);
+  };
 
   const generate = async () => {
+    if (isDemo) { loadLocalPassage(); return; }
     setLoading(true); setData(null); setAnswers({}); setSubmitted(false);
     try {
       const token = await getFreshToken();
-      if (!token) throw new Error('not authenticated');
+      if (!token) { await loadLocalPassage(); return; }
       const caf = await loadJSON<any[]>('vf_caf_sessions', []);
       const r = await fetch(PRACTICE_ENDPOINTS.READING, {
         method: 'POST',
@@ -535,23 +586,17 @@ function ReadingBlock() {
       if (!r.ok) throw new Error(`Backend ${r.status}`);
       const j = await r.json();
       setData(j.data);
-    } catch (e: any) {
-      Alert.alert('Reading error', e?.message || String(e));
+    } catch {
+      await loadLocalPassage();   // backend unreachable → local passage
     } finally { setLoading(false); }
   };
-
-  const correctCount = useMemo(() => {
-    if (!data) return 0;
-    let n = 0;
-    data.questions.forEach((q, i) => { if (answers[i] === q.correct) n++; });
-    return n;
-  }, [data, answers]);
 
   return (
     <View>
       <Text style={styles.modeIntro}>
-        CEFR-calibrated passage with 5 mixed comprehension questions
-        (literal + inferential + vocabulary).
+        {isDemo
+          ? 'Demo mode — offline CEFR-calibrated passage with 5 comprehension questions (literal + inferential + vocabulary).'
+          : 'CEFR-calibrated passage with 5 mixed comprehension questions (literal + inferential + vocabulary).'}
       </Text>
 
       <TouchableOpacity style={styles.primaryBtn} onPress={generate} disabled={loading}>
@@ -626,151 +671,428 @@ function ReadingBlock() {
   );
 }
 
-// ─── Listening ──────────────────────────────────────────────────────────────
-function ListeningBlock() {
-  const [loading, setLoading] = useState(false);
-  const [isDemo, setIsDemo] = useState(false);
-  const [sentence, setSentence] = useState<string | null>(null);
-  const [audioB64, setAudioB64] = useState<string | null>(null);
-  const [typed, setTyped] = useState('');
-  const [score, setScore] = useState<any>(null);
-  const [scoring, setScoring] = useState(false);
+// ─── Grammar (Romanian L1 interference drills) ───────────────────────────────
+//
+// Targets the Grammar Accuracy indicator (Neumanová 2021 error analysis).
+// Each item is a documented Romanian→English transfer error: articles,
+// prepositions, tense, word order, double negation, collocations,
+// false friends, agreement. No AI — static, deterministic bank.
+function GrammarBlock() {
+  const [item, setItem] = useState<LocalGrammarItem | null>(null);
+  const [selected, setSelected] = useState<number | null>(null);
+  const [submitted, setSubmitted] = useState(false);
+  const [session, setSession] = useState({ correct: 0, total: 0 });
 
+  const loadItem = async () => {
+    setSelected(null); setSubmitted(false);
+    const caf = await loadJSON<any[]>('vf_caf_sessions', []);
+    setItem(pickGrammarItem(pickCEFR(caf)));
+  };
+
+  useEffect(() => { loadItem(); }, []);
+
+  const pick = (idx: number) => {
+    if (!item || submitted) return;
+    setSelected(idx);
+    setSubmitted(true);
+    setSession(s => ({
+      correct: s.correct + (idx === item.correctIndex ? 1 : 0),
+      total: s.total + 1,
+    }));
+  };
+
+  const isCorrect = item ? selected === item.correctIndex : false;
+
+  return (
+    <View>
+      <View style={styles.srsInfo}>
+        <Text style={styles.srsInfoText}>
+          Romanian L1-interference grammar drills (Neumanová 2021). Each item targets a
+          documented transfer error — articles, prepositions, tense, word order,
+          double negation, collocations, false friends and agreement.
+        </Text>
+        {session.total > 0 && (
+          <Text style={styles.sessionCounter}>
+            Session: {session.correct}/{session.total} correct
+          </Text>
+        )}
+      </View>
+
+      {item && (
+        <View style={styles.exerciseCard}>
+          <View style={styles.wordHeader}>
+            <Text style={styles.defText}>{item.prompt.replace('___', '_____')}</Text>
+            <View style={styles.badgeRow}>
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{GRAMMAR_CATEGORY_LABEL[item.category]}</Text>
+              </View>
+              <View style={[styles.badge, { backgroundColor: '#F1F5F9' }]}>
+                <Text style={[styles.badgeText, { color: '#475569' }]}>{item.cefr}</Text>
+              </View>
+            </View>
+          </View>
+
+          <Text style={styles.exerciseInstruction}>Choose the option that completes the sentence correctly.</Text>
+
+          {item.options.map((opt, i) => {
+            const isSel = selected === i;
+            const ok    = submitted && i === item.correctIndex;
+            const wrong = submitted && isSel && i !== item.correctIndex;
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.option,
+                  isSel  && styles.optionSelected,
+                  ok     && styles.optionCorrect,
+                  wrong  && styles.optionWrong,
+                ]}
+                onPress={() => pick(i)}
+                disabled={submitted}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.optionLetter}>{String.fromCharCode(65 + i)}.</Text>
+                <Text style={styles.optionText}>{opt}</Text>
+              </TouchableOpacity>
+            );
+          })}
+
+          {submitted && (
+            <View style={styles.feedbackBox}>
+              <Text style={[styles.feedbackMain, { color: isCorrect ? '#10B981' : '#EF4444' }]}>
+                {isCorrect ? 'Correct' : 'Incorrect'}
+              </Text>
+              <Text style={styles.exampleSentence}>
+                {item.prompt.replace('___', item.options[item.correctIndex])}
+              </Text>
+              <Text style={styles.grammarRule}>✓ {item.explanation}</Text>
+              <View style={styles.l1NoteBox}>
+                <Text style={styles.l1NoteLabel}>🇷🇴 ROMANIAN L1 NOTE</Text>
+                <Text style={styles.l1NoteText}>{item.l1_note}</Text>
+              </View>
+            </View>
+          )}
+        </View>
+      )}
+
+      {submitted && (
+        <TouchableOpacity style={styles.primaryBtn} onPress={loadItem} activeOpacity={0.85}>
+          <Text style={styles.primaryBtnText}>Next question →</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+// ─── Targeted (LLM exercises targeting the user's weakest CAF indicator) ─────
+//
+// Reads the baseline diagnosis from AsyncStorage, finds the lowest-scoring
+// CAF indicator, maps it to an IELTS criterion, then calls POST /practice/adaptive
+// to get 5 LLM-generated exercises (llama-3.3-70b) aimed at exactly that gap.
+//
+// Exercise types:
+//   fill_blank  — sentence with a blank; user writes; reveal shows expected
+//   rewrite     — sentence to rewrite; user writes; reveal shows model answer
+//   speak_aloud — sentence/task to say aloud; no text input; "Got it" advances
+//   collocation — collocation exercise; user writes; reveal shows correct phrase
+//   translate   — Romanian→English; user writes; reveal shows translation
+//
+// weakest_category defaults to "collocations" (Romanian L1 errors not persisted).
+// Reference: Alderson (2005) — assessment must close the gap between diagnosis
+// and instruction.
+
+// Maps indicator key → IELTS criterion used by /practice/adaptive
+const INDICATOR_CRITERION: Record<string, string> = {
+  lexical_diversity:        'lexical_resource',
+  lexical_sophistication:   'lexical_resource',
+  word_length:              'lexical_resource',
+  sentence_complexity:      'grammatical_range_and_accuracy',
+  subordination_ratio:      'grammatical_range_and_accuracy',
+  syntactic_complexity:     'grammatical_range_and_accuracy',
+  morphosyntactic_accuracy: 'grammatical_range_and_accuracy',
+  articulation_rate:        'fluency_and_coherence',
+  pause_frequency:          'fluency_and_coherence',
+  cohesion_score:           'coherence_and_cohesion',
+};
+
+// Maps human label (stored in baselineDiagnosis.indicators[].name) → indicator key
+const LABEL_TO_KEY: Record<string, string> = {
+  'Vocabulary Range':   'lexical_diversity',
+  'Word Sophistication':'lexical_sophistication',
+  'Word Complexity':    'word_length',
+  'Sentence Length':    'sentence_complexity',
+  'Subordination':      'subordination_ratio',
+  'Syntactic Richness': 'syntactic_complexity',
+  'Speech Rate':        'articulation_rate',
+  'Fluency':            'pause_frequency',
+  'Coherence':          'cohesion_score',
+  'Grammar Accuracy':   'morphosyntactic_accuracy',
+};
+
+const EX_TYPE_LABEL: Record<string, string> = {
+  fill_blank:  'Fill in the Blank',
+  rewrite:     'Rewrite the Sentence',
+  speak_aloud: 'Speak Aloud',
+  collocation: 'Collocation',
+  translate:   'Translate',
+};
+
+type AdaptiveExercise = {
+  type: string;
+  instruction: string;
+  prompt: string;
+  expected: string;
+  explanation: string;
+};
+
+function TargetedBlock() {
+  const [loadingDiag, setLoadingDiag] = useState(true);
+  const [cefrLevel, setCefrLevel]       = useState<string | null>(null);
+  const [weakestLabel, setWeakestLabel] = useState<string>('');
+  const [criterion, setCriterion]       = useState<string>('lexical_resource');
+  const [noDiag, setNoDiag]             = useState(false);
+
+  const [loading, setLoading]     = useState(false);
+  const [exercises, setExercises] = useState<AdaptiveExercise[]>([]);
+  const [idx, setIdx]             = useState(0);
+  const [userAnswer, setUserAnswer] = useState('');
+  const [revealed, setRevealed]   = useState(false);
+  const [done, setDone]           = useState(false);
+
+  // Load baseline diagnosis on mount
   useEffect(() => {
-    AsyncStorage.getItem('active_demo_preset').then(v => { if (v) setIsDemo(true); });
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem('baselineDiagnosis');
+        if (!raw) { setNoDiag(true); setLoadingDiag(false); return; }
+        const diag = JSON.parse(raw);
+        setCefrLevel(diag.cefr || 'B1');
+
+        const inds: { name: string; normalized: number }[] = diag.indicators || [];
+        if (inds.length === 0) {
+          setWeakestLabel('Vocabulary Range');
+          setCriterion('lexical_resource');
+          setLoadingDiag(false);
+          return;
+        }
+        // Find the lowest-scoring indicator
+        const weakest = inds.reduce((a, b) => b.normalized < a.normalized ? b : a);
+        setWeakestLabel(weakest.name);
+        const key = LABEL_TO_KEY[weakest.name] || 'lexical_diversity';
+        setCriterion(INDICATOR_CRITERION[key] || 'lexical_resource');
+      } catch {
+        setNoDiag(true);
+      } finally {
+        setLoadingDiag(false);
+      }
+    })();
   }, []);
 
-  if (isDemo) {
+  const fetchExercises = async () => {
+    if (!cefrLevel) return;
+    setLoading(true);
+    setExercises([]);
+    setIdx(0);
+    setUserAnswer('');
+    setRevealed(false);
+    setDone(false);
+    try {
+      const token = await getFreshToken();
+      if (!token) throw new Error('Not authenticated');
+      const r = await fetch(PRACTICE_ENDPOINTS.ADAPTIVE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          cefr_level:        cefrLevel,
+          weakest_category:  'collocations',
+          weakest_criterion: criterion,
+          target_exam:       'general',
+        }),
+      });
+      if (!r.ok) throw new Error(`Backend ${r.status}`);
+      const j = await r.json();
+      const exs: AdaptiveExercise[] = j.data?.exercises || j.exercises || [];
+      if (exs.length === 0) throw new Error('No exercises returned');
+      setExercises(exs);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'Could not load exercises. Try again.');
+    } finally { setLoading(false); }
+  };
+
+  const advance = () => {
+    if (idx + 1 >= exercises.length) {
+      setDone(true);
+    } else {
+      setIdx(i => i + 1);
+      setUserAnswer('');
+      setRevealed(false);
+    }
+  };
+
+  if (loadingDiag) {
+    return <ActivityIndicator color="#0FBA9A" style={{ marginVertical: 40 }} />;
+  }
+
+  if (noDiag) {
     return (
-      <View style={styles.demoNotice}>
-        <Text style={styles.demoNoticeTitle}>🎧 Listening Transcription</Text>
-        <Text style={styles.demoNoticeText}>
-          TTS-generated sentences scored by word-level diff (SequenceMatcher) require the AI backend.
-          Sign in with a real account to access this feature.
+      <View style={styles.targetedNoDiag}>
+        <Text style={styles.targetedNoDiagTitle}>No diagnosis yet</Text>
+        <Text style={styles.targetedNoDiagText}>
+          Complete the Initial Diagnostic first. These exercises are personalised
+          to your weakest measured language area.
         </Text>
       </View>
     );
   }
 
-  const generate = async () => {
-    setLoading(true); setSentence(null); setAudioB64(null); setTyped(''); setScore(null);
-    try {
-      const token = await getFreshToken();
-      if (!token) throw new Error('not authenticated');
-      const caf = await loadJSON<any[]>('vf_caf_sessions', []);
-      const r = await fetch(PRACTICE_ENDPOINTS.LISTENING_GENERATE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ cefr_level: pickCEFR(caf) }),
-      });
-      if (!r.ok) throw new Error(`Backend ${r.status}`);
-      const j = await r.json();
-      setSentence(j.data.sentence);
-      setAudioB64(j.data.audio_base64 || null);
-    } catch (e: any) {
-      Alert.alert('Listening error', e?.message || String(e));
-    } finally { setLoading(false); }
-  };
-
-  const playAudio = () => {
-    if (!audioB64) return;
-    if (Platform.OS === 'web') {
-      try {
-        const binary = atob(audioB64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const blob = new Blob([bytes], { type: 'audio/mpeg' });
-        const url = URL.createObjectURL(blob);
-        const a = new window.Audio(url);
-        a.onended = () => { try { URL.revokeObjectURL(url); } catch {} };
-        a.play().catch(() => {});
-      } catch {}
-    }
-  };
-
-  const checkAnswer = async () => {
-    if (!sentence || !typed.trim()) return;
-    setScoring(true);
-    try {
-      const token = await getFreshToken();
-      const r = await fetch(PRACTICE_ENDPOINTS.LISTENING_SCORE, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ target: sentence, transcription: typed }),
-      });
-      if (!r.ok) throw new Error(`Backend ${r.status}`);
-      const j = await r.json();
-      setScore(j.data);
-    } catch (e: any) {
-      Alert.alert('Score error', e?.message || String(e));
-    } finally { setScoring(false); }
-  };
+  const ex = exercises[idx];
+  const isSpeakAloud = ex?.type === 'speak_aloud';
 
   return (
     <View>
-      <Text style={styles.modeIntro}>
-        Listen to a sentence (TTS), then transcribe it. The system shows you the
-        word-level diff between what you typed and what was said.
-      </Text>
+      {/* ── Info header ─────────────────────────────────────────────────── */}
+      <View style={styles.targetedHeader}>
+        <Text style={styles.targetedHeaderTitle}>Targeted Practice</Text>
+        <Text style={styles.targetedHeaderSub}>
+          AI-generated exercises personalised to your weakest language area
+        </Text>
+        {!!weakestLabel && (
+          <View style={styles.targetedTag}>
+            <Text style={styles.targetedTagText}>📌 Targeting: {weakestLabel}</Text>
+          </View>
+        )}
+        {!!cefrLevel && (
+          <View style={[styles.targetedTag, styles.targetedTagCefr]}>
+            <Text style={[styles.targetedTagText, { color: '#4338CA' }]}>
+              Level: {cefrLevel}
+            </Text>
+          </View>
+        )}
+      </View>
 
-      <TouchableOpacity style={styles.primaryBtn} onPress={generate} disabled={loading}>
-        {loading
-          ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.primaryBtnText}>{sentence ? '🔄  New sentence' : '🎧  Generate sentence'}</Text>}
-      </TouchableOpacity>
-
-      {audioB64 && (
-        <TouchableOpacity style={styles.secondaryBtn} onPress={playAudio}>
-          <Text style={styles.secondaryBtnText}>▶  Play sentence</Text>
+      {/* ── Generate button ─────────────────────────────────────────────── */}
+      {exercises.length === 0 && !loading && (
+        <TouchableOpacity style={styles.primaryBtn} onPress={fetchExercises} activeOpacity={0.85}>
+          <Text style={styles.primaryBtnText}>✨  Generate exercises</Text>
         </TouchableOpacity>
       )}
-      {sentence && !audioB64 && (
-        <Text style={styles.noAudioHint}>(No TTS available — read the sentence below as a fallback)</Text>
-      )}
 
-      {sentence && (
-        <>
-          <Text style={styles.field}>Type what you hear:</Text>
-          <TextInput
-            style={styles.input}
-            value={typed}
-            onChangeText={setTyped}
-            placeholder="Type the sentence here..."
-            placeholderTextColor="#94A3B8"
-            multiline
-          />
-          <TouchableOpacity
-            style={[styles.primaryBtn, (!typed.trim() || scoring) && { opacity: 0.5 }]}
-            onPress={checkAnswer}
-            disabled={!typed.trim() || scoring}
-          >
-            {scoring ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>✓  Check</Text>}
-          </TouchableOpacity>
-        </>
-      )}
-
-      {score && (
-        <View style={styles.scoreCard}>
-          <Text style={styles.scoreLabel}>Word accuracy</Text>
-          <Text style={[styles.scoreNum, {
-            color: score.score >= 80 ? '#10B981' : score.score >= 50 ? '#F59E0B' : '#EF4444',
-          }]}>{score.score}%</Text>
-          <Text style={styles.scoreSub}>
-            {score.matched_count} / {score.target_word_count} words matched · char similarity {score.char_similarity}%
-          </Text>
-          {score.missed?.length > 0 && (
-            <Text style={[styles.scoreDetail, { color: '#EF4444' }]}>
-              Missed: {score.missed.join(', ')}
-            </Text>
-          )}
-          {score.extra?.length > 0 && (
-            <Text style={[styles.scoreDetail, { color: '#F59E0B' }]}>
-              Extra (not in original): {score.extra.join(', ')}
-            </Text>
-          )}
-          <Text style={styles.targetLabel}>Original sentence:</Text>
-          <Text style={styles.targetText}>{sentence}</Text>
+      {loading && (
+        <View style={styles.targetedLoadingBox}>
+          <ActivityIndicator color="#0FBA9A" />
+          <Text style={styles.targetedLoadingText}>AI is generating exercises for you…</Text>
         </View>
+      )}
+
+      {/* ── Done state ──────────────────────────────────────────────────── */}
+      {done && (
+        <View style={styles.targetedDoneCard}>
+          <Text style={styles.targetedDoneEmoji}>🎉</Text>
+          <Text style={styles.targetedDoneTitle}>Set complete!</Text>
+          <Text style={styles.targetedDoneSub}>
+            You finished all {exercises.length} exercises targeting your{' '}
+            {weakestLabel.toLowerCase()} skills.
+          </Text>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { marginTop: 16, marginBottom: 0 }]}
+            onPress={fetchExercises}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>✨  New set</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Active exercise ─────────────────────────────────────────────── */}
+      {!done && ex && (
+        <>
+          {/* Step dots */}
+          <View style={styles.targetedStepRow}>
+            {exercises.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.targetedStepDot,
+                  i < idx  && styles.targetedStepDotDone,
+                  i === idx && styles.targetedStepDotActive,
+                ]}
+              />
+            ))}
+          </View>
+
+          <View style={styles.targetedExCard}>
+            {/* Type tag + counter */}
+            <View style={styles.targetedTypeRow}>
+              <View style={styles.targetedTypeTag}>
+                <Text style={styles.targetedTypeText}>
+                  {EX_TYPE_LABEL[ex.type] || ex.type.replace('_', ' ').toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.targetedStepLabel}>{idx + 1} / {exercises.length}</Text>
+            </View>
+
+            {/* Instruction */}
+            <Text style={styles.targetedInstruction}>{ex.instruction}</Text>
+
+            {/* Prompt */}
+            <Text style={styles.targetedPrompt}>{ex.prompt}</Text>
+
+            {/* Input or "Got it" — only shown before reveal */}
+            {!revealed && (
+              isSpeakAloud ? (
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginTop: 12, marginBottom: 0 }]}
+                  onPress={advance}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>✓  Got it</Text>
+                </TouchableOpacity>
+              ) : (
+                <>
+                  <TextInput
+                    style={styles.targetedInput}
+                    placeholder="Type your answer…"
+                    placeholderTextColor="#94A3B8"
+                    value={userAnswer}
+                    onChangeText={setUserAnswer}
+                    multiline
+                    textAlignVertical="top"
+                  />
+                  <TouchableOpacity
+                    style={styles.targetedRevealBtn}
+                    onPress={() => setRevealed(true)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.targetedRevealText}>Reveal answer</Text>
+                  </TouchableOpacity>
+                </>
+              )
+            )}
+
+            {/* Revealed answer */}
+            {revealed && (
+              <View style={styles.targetedAnswerBox}>
+                <Text style={styles.targetedAnswerLabel}>EXPECTED ANSWER</Text>
+                <Text style={styles.targetedAnswerText}>{ex.expected}</Text>
+                {!!ex.explanation && (
+                  <>
+                    <Text style={[styles.targetedAnswerLabel, { marginTop: 10 }]}>WHY</Text>
+                    <Text style={styles.targetedExplanation}>{ex.explanation}</Text>
+                  </>
+                )}
+                <TouchableOpacity
+                  style={[styles.primaryBtn, { marginTop: 14, marginBottom: 0 }]}
+                  onPress={advance}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.primaryBtnText}>
+                    {idx + 1 < exercises.length ? 'Next →' : 'Finish ✓'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </>
       )}
     </View>
   );
@@ -790,13 +1112,13 @@ const styles = StyleSheet.create({
   backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   title: { fontSize: 24, fontWeight: '800', color: '#0F172A', letterSpacing: -0.4 },
 
+  tabBarOuter: { backgroundColor: '#F8FAFC' },
   tabBar: {
     flexDirection: 'row', gap: 6,
     paddingHorizontal: 20, paddingVertical: 10,
-    backgroundColor: '#F8FAFC',
   },
   tab: {
-    flex: 1, paddingVertical: 10, borderRadius: 12,
+    minWidth: 86, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12,
     backgroundColor: '#E2E8F0', borderWidth: 1.5, borderColor: '#94A3B8',
     alignItems: 'center',
   },
@@ -869,6 +1191,15 @@ const styles = StyleSheet.create({
   feedbackSub: { fontSize: 12, color: '#64748B', marginBottom: 6 },
   exampleSentence: { fontSize: 13, color: '#0F172A', fontStyle: 'italic', lineHeight: 19, marginTop: 4 },
   synonyms: { fontSize: 11, color: '#94A3B8', marginTop: 6 },
+
+  // Grammar feedback
+  grammarRule: { fontSize: 13, color: '#0F766E', fontWeight: '600', lineHeight: 19, marginTop: 8 },
+  l1NoteBox: {
+    marginTop: 10, padding: 10, borderRadius: 8,
+    backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D',
+  },
+  l1NoteLabel: { fontSize: 9, fontWeight: '900', color: '#B45309', letterSpacing: 0.6, marginBottom: 3 },
+  l1NoteText: { fontSize: 12, color: '#92400E', lineHeight: 17 },
 
   // Retention
   retentionSummary: { flexDirection: 'row', gap: 8, marginBottom: 10 },
@@ -967,4 +1298,103 @@ const styles = StyleSheet.create({
     fontSize: 14, color: '#0F172A', marginBottom: 10,
     minHeight: 80, textAlignVertical: 'top',
   },
+
+  // Targeted
+  targetedNoDiag: {
+    backgroundColor: '#F1F5F9', borderRadius: 14, padding: 24, alignItems: 'center',
+  },
+  targetedNoDiagTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
+  targetedNoDiagText: { fontSize: 13, color: '#64748B', lineHeight: 19, textAlign: 'center' },
+
+  targetedHeader: {
+    backgroundColor: '#ECFDF5', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 14, gap: 6,
+  },
+  targetedHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  targetedHeaderSub: { fontSize: 12, color: '#475569', lineHeight: 17 },
+  targetedTag: {
+    alignSelf: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 999,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: '#6EE7B7',
+  },
+  targetedTagCefr: { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' },
+  targetedTagText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
+
+  targetedLoadingBox: {
+    flexDirection: 'row', gap: 12, alignItems: 'center',
+    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  targetedLoadingText: { fontSize: 13, color: '#64748B' },
+
+  targetedDoneCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 22,
+    alignItems: 'center', borderWidth: 1.5, borderColor: '#0FBA9A',
+  },
+  targetedDoneEmoji: { fontSize: 40, marginBottom: 8 },
+  targetedDoneTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 6 },
+  targetedDoneSub: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 19 },
+
+  targetedStepRow: {
+    flexDirection: 'row', gap: 6, marginBottom: 12, justifyContent: 'center',
+  },
+  targetedStepDot: {
+    width: 10, height: 10, borderRadius: 5, backgroundColor: '#E2E8F0',
+  },
+  targetedStepDotDone:   { backgroundColor: '#A7F3D0' },
+  targetedStepDotActive: { backgroundColor: '#0FBA9A', width: 24, borderRadius: 5 },
+
+  targetedExCard: {
+    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: '#E5E7EB',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 }, elevation: 2,
+  },
+  targetedTypeRow: {
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', marginBottom: 10,
+  },
+  targetedTypeTag: {
+    backgroundColor: '#F0FDF4', borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderWidth: 1, borderColor: '#BBF7D0',
+  },
+  targetedTypeText: {
+    fontSize: 10, fontWeight: '800', color: '#15803D', letterSpacing: 0.5,
+  },
+  targetedStepLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '700' },
+
+  targetedInstruction: {
+    fontSize: 13, color: '#64748B', marginBottom: 10, lineHeight: 18,
+  },
+  targetedPrompt: {
+    fontSize: 15, fontWeight: '700', color: '#0F172A', lineHeight: 22, marginBottom: 12,
+    paddingVertical: 10, paddingHorizontal: 12,
+    backgroundColor: '#F8FAFC', borderRadius: 10,
+    borderWidth: 1, borderColor: '#E2E8F0',
+  },
+  targetedInput: {
+    backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
+    borderWidth: 1.5, borderColor: '#CBD5E1',
+    fontSize: 14, color: '#0F172A', marginBottom: 10,
+    minHeight: 70, textAlignVertical: 'top',
+  },
+  targetedRevealBtn: {
+    backgroundColor: '#1E293B',
+    paddingVertical: 11, borderRadius: 12, alignItems: 'center',
+  },
+  targetedRevealText: { color: '#fff', fontSize: 13, fontWeight: '800' },
+
+  targetedAnswerBox: {
+    marginTop: 12, padding: 12,
+    backgroundColor: '#F0FDF4', borderRadius: 10,
+    borderWidth: 1, borderColor: '#BBF7D0',
+  },
+  targetedAnswerLabel: {
+    fontSize: 9, fontWeight: '900', color: '#15803D', letterSpacing: 0.8, marginBottom: 4,
+  },
+  targetedAnswerText: {
+    fontSize: 14, fontWeight: '700', color: '#0F172A', lineHeight: 21,
+  },
+  targetedExplanation: { fontSize: 12, color: '#064E3B', lineHeight: 18 },
 });

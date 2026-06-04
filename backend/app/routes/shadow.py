@@ -1,13 +1,18 @@
 from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
 from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
-from app.services.shadow_speaking import transcribe_audio, analyze_fluency
+from app.services.shadow_speaking import transcribe_audio_with_timestamps, analyze_fluency
+from app.services.phoneme_remote import assess_pronunciation
 from app.services.tts import text_to_speech
-from app.services.firestore import save_shadow_session
+from app.services.firestore import save_shadow_session, get_shadow_sessions
+from app.services.coca_genre_classifier import classify_text_genre
 from app.services.auth import verify_token
+import logging
 import tempfile
 import os
 import io
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -86,9 +91,43 @@ async def analyze_shadow(
         tmp_path = tmp.name
 
     try:
-        transcribed = transcribe_audio(tmp_path)
-        result = analyze_fluency(transcribed, original_text)
+        # 1) Transcribe with timestamps → text + WPM (de Jong & Wempe 2009)
+        ts_result   = transcribe_audio_with_timestamps(tmp_path)
+        transcribed = ts_result["text"]
+        wpm         = ts_result["wpm"]
+
+        # 2) Classify COCA genre of the target text → genre-specific WPM norms
+        genre = "_default"
+        try:
+            genre_info = classify_text_genre(original_text)
+            detected   = genre_info.get("dominant_group")
+            if detected:
+                genre = detected
+        except Exception as _genre_err:
+            logger.warning("Genre classification failed: %s", _genre_err)
+
+        # 3) Phoneme scoring — always available via local CMU-dict PER (Tier 1),
+        #    optionally upgraded to wav2vec2 via Colab (Tier 2, set COLAB_PHONEME_URL).
+        #    assess_pronunciation() never returns None — guaranteed by Tier 1.
+        try:
+            phoneme_result = assess_pronunciation(tmp_path, original_text, transcribed)
+            phoneme_score  = int(phoneme_result.get("accuracy_score", 0))
+        except Exception as _ph_err:
+            logger.warning("Phoneme scoring failed unexpectedly: %s", _ph_err)
+            phoneme_score = None
+
+        # 4) Full fluency analysis: word accuracy + WPM + pause detection + phoneme
+        result = analyze_fluency(
+            transcribed=transcribed,
+            original=original_text,
+            wpm=wpm,
+            phoneme_score=phoneme_score,
+            segments=ts_result.get("segments", []),
+            duration_s=ts_result["duration_s"],
+            genre=genre,
+        )
         result["transcribed_text"] = transcribed
+        result["duration_s"]       = ts_result["duration_s"]
 
         if authorization and authorization.startswith("Bearer "):
             try:
@@ -98,11 +137,107 @@ async def analyze_shadow(
                     user_id=user["uid"],
                     original_text=original_text,
                     transcribed=transcribed,
-                    score=result["accuracy_score"]
+                    score=result["accuracy_score"],
+                    wpm=wpm,
+                    word_accuracy=result["word_accuracy"],
+                    phoneme_score=phoneme_score,
+                    pause_count=result["pause_analysis"]["pause_count"],
+                    pause_rate_per_min=result["pause_analysis"]["pause_rate_per_min"],
+                    fluency_label=result["pause_analysis"]["fluency_label"],
+                    genre=genre,
+                    duration_s=ts_result["duration_s"],
                 )
-            except:
-                pass
+            except Exception as _save_err:
+                logger.warning("Could not save shadow session: %s", _save_err)
 
         return result
     finally:
         os.unlink(tmp_path)
+
+
+@router.get("/progress")
+async def shadow_progress(authorization: str = Header(None)):
+    """
+    Return the user's shadow speaking history (last 30 sessions) with trend data.
+
+    Response shape:
+    {
+      "sessions": [
+        {
+          "id": "...",
+          "created_at": "...",
+          "accuracy_score": int,
+          "word_accuracy": int,
+          "phoneme_score": int | null,
+          "wpm": int,
+          "pause_count": int,
+          "pause_rate_per_min": float,
+          "fluency_label": str,
+          "genre": str,
+          "duration_s": float,
+          "original_text": str
+        }, ...
+      ],
+      "trend": {
+        "accuracy_delta":   float,   # last session - first session (positive = improving)
+        "avg_accuracy":     float,
+        "avg_wpm":          float,
+        "avg_pause_rate":   float,
+        "total_sessions":   int,
+        "total_practice_s": float
+      }
+    }
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        token = authorization.replace("Bearer ", "")
+        user  = verify_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    sessions = get_shadow_sessions(user["uid"], limit=30)
+
+    # Compute trend metrics
+    trend: dict = {
+        "accuracy_delta":   0.0,
+        "avg_accuracy":     0.0,
+        "avg_wpm":          0.0,
+        "avg_pause_rate":   0.0,
+        "total_sessions":   len(sessions),
+        "total_practice_s": 0.0,
+    }
+
+    if sessions:
+        scores       = [s.get("accuracy_score", 0) for s in sessions]
+        wpms         = [s.get("wpm", 0) for s in sessions if s.get("wpm", 0) > 0]
+        pause_rates  = [s.get("pause_rate_per_min", 0.0) for s in sessions]
+        durations    = [s.get("duration_s", 0.0) for s in sessions]
+
+        trend["avg_accuracy"]     = round(sum(scores) / len(scores), 1)
+        trend["avg_wpm"]          = round(sum(wpms) / len(wpms), 1) if wpms else 0.0
+        trend["avg_pause_rate"]   = round(sum(pause_rates) / len(pause_rates), 2)
+        trend["total_practice_s"] = round(sum(durations), 1)
+        # sessions are newest-first → delta = newest - oldest
+        trend["accuracy_delta"]   = round(scores[0] - scores[-1], 1)
+
+    # Strip heavy fields for the list view (keep original_text short)
+    slim_sessions = []
+    for s in sessions:
+        slim_sessions.append({
+            "id":                 s.get("id"),
+            "created_at":        s.get("created_at"),
+            "accuracy_score":    s.get("accuracy_score"),
+            "word_accuracy":     s.get("word_accuracy"),
+            "phoneme_score":     s.get("phoneme_score"),
+            "wpm":               s.get("wpm"),
+            "pause_count":       s.get("pause_count"),
+            "pause_rate_per_min":s.get("pause_rate_per_min"),
+            "fluency_label":     s.get("fluency_label"),
+            "genre":             s.get("genre"),
+            "duration_s":        s.get("duration_s"),
+            "original_text":     (s.get("original_text") or "")[:120],
+        })
+
+    return {"sessions": slim_sessions, "trend": trend}

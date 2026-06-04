@@ -6,7 +6,17 @@ Uses SM-2 algorithm for adaptive review scheduling:
 - interval: days until next review
 - repetitions: how many times correctly answered
 
-Based on research by Piotr Wozniak (SuperMemo).
+Research Foundation:
+- SM-2 algorithm for adaptive spaced repetition scheduling (easiness factor + interval growth).
+- DeKeyser, R. M., & Suzuki, Y. (2025). Skill acquisition theory. In VanPatten et al.
+  (Eds.), Theories in SLA: An introduction (4th ed., pp. 157–182). Routledge. [_PREPR2]
+  Skill Acquisition Theory justifies the SRS design: declarative knowledge of vocabulary
+  (form+meaning) must be proceduralized through repeated, spaced retrieval practice until
+  automatization is achieved.
+- Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., & Rohrer, D. (2006). Distributed
+  practice in verbal recall tasks: A review and quantitative synthesis. Psychological
+  Bulletin, 132(3), 354–380. [Cepeda2006] Confirms spaced re-use as the strongest
+  predictor of long-term lexical retention over massed practice.
 """
 
 from datetime import datetime, timedelta

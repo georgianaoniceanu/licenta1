@@ -9,6 +9,19 @@ articles_text/:
                                     not random). Closes the assessment loop
                                     advocated by Alderson (2005) and demanded
                                     by the project supervisor.
+                                    Norris, J. M. (2017). Task-based language
+                                    assessment: Aligning designs with intended uses
+                                    and consequences. JLTA Journal, 21, 3–20.
+                                    Task-based designs are required when the goal is
+                                    to assess what learners can *do*, not merely
+                                    what they know; adaptive tasks here instantiate
+                                    this principle per indicator gap.
+                                    DeKeyser, R. M., & Suzuki, Y. (2025). Skill
+                                    acquisition theory. Routledge (pp. 157–182).
+                                    Targeting the weakest skill for focused practice
+                                    accelerates proceduralization (Anderson 2004);
+                                    LLM-generated exercises provide the varied input
+                                    needed for automatization.
 
   GET  /practice/word-retention  — Tracks which B2/C1/C2 words the learner has
                                     actually re-used across multiple sessions.
@@ -23,6 +36,14 @@ articles_text/:
   POST /practice/listening       — TTS reads a sentence; the user transcribes;
                                     backend scores the gap. Adds the fourth
                                     skill (listening comprehension).
+                                    Asrifan, A., Cardoso, L. M. O. B., & Vargheese,
+                                    K. J. (2026). Automated feedback for speaking
+                                    and writing skills: Deep learning in English
+                                    language assessment. EduLite, 11(1), 67–85.
+                                    AI-generated feedback produces statistically
+                                    significant gains in grammatical accuracy,
+                                    lexical diversity, and fluency; most effective
+                                    for form-focused elements.
 
 All four are wrapped with @cached so repeated identical inputs do not burn
 Groq quota during a thesis demonstration.
@@ -260,7 +281,7 @@ async def word_retention(payload: RetentionPayload, authorization: str = Header(
 class ReadingPayload(BaseModel):
     cefr_level: str = "B1"
     topic: Optional[str] = None       # if omitted, LLM picks one
-    domain: Optional[str] = None      # COCA top-level genre (ACAD, NEWS, etc.)
+    domain: Optional[str] = None      # COCAGenre value: academic, newspaper, fiction, spoken, magazine…
 
 
 @cached("reading_passage", ttl=24 * 3600)

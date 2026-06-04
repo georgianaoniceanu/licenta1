@@ -59,7 +59,7 @@ class Assessment(Base):
     task_name = Column(String(200))
     
     # Domain type (new field for domain-specific assessment)
-    domain_type = Column(String(20), default="description")  # narration, description, argumentation, conversation, academic, technical
+    domain_type = Column(String(20), default="spoken")  # COCA genre: spoken, academic, newspaper, fiction, magazine, web, blog, movies, tv
     
     # Input data
     text_input = Column(Text)  # For writing

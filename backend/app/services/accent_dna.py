@@ -2,9 +2,35 @@ from groq import Groq
 from dotenv import load_dotenv
 import os
 import json
+import re
+import difflib
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# Import complete Romanian phonological difficulty data (Măchiță 2021)
+from app.services.Romanian_Phone_Patterns import (
+    VOWEL_DIFFICULTIES,
+    CONSONANT_DIFFICULTIES,
+    ALLOPHONE_DIFFICULTIES,
+    ROMANIAN_SPEAKER_PHONEME_RANKING,
+    INTERVENTION_STRATEGIES,
+    PHONEME_EXERCISE_LEVELS,
+)
+
+# Flat map: IPA symbol → difficulty data (used in build_phoneme_result)
+# Covers both vowels and consonants from Măchiță (2021)
+_ROMANIAN_HARD_PHONEMES: dict = {}
+for _name, _data in VOWEL_DIFFICULTIES.items():
+    # Extract IPA symbols from names like "/i:/ vs /ɪ/"
+    for _sym in re.findall(r"[iːɪuʊæɑʌəɐ]+", _name):
+        _ROMANIAN_HARD_PHONEMES[_sym] = {**_data, "category": "vowel", "name": _name}
+for _name, _data in CONSONANT_DIFFICULTIES.items():
+    for _sym in re.findall(r"[θðŋ]", _name):
+        _ROMANIAN_HARD_PHONEMES[_sym] = {**_data, "category": "consonant", "name": _name}
+for _name, _data in ALLOPHONE_DIFFICULTIES.items():
+    for _sym in re.findall(r"[ɫ]", _name):
+        _ROMANIAN_HARD_PHONEMES[_sym] = {**_data, "category": "allophone", "name": _name}
 
 # ============================================================================
 # ROMANIAN LEARNER PHONEME ERROR PATTERNS (from Măchiță 2021 dissertation)
@@ -248,59 +274,228 @@ def get_phoneme_patterns(target_text: str) -> dict:
     
     return problematic
 
+def _norm_words(s: str):
+    return re.sub(r"[^\w\s']", "", s.lower()).split()
+
+
+def _similarity(transcribed: str, target: str) -> dict:
+    """
+    Deterministic ASR-based similarity between the Whisper transcription and the
+    target. This is the ONLY objective signal we have: a robust ASR like Whisper
+    normalises mild mispronunciations back to the intended word, so an exact
+    match means the speech was *intelligible* — it does NOT prove phoneme-level
+    accuracy. A mismatch, however, means the mispronunciation was strong enough
+    that even the ASR misheard it → a reliable error signal.
+    """
+    tw, gw = _norm_words(transcribed), _norm_words(target)
+    word_sim = difflib.SequenceMatcher(None, tw, gw).ratio() if gw else 0.0
+    tc = re.sub(r"[^\w]", "", transcribed.lower())
+    gc = re.sub(r"[^\w]", "", target.lower())
+    char_sim = difflib.SequenceMatcher(None, tc, gc).ratio() if gc else 0.0
+    return {
+        "word_sim": word_sim,
+        "char_sim": char_sim,
+        "combined": 0.6 * word_sim + 0.4 * char_sim,
+        "missed": [w for w in gw if w not in tw],
+    }
+
+
+def build_phoneme_result(colab: dict, target_text: str) -> dict:
+    """
+    Map the Colab wav2vec2-espeak result into the frontend feedback shape.
+    This is REAL phoneme-level scoring (not intelligibility), so accuracy can
+    legitimately reach Excellent and drops with genuine substitutions.
+    """
+    acc = int(colab.get("accuracy_score", 0))
+    errors = colab.get("errors", []) or []
+    expected = colab.get("expected_phonemes", []) or []
+    produced = colab.get("produced_phonemes", []) or []
+
+    # Build problematic phoneme list using complete Măchiță (2021) data.
+    # Severity and error_rate now come from real research data where available.
+    problematic = []
+    for e in errors:
+        exp  = (e.get("expected") or "").strip()
+        prod = (e.get("produced") or "").strip()
+        if not exp:          # pure insertion → skip
+            continue
+
+        # Look up in Romanian difficulty map (vowels + consonants + allophones)
+        ro_data = None
+        for sym in exp:
+            if sym in _ROMANIAN_HARD_PHONEMES:
+                ro_data = _ROMANIAN_HARD_PHONEMES[sym]
+                break
+
+        if ro_data:
+            err_rate = ro_data.get("romanian_speaker_error_rate", 0)
+            sev = "high" if err_rate >= 0.65 else "medium"
+            category = ro_data.get("category", "consonant")
+            name = ro_data.get("name", f"/{exp}/")
+            example_str = (f"expected /{exp}/, you said [{prod}]" if prod
+                           else f"expected /{exp}/ — omitted")
+            # Add correction tip from intervention strategies if available
+            intervention = INTERVENTION_STRATEGIES.get(name, {})
+            tip = intervention.get("steps", [""])[0] if intervention else ""
+        else:
+            err_rate = 0
+            sev = "medium"
+            category = "consonant"
+            name = f"/{exp}/"
+            example_str = (f"expected /{exp}/, you said [{prod}]" if prod
+                           else f"expected /{exp}/ — omitted")
+            tip = ""
+
+        problematic.append({
+            "phoneme": f"/{exp}/",
+            "phoneme_name": name,
+            "category": category,
+            "detected_error": prod or "(omitted)",
+            "example": example_str,
+            "severity": sev,
+            "error_rate": round(err_rate * 100),   # e.g. 90 for /θ/
+            "correction_tip": tip,
+        })
+
+    if acc >= 85:
+        fb = "Excellent — your phonemes are well formed and close to native."
+    elif acc >= 65:
+        fb = "Good. Most sounds are correct; refine the highlighted phonemes."
+    else:
+        fb = "Several sounds were mispronounced — focus on the highlighted phonemes below."
+
+    suggestions = [
+        {"issue": f"/{e['expected']}/ → [{e.get('produced', '') or 'omitted'}]",
+         "fix": f"Practise minimal pairs that contrast /{e['expected']}/",
+         "priority": "high"}
+        for e in errors[:3] if (e.get("expected") or "").strip()
+    ]
+
+    # Sort problematic by error_rate descending (highest Romanian difficulty first)
+    problematic.sort(key=lambda x: x.get("error_rate", 0), reverse=True)
+
+    # Determine which scoring engine was used (local CMU-dict PER or Colab wav2vec2)
+    _engine      = colab.get("engine", "cmudict-PER (local, deterministic)")
+    _engine_det  = colab.get("engine_detail", _engine)
+    _tier        = colab.get("_tier", "local-cmudict-per")
+
+    return {
+        "accuracy_score": acc,
+        "intelligibility_only": False,           # this IS phoneme-verified
+        "problematic_phonemes": problematic[:6],
+        "coarticulation_notes": "",
+        "suggestions": suggestions,
+        "overall_feedback": fb,
+        "similarity": {"word": acc, "char": acc},
+        "expected_phonemes": expected,
+        "produced_phonemes": produced,
+        "alignment": colab.get("alignment", []),
+        "word_breakdown": colab.get("word_breakdown", []),
+        "engine":      _engine,
+        "engine_tier": _tier,   # "local-cmudict-per" | "colab-wav2vec2"
+        "data_source": _engine_det,
+        # Full Romanian phonological profile (Măchiță 2021) — for UI breakdown
+        "romanian_phoneme_ranking": ROMANIAN_SPEAKER_PHONEME_RANKING,
+        "exercise_priorities": PHONEME_EXERCISE_LEVELS,
+    }
+
+
 def analyze_pronunciation(transcribed_text: str, target_text: str) -> dict:
-    """Analyze pronunciation with Romanian-specific patterns from Măchiță"""
-    
-    # Get relevant phoneme patterns
+    """
+    Calibrated pronunciation analysis (Măchiță 2021 Romanian patterns).
+
+    Scoring is grounded on the deterministic ASR-similarity signal, NOT on the
+    LLM's free guess (which previously returned ~95 whenever the two texts
+    matched, because Whisper hides mispronunciations). The LLM is now used only
+    for qualitative phoneme feedback, constrained to the computed score.
+    """
     patterns = get_phoneme_patterns(target_text)
-    
-    # Build context for LLM
+    sim = _similarity(transcribed_text, target_text)
+    combined = sim["combined"]
+
+    # ── Calibrated, honest score ────────────────────────────────────────────
+    if not transcribed_text.strip():
+        accuracy = 0
+        verified_errors = True          # nothing usable captured
+    elif combined >= 0.95:
+        # ASR fully recovered the target → intelligible, but phonemes unverified.
+        # Honest "good" band (NOT auto-Excellent). Slight deterministic variation.
+        accuracy = 74 + (len(target_text) % 6)        # 74–79 → "Good"
+        verified_errors = False
+    else:
+        # ASR misheard → genuine mispronunciation, scaled by how far off it was.
+        accuracy = max(20, round(combined * 70))      # 20–66 → "Needs work"
+        verified_errors = True
+
+    # ── Problematic phonemes (deterministic, consistent with the score) ─────
+    problematic = []
+    for ph, details in patterns.items():
+        subs = details.get("substitutions", {})
+        first_sub = next(iter(subs.items()), (None, {}))
+        problematic.append({
+            "phoneme": ph,
+            "detected_error": first_sub[0] or "—",
+            "example": (first_sub[1] or {}).get("example", ""),
+            # If the ASR misheard, treat these L1-hard sounds as likely errors;
+            # otherwise present them as advisories to keep monitoring.
+            "severity": "high" if verified_errors else "low",
+            "error_rate": details.get("error_rate", 0),
+            "frequency": (first_sub[1] or {}).get("frequency", 0),
+        })
+
+    # ── Qualitative feedback from the LLM, constrained to the computed score ──
     pattern_context = ""
-    for phoneme, details in patterns.items():
-        pattern_context += f"\n{phoneme}:\n"
-        pattern_context += f"  Error rate: {details.get('error_rate', 0)}%\n"
-        if 'substitutions' in details:
-            for sub, info in details['substitutions'].items():
-                pattern_context += f"  Common mistake: {sub} ({info.get('frequency', 0)}%) - {info.get('example', '')}\n"
-    
-    system_prompt = f"""You are a phonetics expert specializing in Romanian-English pronunciation.
-You have Măchiță's (2021) dissertation data on Romanian learners' phoneme errors.
+    for ph, details in patterns.items():
+        pattern_context += f"\n{ph}: error rate {details.get('error_rate', 0)}%"
 
-ROMANIAN LEARNER PATTERNS (from experimental data):
-{pattern_context if pattern_context else "Check for /θ/, /ð/, /ŋ/, [ɫ], [kh], [th] errors"}
+    note = (
+        "The speech was intelligible (ASR recovered the target), but exact "
+        "phoneme accuracy cannot be verified from ASR alone — keep monitoring "
+        "the Romanian-hard sounds below."
+        if not verified_errors else
+        "The recording differed from the target, indicating real "
+        "mispronunciation of one or more sounds."
+    )
 
-Your job:
-1. Compare transcribed vs target text
-2. Identify pronunciation errors using Romanian error patterns
-3. For each error, provide specific correction feedback
-4. Rate severity based on frequency data (high=common, medium=moderate, low=rare)
-5. Provide encouraging feedback
+    suggestions = []
+    overall_feedback = note
+    try:
+        system_prompt = f"""You are a Romanian-English phonetics coach (Măchiță 2021 data).
+The pronunciation has ALREADY been scored: accuracy_score = {accuracy}/100
+({"intelligible, phonemes unverified" if not verified_errors else "mispronunciation detected"}).
+Romanian-hard phonemes in this text:{pattern_context or " (general)"}
 
+Write SHORT, encouraging feedback CONSISTENT with that score. Do NOT change the score.
 Respond ONLY with valid JSON (no markdown):
 {{
-    "accuracy_score": 0-100,
-    "problematic_phonemes": [
-        {{"phoneme": "/θ/", "detected_error": "t", "example": "think→tink", "severity": "high", "error_rate": 90, "frequency": 60}}
-    ],
-    "coarticulation_notes": "Description of context-based errors if any",
-    "suggestions": [
-        {{"issue": "description", "fix": "specific practice", "priority": "high"}}
-    ],
-    "overall_feedback": "Encouraging feedback with next steps"
+  "suggestions": [{{"issue": "short", "fix": "specific practice", "priority": "high|medium|low"}}],
+  "overall_feedback": "1-2 sentences, encouraging, consistent with the score"
 }}"""
-    
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Target: '{target_text}'\nTranscribed: '{transcribed_text}'"}
-        ]
-    )
-    
-    result = json.loads(response.choices[0].message.content)
-    
-    # Add Măchiță data to response
-    result["romanian_patterns"] = patterns
-    result["data_source"] = "Măchiță (2021) dissertation on Romanian L2 English phonology"
-    
-    return result
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Target: '{target_text}'\nHeard: '{transcribed_text}'"},
+            ],
+        )
+        llm = json.loads(response.choices[0].message.content)
+        suggestions = llm.get("suggestions", []) or []
+        overall_feedback = llm.get("overall_feedback") or note
+    except Exception as e:
+        print(f"[analyze_pronunciation] LLM feedback failed: {e}")
+
+    return {
+        "accuracy_score": accuracy,
+        "intelligibility_only": not verified_errors,
+        "problematic_phonemes": problematic,
+        "coarticulation_notes": "",
+        "suggestions": suggestions,
+        "overall_feedback": overall_feedback,
+        "similarity": {
+            "word": round(sim["word_sim"] * 100),
+            "char": round(sim["char_sim"] * 100),
+        },
+        "missed_words": sim["missed"],
+        "romanian_patterns": patterns,
+        "data_source": "Măchiță (2021) dissertation on Romanian L2 English phonology",
+    }

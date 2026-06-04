@@ -200,66 +200,107 @@ class TestWeights:
 
 
 class DomainWeights:
-    """Domain-specific indicator weighting (based on task requirements)"""
-    
+    """
+    COCA genre-specific indicator weighting.
+
+    Each genre foregrounds different CAF dimensions:
+      Source: Tauroza & Allison (1990) register variation; Pallotti (2009) CAF framework;
+              Davies (COCA) — genre frequency profiles.
+    """
+
     WEIGHTS = {
-        "narration": {
-            # Narration = storytelling: needs fluency, coherence, and accurate past tenses
-            'Fluency': 0.25,       # Natural flow through story
-            'Coherence': 0.25,    # Logical sequence of events
-            'MLS': 0.15,           # Varied sentence structure for narrative
-            'WCR': 0.20,           # Accurate verb tenses (past tense control critical)
-            'MicroFluency': 0.10,  # No major pauses in narrative flow
-            'Pronunciation': 0.05,
+        # ── Spoken (TV/radio, interviews, talk shows) ─────────────────────────
+        # Real-time interaction: fluency and pronunciation are critical.
+        "spoken": {
+            'Fluency':      0.30,   # WPM — natural conversational pace
+            'Pronunciation':0.25,   # Clear articulation for comprehension
+            'MicroFluency': 0.20,   # Minimal pauses, smooth turn-taking
+            'Coherence':    0.15,   # Relevant, connected responses
+            'WCR':          0.10,   # Grammatical accuracy in live speech
         },
-        "description": {
-            # Description = detailing people/places/objects: needs vocabulary and adjectives
-            'MTLD': 0.25,          # Rich lexical diversity for vivid description
-            'AWL%': 0.20,          # Academic descriptive language
-            'Coherence': 0.20,     # Logical organization of details
-            'WCR': 0.15,           # Correct use of adjectives/prepositions
-            'MLS': 0.10,           # Balanced sentence length
-            'Pronunciation': 0.10,
+        # ── Fiction (novels, screenplays, juvenile fiction) ───────────────────
+        # Narrative language: fluency, coherence, and verb-tense control.
+        "fiction": {
+            'Fluency':      0.25,   # Natural narrative flow
+            'Coherence':    0.25,   # Logical sequence of events
+            'MLS':          0.15,   # Varied sentence structure
+            'WCR':          0.20,   # Accurate past-tense and aspect
+            'MicroFluency': 0.10,   # Smooth delivery
+            'Pronunciation':0.05,
         },
-        "argumentation": {
-            # Argumentation = persuading/justifying: needs complex structures and coherence
-            'Coherence': 0.30,     # Strong logical flow (MOST CRITICAL)
-            'MTLD': 0.25,          # Varied vocabulary for arguments
-            'WCR': 0.20,           # Complex structures for nuance
-            'MLS': 0.15,           # Complex sentences for reasoning
-            'Pronunciation': 0.10,
-        },
-        "conversation": {
-            # Conversation = interactive dialogue: needs fluency and pronunciation
-            'Fluency': 0.30,       # No long pauses (turn-taking critical)
-            'Pronunciation': 0.25, # Clear articulation for understanding
-            'MicroFluency': 0.20,  # Minimal disfluency markers
-            'Coherence': 0.15,     # Relevant responses
-            'WCR': 0.10,           # Grammatical accuracy in turn-taking
-        },
+        # ── Academic (scholarly journals, science, law, medicine) ─────────────
+        # Formal precision: syntactic complexity, academic vocabulary, accuracy.
         "academic": {
-            # Academic = formal writing/presentations: needs complexity and vocabulary
-            'WCR': 0.25,           # Syntactic accuracy and complexity
-            'MTLD': 0.25,          # Sophisticated vocabulary
-            'Coherence': 0.20,     # Logical organization
-            'AWL%': 0.15,          # Academic word list coverage
-            'MLS': 0.10,           # Complex sentence structures
-            'Pronunciation': 0.05,
+            'WCR':          0.25,   # Syntactic accuracy and complexity
+            'MTLD':         0.25,   # Sophisticated vocabulary range
+            'Coherence':    0.20,   # Logical argumentation
+            'AWL%':         0.15,   # Academic Word List coverage
+            'MLS':          0.10,   # Complex sentence structures
+            'Pronunciation':0.05,
         },
-        "technical": {
-            # Technical = specialized domain: needs domain vocabulary and accuracy
-            'AWL%': 0.30,          # Specialized terminology
-            'MTLD': 0.25,          # Precise vocabulary
-            'WCR': 0.20,           # Accurate use of technical terms
-            'Coherence': 0.15,     # Clear technical explanation
-            'MLS': 0.10,           # Technical sentence structures
+        # ── Newspaper (national/local news, editorial, opinion) ───────────────
+        # Argumentative precision: coherence and AWL% are primary.
+        "newspaper": {
+            'Coherence':    0.30,   # Logical flow of argument/news structure
+            'MTLD':         0.25,   # Precise word choice
+            'WCR':          0.20,   # Accurate grammar for credibility
+            'AWL%':         0.15,   # News/editorial register vocabulary
+            'MLS':          0.10,   # Varied sentence structures
+        },
+        # ── Magazine (lifestyle, sports, science, religion) ───────────────────
+        # Descriptive richness: lexical diversity, vivid detail, moderate formality.
+        "magazine": {
+            'MTLD':         0.25,   # Rich lexical diversity
+            'AWL%':         0.20,   # Feature-article register
+            'Coherence':    0.20,   # Engaging, organized description
+            'WCR':          0.15,   # Correct adjective/preposition use
+            'MLS':          0.10,   # Balanced sentence length
+            'Pronunciation':0.10,
+        },
+        # ── Web (informational sites, reviews, instructional) ─────────────────
+        # Clarity over formality: coherence and accuracy weighted equally.
+        "web": {
+            'Coherence':    0.25,   # Clear, scannable structure
+            'WCR':          0.25,   # Accurate, unambiguous phrasing
+            'MTLD':         0.20,   # Adequate vocabulary range
+            'MLS':          0.15,   # Appropriately concise sentences
+            'AWL%':         0.10,   # Semi-formal register
+            'Pronunciation':0.05,
+        },
+        # ── Blog (personal, argumentative, promotional) ───────────────────────
+        # Informal fluency: natural voice, coherent personal opinion.
+        "blog": {
+            'Fluency':      0.25,   # Readable, natural pace
+            'Coherence':    0.25,   # Opinion structured clearly
+            'MTLD':         0.20,   # Varied personal vocabulary
+            'WCR':          0.15,   # Grammatical enough for credibility
+            'MicroFluency': 0.10,   # Smooth delivery if spoken
+            'Pronunciation':0.05,
+        },
+        # ── Movies (dialogue: action, drama, comedy, sci-fi) ─────────────────
+        # Expressive delivery: pronunciation, micro-fluency, natural speech.
+        "movies": {
+            'Pronunciation':0.30,   # Expressive, clear delivery
+            'Fluency':      0.25,   # Dramatic pace and timing
+            'MicroFluency': 0.20,   # No disruptive hesitations
+            'Coherence':    0.15,   # Scene-appropriate language
+            'WCR':          0.10,   # Grammatical enough for characterisation
+        },
+        # ── TV Shows (drama, comedy, reality, crime) ──────────────────────────
+        # Similar to movies; slightly more coherence for multi-episode dialogue.
+        "tv": {
+            'Pronunciation':0.25,
+            'Fluency':      0.25,
+            'MicroFluency': 0.20,
+            'Coherence':    0.20,
+            'WCR':          0.10,
         },
     }
-    
+
     @classmethod
     def get(cls, domain: str, indicator: str) -> float:
-        """Get domain-specific weight for indicator"""
-        weights = cls.WEIGHTS.get(domain, cls.WEIGHTS["description"])  # Default to description
+        """Get COCA-genre-specific weight for indicator. Falls back to 'spoken'."""
+        weights = cls.WEIGHTS.get(domain, cls.WEIGHTS["spoken"])
         return weights.get(indicator, 0.0)
 
 
@@ -286,7 +327,7 @@ class ModuleIndicatorMap:
 class ModuleRecommender:
     """Main algorithm: Convert indicators → module recommendations"""
     
-    def __init__(self, cefr_level: CEFRLevel, target_test: TargetTest = TargetTest.GENERAL, domain: str = "description"):
+    def __init__(self, cefr_level: CEFRLevel, target_test: TargetTest = TargetTest.GENERAL, domain: str = "spoken"):
         self.cefr_level = cefr_level
         self.target_test = target_test
         self.domain = domain  # NEW: domain type for indicator weighting

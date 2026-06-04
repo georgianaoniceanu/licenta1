@@ -9,7 +9,15 @@ Research sources:
 - Saito et al. (2016): Comprehensible L2 speech
 - Li & Shintani (2010): Corrective feedback meta-analysis (d=0.48 effect)
 - Crossley et al. (2016): Writing quality assessment
-- Norris & Ortega (2009): Syntactic complexity measurement validation
+- Barrot & Agdeppa (2021): Syntactic complexity indices across CEFR levels
+- Norris, J. M. (2017). Task-based language assessment: Aligning designs with intended
+  uses and consequences. JLTA Journal, 21, 3–20. Provides the TBLA framework used to
+  justify constructed-response task design in the diagnostic workflow; advocates for
+  performance-based assessment that captures what learners can do communicatively.
+- Dimova, S. (2022). Performance-based speaking tests: Possibilities in local language
+  testing. Language Teaching Research Quarterly, 29, 120–133. Supports the diagnostic
+  and placement function of this assessment for a local (Romanian university) context;
+  informs monologic task design (narration, argumentation) used in speaking prompts.
 """
 
 from dataclasses import dataclass, asdict
@@ -38,15 +46,17 @@ class ResearchSource(str, Enum):
     SAITO_2016 = "Saito, K., Webb, S., Trofimovich, P., & Isaacs, T. (2016). Lexical profiles of comprehensible second language speech. Studies in Second Language Acquisition, 38(4), 677-702."
     LI_SHINTANI_2010 = "Li, S., & Shintani, N. (2010). The effectiveness of corrective feedback in SLA: A meta-analysis. Language Learning, 60(2), 322-340."
     CROSSLEY_2016 = "Crossley, S. A., Kyle, K., & McNamara, D. S. (2016). Predicting text coherence, lexical quality, and essay scores from linguistic complexity measures and linguistic patterns. Journal of Writing Research, 8(1), 181-205."
-    NORRIS_ORTEGA_2009 = "Norris, J. M., & Ortega, L. (2009). Measurement for language research. John Benjamins Publishing Company."
+    BARROT_2021 = "Barrot, J. S., & Agdeppa, J. Y. (2021). Complexity, accuracy, and fluency as indices of college-level L2 writers' proficiency. Assessing Writing, 47, 100510."
+    NORRIS_2017 = "Norris, J. M. (2017). Task-based language assessment: Aligning designs with intended uses and consequences. JLTA Journal, 21, 3–20."
+    DIMOVA_2022 = "Dimova, S. (2022). Performance-based speaking tests: Possibilities in local language testing. Language Teaching Research Quarterly, 29, 120–133."
 
 
 INDICATOR_SOURCES = {
     IndicatorType.LEXICAL_DIVERSITY: [ResearchSource.LEE_2021, ResearchSource.PALLOTTI_2015],
     IndicatorType.LEXICAL_SOPHISTICATION: [ResearchSource.LEE_2021, ResearchSource.KYLE_CROSSLEY_2016],
     IndicatorType.WORD_LENGTH: [ResearchSource.LEE_2021, ResearchSource.SAITO_2016],
-    IndicatorType.SENTENCE_COMPLEXITY: [ResearchSource.LEE_2021, ResearchSource.PALLOTTI_2015, ResearchSource.NORRIS_ORTEGA_2009],
-    IndicatorType.SUBORDINATION_RATIO: [ResearchSource.PALLOTTI_2015, ResearchSource.NORRIS_ORTEGA_2009],
+    IndicatorType.SENTENCE_COMPLEXITY: [ResearchSource.LEE_2021, ResearchSource.PALLOTTI_2015, ResearchSource.BARROT_2021],
+    IndicatorType.SUBORDINATION_RATIO: [ResearchSource.PALLOTTI_2015, ResearchSource.BARROT_2021],
     IndicatorType.SYNTACTIC_COMPLEXITY: [ResearchSource.LEE_2021, ResearchSource.PALLOTTI_2015],
     IndicatorType.ARTICULATION_RATE: [ResearchSource.ZECHNER_2009, ResearchSource.SAITO_2016],
     IndicatorType.PAUSE_FREQUENCY: [ResearchSource.ZECHNER_2009, ResearchSource.PALLOTTI_2015],

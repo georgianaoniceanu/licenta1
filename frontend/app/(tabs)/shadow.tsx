@@ -15,6 +15,12 @@ import { API_URL } from '../../constants/api';
 import { Colors, Animations } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLearnerProfile } from '../../context/LearnerProfile';
+import SavedSessions from '@/components/saved-sessions';
+
+type SavedShadow = {
+  ts: number; category: string; difficulty: string; score: number;
+  target_text: string; transcribed: string; audio_id?: string;
+};
 
 const FRAGMENTS = [
   {
@@ -157,11 +163,14 @@ export default function ShadowSpeakingScreen() {
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
 
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+
   const recordingRef = useRef<Audio.Recording | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<Audio.Sound | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (feedback) {
@@ -235,31 +244,11 @@ export default function ShadowSpeakingScreen() {
     }
   };
 
-  const stopAndAnalyze = async () => {
-    setIsRecording(false);
-    setLoading(true);
-
+  // Shared analysis routine — used by both live recording and file upload.
+  const analyzeBlob = async (audioBlob: Blob, filename = 'recording.wav') => {
     try {
-      let audioBlob: Blob;
-
-      if (Platform.OS === 'web') {
-        const mediaRecorder = mediaRecorderRef.current!;
-        await new Promise<void>((resolve) => {
-          mediaRecorder.onstop = () => resolve();
-          mediaRecorder.stop();
-          mediaRecorder.stream.getTracks().forEach((t) => t.stop());
-        });
-        audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-      } else {
-        await recordingRef.current!.stopAndUnloadAsync();
-        const uri = recordingRef.current!.getURI()!;
-        const res = await fetch(uri);
-        audioBlob = await res.blob();
-        recordingRef.current = null;
-      }
-
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
+      formData.append('audio', audioBlob, filename);
       formData.append('original_text', selectedFragment.text);
 
       const response = await fetch(`${API_URL}/shadow/analyze`, {
@@ -297,11 +286,72 @@ export default function ShadowSpeakingScreen() {
     }
   };
 
+  const stopAndAnalyze = async () => {
+    setIsRecording(false);
+    setLoading(true);
+
+    try {
+      let audioBlob: Blob;
+
+      if (Platform.OS === 'web') {
+        const mediaRecorder = mediaRecorderRef.current!;
+        await new Promise<void>((resolve) => {
+          mediaRecorder.onstop = () => resolve();
+          mediaRecorder.stop();
+          mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+        });
+        audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+      } else {
+        await recordingRef.current!.stopAndUnloadAsync();
+        const uri = recordingRef.current!.getURI()!;
+        const res = await fetch(uri);
+        audioBlob = await res.blob();
+        recordingRef.current = null;
+      }
+
+      await analyzeBlob(audioBlob);
+    } catch {
+      setError('Could not analyze. Make sure the backend is running.');
+      setLoading(false);
+    }
+  };
+
+  // ── Upload a pre-recorded audio file instead of recording live ────────────
+  const openFilePicker = () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+    } else {
+      setError('Upload is available in the web version. Use the microphone on mobile.');
+    }
+  };
+
+  const handleFileSelected = async (e: any) => {
+    const file: File | undefined = e?.target?.files?.[0];
+    if (e?.target) e.target.value = '';   // allow re-selecting the same file
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|ogg|webm|flac|aac)$/i.test(file.name)) {
+      setError('Please select an audio file (MP3, WAV, M4A, OGG, WebM).');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File too large (max 15 MB). Trim the clip and try again.');
+      return;
+    }
+
+    setError('');
+    setFeedback(null);
+    setUploadedFileName(file.name);
+    setLoading(true);
+    await analyzeBlob(file, file.name);
+  };
+
   const reset = () => {
     setFeedback(null);
     setError('');
     setStep('listen');
     setListenCount(0);
+    setUploadedFileName(null);
   };
 
   const playFragmentAudio = async () => {
@@ -415,6 +465,32 @@ export default function ShadowSpeakingScreen() {
         <Text style={styles.pageSubtitle}>
           Listen to a native speaker, then mirror their rhythm and flow.
         </Text>
+
+        {/* Previously practised fragments (saved sessions for this user) */}
+        <SavedSessions<SavedShadow>
+          storageKey="vf_shadow_sessions"
+          title="🎙 Practised fragments"
+          accent={Colors.light.tint}
+          getLabel={(s) => s.target_text}
+          getScore={(s) => s.score}
+          getTs={(s) => s.ts}
+          getMeta={(s) => `${s.category} · ${s.difficulty}`}
+          renderDetail={(s) => (
+            <>
+              <Text style={styles.savedTranscribed}>
+                You said: <Text style={styles.transcribedText}>&quot;{s.transcribed}&quot;</Text>
+              </Text>
+              <Text style={styles.savedDetailLabel}>Word match</Text>
+              <View style={styles.wordDiffRow}>
+                {getWordDiff(s.target_text, s.transcribed).map((item, i) => (
+                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#22c55e20' : '#f8717120', borderColor: item.hit ? '#22c55e40' : '#f8717140' }]}>
+                    <Text style={[styles.wordDiffText, { color: item.hit ? '#22c55e' : '#f87171' }]}>{item.word}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        />
 
         {/* Session Score History */}
         {sessionScores.length > 0 && (
@@ -636,6 +712,44 @@ export default function ShadowSpeakingScreen() {
                 </View>
               )}
             </View>
+
+            {/* ── Upload alternative ─────────────────────────────────────── */}
+            {!isRecording && (
+              <>
+                <View style={styles.uploadDivider}>
+                  <View style={styles.uploadDividerLine} />
+                  <Text style={styles.uploadDividerText}>or</Text>
+                  <View style={styles.uploadDividerLine} />
+                </View>
+
+                {Platform.OS === 'web' && (
+                  // @ts-ignore — RN-Web renders DOM input
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.flac,.aac"
+                    onChange={handleFileSelected}
+                    style={{ display: 'none' }}
+                  />
+                )}
+
+                <TouchableOpacity
+                  style={styles.uploadBtn}
+                  onPress={openFilePicker}
+                  disabled={loading}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.uploadBtnText}>📁  Upload a recording instead</Text>
+                </TouchableOpacity>
+
+                {uploadedFileName && (
+                  <Text style={styles.uploadFileName} numberOfLines={1}>📎 {uploadedFileName}</Text>
+                )}
+                {Platform.OS !== 'web' && (
+                  <Text style={styles.uploadHint}>Upload works in the web version.</Text>
+                )}
+              </>
+            )}
 
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
@@ -942,6 +1056,21 @@ const styles = StyleSheet.create({
   goBackStep: { alignItems: 'center', paddingVertical: 8 },
   goBackStepText: { color: Colors.light.textSecondary, fontSize: 13, fontWeight: '600' },
 
+  // Upload alternative
+  uploadDivider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 4 },
+  uploadDividerLine: { flex: 1, height: 1, backgroundColor: Colors.light.border },
+  uploadDividerText: { fontSize: 12, color: Colors.light.textSecondary, fontWeight: '600' },
+  uploadBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 13, borderRadius: 14,
+    borderWidth: 1.5, borderColor: Colors.light.tint + '60',
+    borderStyle: 'dashed',
+    backgroundColor: Colors.light.tint + '0C',
+  },
+  uploadBtnText: { color: Colors.light.tint, fontSize: 14, fontWeight: '700' },
+  uploadFileName: { color: Colors.light.tint, fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  uploadHint: { color: Colors.light.textLight, fontSize: 11, fontStyle: 'italic', textAlign: 'center' },
+
   errorText: { color: Colors.light.error, fontSize: 13, textAlign: 'center' },
 
   feedbackSection: { gap: 14 },
@@ -981,6 +1110,9 @@ const styles = StyleSheet.create({
   wordDiffRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   wordDiffChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
   wordDiffText: { fontSize: 13, fontWeight: '600' },
+
+  savedTranscribed: { color: Colors.light.textSecondary, fontSize: 13, lineHeight: 19 },
+  savedDetailLabel: { fontSize: 11, fontWeight: '700', color: Colors.light.textSecondary },
 
   feedbackCard: {
     backgroundColor: Colors.light.surface,

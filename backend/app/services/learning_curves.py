@@ -4,8 +4,14 @@ Models learner development trajectories based on SLA research.
 
 Research Foundation:
 - Skehan (1998): Individual differences in SLA, cognitive processing perspective
-- Larsen-Freeman: Dynamic systems theory of language development
-- De Jong (2023): Speaking proficiency assessment framework
+- De Jong, N. H. (2023). Assessing second language speaking proficiency. Annual Review
+  of Linguistics, 9, 541–560. Speaking proficiency as multidimensional; CAF dimensions
+  develop at different rates and interact non-linearly across proficiency levels.
+- DeKeyser, R. M., & Suzuki, Y. (2025). Skill acquisition theory. In VanPatten et al.
+  (Eds.), Theories in SLA: An introduction (4th ed., pp. 157–182). Routledge.
+  Three-stage model (declarative → procedural → automatic) underlies the progression
+  curves modelled here; automatization follows a power law, slowing as learners approach
+  ceiling. Fossilization risk increases when proceduralization stalls before automaticity.
 - Peter_Skehan.txt: Language aptitude, motivation, strategies affecting development
 
 Key Principles:
@@ -185,7 +191,7 @@ class SLAProgressionData:
         },
     }
     
-    # Plateau characteristics (Larsen-Freeman dynamic systems theory)
+    # Plateau characteristics (De Jong 2023; DeKeyser & Suzuki 2025)
     PLATEAU_PATTERNS = {
         'typical_length_weeks': 4,
         'can_last_months': True,  # Some learners show extended plateaus

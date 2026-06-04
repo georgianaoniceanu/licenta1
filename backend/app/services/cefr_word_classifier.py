@@ -14,8 +14,8 @@ Supplementary sources (for words absent from EVP):
   NAWL — New Academic Word List (article 26): 963 academic word families
   at B2–C1 (corpus of 15M academic words).
 
-  Brezina & Gablasova (2015) new-GSL — article 40: ~2818 most frequent
-  word families using ARF (Average Reduced Frequency), A1–B1.
+  General Service List (A1–B1) — high-frequency English word families
+  classified by corpus frequency bands.
 
   Davies AVL (article 47): Academic Vocabulary List from COCA, B2–C1.
 
@@ -50,14 +50,13 @@ except FileNotFoundError:
 # ─────────────────────────────────────────────────────────────────────────────
 # SUPPLEMENTARY WORD LISTS (AWL / NAWL / new-GSL)
 # Used only for words absent from EVP — keeps EVP as authoritative source.
-# Sources: EVP Online (Cambridge), new-GSL (Brezina & Gablasova 2015),
-#          AWL (Coxhead 2000), NAWL (article 26), AVL (Davies, article 47)
+# Sources: EVP Online (Cambridge), AWL (Coxhead 2000), NAWL (article 26),
+#          general frequency bands (A1–B1), AVL (Davies, article 47)
 # ─────────────────────────────────────────────────────────────────────────────
 
 CEFR_WORDS: Dict[str, List[str]] = {
     "A1": [
-        # Function words & basics — new-GSL band 1 (Brezina & Gablasova 2015)
-        "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
+        # Function words & basics — new-GSL band 1        "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them",
         "my", "your", "his", "its", "our", "their", "this", "that", "these", "those",
         "a", "an", "the", "and", "but", "or", "so", "because", "if", "when", "then",
         "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
@@ -86,8 +85,7 @@ CEFR_WORDS: Dict[str, List[str]] = {
         "before", "for", "of", "by", "as",
     ],
     "A2": [
-        # new-GSL band 2 / EVP A2 (Brezina & Gablasova 2015)
-        "actually", "already", "always", "answer", "anything", "around",
+        # new-GSL band 2 / EVP A2        "actually", "already", "always", "answer", "anything", "around",
         "arrive", "begin", "believe", "between", "body", "break", "bring",
         "build", "business", "change", "check", "child", "children", "choose",
         "colour", "color", "continue", "corner", "correct", "cost", "cover",
@@ -108,8 +106,7 @@ CEFR_WORDS: Dict[str, List[str]] = {
         "realise", "realize", "organise", "organize", "recognise", "recognize",
     ],
     "B1": [
-        # new-GSL bands 3–4 / EVP B1 (Brezina & Gablasova 2015)
-        "achieve", "advantage", "affect", "agreement", "although", "amount",
+        # new-GSL bands 3–4 / EVP B1        "achieve", "advantage", "affect", "agreement", "although", "amount",
         "announce", "appear", "apply", "approach", "argue", "aspect", "assist",
         "assume", "attempt", "attention", "attitude", "authority", "available",
         "aware", "benefit", "career", "cause", "challenge", "choice", "claim",
@@ -545,7 +542,7 @@ def classify_vocabulary(text: str) -> Dict:
             f"Primary: English Vocabulary Profile / EVP Online (Cambridge) — "
             f"{len(_EVP_MAP)} corpus-verified A1–C2 entries (englishprofile.org). "
             "Supplementary: NAWL (article 26) B2–C1 academic register; "
-            "new-GSL (Brezina & Gablasova 2015) A1–B1 frequency bands; "
+            "General Service List A1–B1 frequency bands; "
             "AVL (Davies, article 47) B2–C1 academic vocabulary. "
             "Fallback: TAALES morphological heuristics (Crossley & Kyle 2018)."
         ),

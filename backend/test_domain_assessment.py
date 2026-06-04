@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Test domain-specific assessment implementation"""
+"""Test domain-specific assessment implementation (COCA genres)"""
 
 import sys
 sys.path.insert(0, '/c/Users/LENOVO/Desktop/licenta/backend')
@@ -9,40 +9,46 @@ from module_recommendation_algorithm import (
 )
 
 print("=" * 70)
-print("DOMAIN-SPECIFIC ASSESSMENT TEST")
+print("DOMAIN-SPECIFIC ASSESSMENT TEST (COCA genres)")
 print("=" * 70)
 
 # Test 1: Load domain weights
 print("\n✅ Test 1: Domain weights loaded")
-domains = ["narration", "description", "argumentation", "conversation", "academic", "technical"]
+domains = ["spoken", "fiction", "academic", "newspaper", "magazine", "web", "blog", "movies", "tv"]
 for domain in domains:
     weights = DomainWeights.WEIGHTS.get(domain, {})
     print(f"  • {domain:15s}: {len(weights)} indicators weighted")
 
 # Test 2: Create recommender with domain
 print("\n✅ Test 2: Create ModuleRecommender with domain")
-recommender_desc = ModuleRecommender(
+recommender_academic = ModuleRecommender(
     cefr_level=CEFRLevel.B1,
     target_test="IELTS",
-    domain="description"
+    domain="academic"
 )
-print(f"  • Created for B1 IELTS description task")
+print(f"  • Created for B1 IELTS academic domain")
 
-recommender_narr = ModuleRecommender(
+recommender_spoken = ModuleRecommender(
     cefr_level=CEFRLevel.B1,
     target_test="IELTS",
-    domain="narration"
+    domain="spoken"
 )
-print(f"  • Created for B1 IELTS narration task")
+print(f"  • Created for B1 IELTS spoken domain")
 
 # Test 3: Check domain weight differences
 print("\n✅ Test 3: Domain weight comparison")
 print(f"  Coherence importance:")
-print(f"    - narration:     {DomainWeights.get('narration', 'Coherence'):.2f}")
-print(f"    - description:   {DomainWeights.get('description', 'Coherence'):.2f}")
-print(f"    - argumentation: {DomainWeights.get('argumentation', 'Coherence'):.2f}")
-print(f"    - conversation:  {DomainWeights.get('conversation', 'Coherence'):.2f}")
-print(f"  (Argumentation should prioritize Coherence most: 0.30)")
+print(f"    - spoken:     {DomainWeights.get('spoken',    'Coherence'):.2f}")
+print(f"    - academic:   {DomainWeights.get('academic',  'Coherence'):.2f}")
+print(f"    - newspaper:  {DomainWeights.get('newspaper', 'Coherence'):.2f}")
+print(f"    - fiction:    {DomainWeights.get('fiction',   'Coherence'):.2f}")
+print(f"  (Newspaper should prioritize Coherence most: 0.30)")
+
+print(f"\n  Fluency importance:")
+print(f"    - spoken:     {DomainWeights.get('spoken',    'Fluency'):.2f}")
+print(f"    - movies:     {DomainWeights.get('movies',    'Fluency'):.2f}")
+print(f"    - academic:   {DomainWeights.get('academic',  'Fluency'):.2f}")
+print(f"  (Spoken/movies should prioritize Fluency most)")
 
 # Test 4: Test recommendations with same indicators, different domains
 print("\n✅ Test 4: Recommendations comparison (same B1 learner, different domains)")
@@ -59,15 +65,15 @@ indicators = AssessmentIndicators(
     coherence=0.45  # Below B1 threshold (0.50)
 )
 
-recs_desc = recommender_desc.recommend(indicators, limit=3)
-recs_narr = recommender_narr.recommend(indicators, limit=3)
+recs_academic = recommender_academic.recommend(indicators, limit=3)
+recs_spoken   = recommender_spoken.recommend(indicators, limit=3)
 
-print(f"\n  Description domain (focus on vocabulary):")
-for i, rec in enumerate(recs_desc, 1):
+print(f"\n  Academic domain (focus on vocabulary/WCR):")
+for i, rec in enumerate(recs_academic, 1):
     print(f"    {i}. {rec.module.value:25s} (severity: {rec.severity_score:.2f})")
 
-print(f"\n  Narration domain (focus on fluency):")
-for i, rec in enumerate(recs_narr, 1):
+print(f"\n  Spoken domain (focus on fluency/pronunciation):")
+for i, rec in enumerate(recs_spoken, 1):
     print(f"    {i}. {rec.module.value:25s} (severity: {rec.severity_score:.2f})")
 
 print("\n" + "=" * 70)

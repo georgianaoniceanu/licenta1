@@ -663,9 +663,9 @@ async def classify_text_endpoint(
       - word_tags: [{word, level}] in text order — for per-word colour chips
       - level_breakdown: up to 15 sample words per level
 
-    Research: English Vocabulary Profile (Cambridge); Brezina & Gablasova
-    (2015) new-GSL; Coxhead (2000) AWL; NAWL (article 26); Davies AVL
-    (article 47); TAALES (Crossley & Kyle 2018) morphological heuristics.
+    Research: English Vocabulary Profile (Cambridge); Coxhead (2000) AWL;
+    NAWL (article 26); Davies AVL (article 47);
+    TAALES (Crossley & Kyle 2018) morphological heuristics.
     """
     get_user_id_from_token(authorization)
     result = classify_vocabulary(payload.text)
@@ -686,9 +686,9 @@ async def get_exam_profile(
     Cambridge CEFR level (A1–C2).
 
     Indicators computed:
-      - MTLD (McCarthy & Jarvis 2010) — lexical diversity
-      - Lexical Density (Halliday 1989; Ure 1971)
-      - Subordination Index (Hunt 1965; Norris & Ortega 2009)
+      - MTLD (Kolahi Ahari et al. 2025) — lexical diversity
+      - Lexical Density (Neumanova 2015)
+      - Subordination Index (Barrot & Agdeppa 2021; Bae & Min 2020)
     Combined with client-sent: WPS, filler rate, MLS, pronunciation score,
     CEFR distribution.
 
@@ -719,8 +719,8 @@ async def classify_genre_endpoint(
     """
     COCA Genre Classifier — determines dominant register/domain of learner text.
 
-    5 top-level genres from Davies' Corpus of Contemporary American English:
-      SPOK · FIC · MAG · NEWS · ACAD
+    9 top-level genres from Davies' Corpus of Contemporary American English:
+      spoken · fiction · magazine · newspaper · academic · web · blog · movies · tv
 
     Source: lemmas_60k_subgenres.xlsx (1-in-10 sample of top 60 k COCA lemmas).
     """

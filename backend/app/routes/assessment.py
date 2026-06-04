@@ -34,7 +34,7 @@ from pilot_study_manager import (
 
 # Import schemas
 from app.schemas import (
-    AssessmentIndicatorsRequest, CEFRLevel, OfficialTest, DomainType,
+    AssessmentIndicatorsRequest, CEFRLevel, OfficialTest,
     ModuleRecommendationResponse, RecommendationResponse,
     IndicatorFeedbackResponse, FeedbackResponse, LearnerExampleResponse, PracticeSuggestionResponse,
     ParticipantEnrollmentRequest, ParticipantEnrollmentResponse,
@@ -75,58 +75,89 @@ participants_db = {}  # participant_id -> participant data
 
 @router.get("/domains")
 async def get_available_domains():
-    """Get all available assessment domains and their characteristics"""
+    """
+    Return all 9 COCA genre domains with their CAF indicator emphasis.
+
+    Genres from Davies' Corpus of Contemporary American English (COCA),
+    lemmas_60k_subgenres.xlsx — 96 sub-categories aggregated to 9 top-level groups.
+    Source: Davies, M. — COCA; Tauroza & Allison (1990) register WPM norms.
+    """
     return {
         "domains": [
             {
-                "id": "narration",
-                "name": "Narration",
-                "description": "Storytelling and describing events sequentially",
-                "emphasis": ["Fluency", "Coherence", "Verb tenses (past)"],
-                "example": "Tell a story about your childhood",
-                "cefr_critical_indicators": ["Fluency (WPM)", "Coherence", "WCR (tense accuracy)"]
-            },
-            {
-                "id": "description",
-                "name": "Description",
-                "description": "Detailed description of objects, places, or people",
-                "emphasis": ["Vocabulary", "Coherence", "Adjectives/prepositions"],
-                "example": "Describe your favorite place in detail",
-                "cefr_critical_indicators": ["MTLD (lexical diversity)", "AWL%", "WCR (adj/prep)"]
-            },
-            {
-                "id": "argumentation",
-                "name": "Argumentation",
-                "description": "Making arguments and persuading with justifications",
-                "emphasis": ["Coherence", "Vocabulary", "Complex structures"],
-                "example": "Argue for or against remote work",
-                "cefr_critical_indicators": ["Coherence (logic)", "MTLD", "MLS (complexity)"]
-            },
-            {
-                "id": "conversation",
-                "name": "Conversation",
-                "description": "Interactive dialogue and spontaneous responses",
-                "emphasis": ["Fluency", "Pronunciation", "No long pauses"],
-                "example": "Have a casual conversation about weekend plans",
+                "id": "spoken",
+                "name": "Spoken (TV / Radio)",
+                "description": "Live interviews, talk shows, news broadcasts, casual dialogue.",
+                "emphasis": ["Fluency (WPM)", "Pronunciation", "Pause Rate"],
+                "example": "Respond to a live interview question about current events",
                 "cefr_critical_indicators": ["Fluency", "Pronunciation", "MicroFluency"]
             },
             {
                 "id": "academic",
                 "name": "Academic",
-                "description": "Formal academic writing and presentations",
-                "emphasis": ["Grammar", "Vocabulary", "Formality"],
-                "example": "Present research findings or write an essay",
-                "cefr_critical_indicators": ["WCR (complex structures)", "MTLD", "AWL%"]
+                "description": "Scholarly journals, lectures, science, law, medicine.",
+                "emphasis": ["Grammar Accuracy", "AWL Vocabulary", "Syntactic Complexity"],
+                "example": "Explain a scientific concept in formal register",
+                "cefr_critical_indicators": ["WCR (accuracy)", "AWL%", "MLS (complexity)"]
             },
             {
-                "id": "technical",
-                "name": "Technical",
-                "description": "Specialized domain vocabulary and precision",
-                "emphasis": ["Specialized vocabulary", "Accuracy", "Clarity"],
-                "example": "Explain a medical or legal concept",
-                "cefr_critical_indicators": ["AWL% (domain vocab)", "WCR (accuracy)", "MTLD"]
-            }
-        ]
+                "id": "newspaper",
+                "name": "Newspaper",
+                "description": "National/local news, editorials, opinion columns.",
+                "emphasis": ["Coherence", "Lexical Range", "Argumentation"],
+                "example": "Write an editorial arguing for or against a policy",
+                "cefr_critical_indicators": ["Coherence", "MTLD", "WCR"]
+            },
+            {
+                "id": "fiction",
+                "name": "Fiction",
+                "description": "Novels, short stories, screenplays, creative narrative.",
+                "emphasis": ["Narrative Fluency", "Coherence", "Tense Control"],
+                "example": "Tell or write a short story with a clear beginning and ending",
+                "cefr_critical_indicators": ["Fluency (WPM)", "Coherence", "WCR (tense)"]
+            },
+            {
+                "id": "magazine",
+                "name": "Magazine",
+                "description": "Feature articles, sports, science journalism, lifestyle.",
+                "emphasis": ["Lexical Diversity", "Descriptive Richness", "AWL%"],
+                "example": "Write a feature article about a topic you know well",
+                "cefr_critical_indicators": ["MTLD", "AWL%", "WCR (adj/prep)"]
+            },
+            {
+                "id": "web",
+                "name": "Web",
+                "description": "Informational websites, how-to guides, reviews.",
+                "emphasis": ["Clarity", "Accuracy", "Vocabulary Range"],
+                "example": "Write a step-by-step guide on a practical topic",
+                "cefr_critical_indicators": ["Coherence", "WCR", "MTLD"]
+            },
+            {
+                "id": "blog",
+                "name": "Blog",
+                "description": "Personal blogs, opinion pieces, informal writing.",
+                "emphasis": ["Personal Voice", "Coherence", "Fluency"],
+                "example": "Write a blog post about something you recently changed your mind about",
+                "cefr_critical_indicators": ["MTLD", "Coherence", "MicroFluency"]
+            },
+            {
+                "id": "movies",
+                "name": "Movies",
+                "description": "Film dialogue across all genres — drama, comedy, action, sci-fi.",
+                "emphasis": ["Pronunciation", "Expressive Fluency", "Natural Delivery"],
+                "example": "Shadow a movie scene and match the speaker's pace and intonation",
+                "cefr_critical_indicators": ["Pronunciation", "Fluency", "MicroFluency"]
+            },
+            {
+                "id": "tv",
+                "name": "TV Shows",
+                "description": "Television drama, comedy, reality TV, crime.",
+                "emphasis": ["Pronunciation", "Micro-Fluency", "Conversational Coherence"],
+                "example": "Shadow a TV show scene focusing on natural conversational rhythm",
+                "cefr_critical_indicators": ["Pronunciation", "MicroFluency", "Coherence"]
+            },
+        ],
+        "source": "Davies, M. — Corpus of Contemporary American English (COCA), 96 sub-genres"
     }
 
 
@@ -140,7 +171,7 @@ async def get_module_recommendations(
     cefr_level: CEFRLevel,
     target_test: OfficialTest,
     user_id: str = Header(...),
-    domain: DomainType = DomainType.DESCRIPTION,  # NEW: domain parameter
+    domain: str = "academic",  # COCAGenre: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
     limit: int = Query(3, ge=1, le=5)
 ):
     """
@@ -148,13 +179,12 @@ async def get_module_recommendations(
     
     Returns top N modules ranked by priority, considering domain-specific requirements
     
-    Domain types affect indicator weighting:
-    - narration: emphasizes fluency + coherence (story flow)
-    - description: emphasizes vocabulary + coherence (vivid details)
-    - argumentation: emphasizes coherence + grammar (logical persuasion)
-    - conversation: emphasizes fluency + pronunciation (real-time interaction)
-    - academic: emphasizes grammar + vocabulary (formal precision)
-    - technical: emphasizes specialized vocabulary + accuracy
+    COCA genre domain affects indicator weighting:
+    - fiction:    emphasizes fluency + coherence (story flow)
+    - magazine:   emphasizes vocabulary + coherence (vivid details)
+    - newspaper:  emphasizes coherence + grammar (logical persuasion)
+    - spoken:     emphasizes fluency + pronunciation (real-time interaction)
+    - academic:   emphasizes grammar + vocabulary (formal precision)
     """
     try:
         # Convert to algorithm format
@@ -178,7 +208,7 @@ async def get_module_recommendations(
         recommender = ModuleRecommender(
             cefr_level=algo_cefr,
             target_test=target_test.value,
-            domain=domain.value  # NEW: pass domain to recommender
+            domain=domain  # COCA genre code passed directly
         )
         
         # Get recommendations
@@ -232,7 +262,7 @@ async def get_feedback(
     cefr_level: CEFRLevel,
     target_test: OfficialTest,
     user_id: str = Header(...),
-    domain: DomainType = DomainType.DESCRIPTION,  # NEW: domain parameter
+    domain: str = "academic",  # COCAGenre: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
 ):
     """
     Generate test-specific feedback for each indicator
@@ -241,7 +271,7 @@ async def get_feedback(
     - IELTS emphasizes Coherence & Cohesion
     - TOEFL emphasizes Language Use
     - Cambridge emphasizes Grammar & Sophistication
-    - Domain affects feedback emphasis (narration vs description vs argumentation, etc)
+    - Domain affects feedback emphasis (spoken vs academic vs newspaper vs fiction, etc)
     - IELTS emphasizes Coherence & Cohesion
     - TOEFL emphasizes Language Use
     - Cambridge emphasizes Grammar & Sophistication
@@ -755,7 +785,7 @@ async def analyze_dual_diagnosis(
 async def get_universal_vocabulary(
     cefr_level: str,
     domain: str = Query(None),
-    vocabulary_type: str = Query("universal", regex="^(universal|flexible|specific)$"),
+    vocabulary_type: str = Query("universal", pattern="^(universal|flexible|specific)$"),
     limit: int = Query(50, ge=10, le=200),
     authorization: str = Header(None)
 ):

@@ -841,7 +841,7 @@ def generate_feedback(
         target_test: TargetTest enum (IELTS, TOEFL, CAMBRIDGE, GENERAL)
         cefr_level: CEFRLevel enum (A2, B1, B2, C1, C2)
         examples: Optional learner examples to include in feedback
-        domain: Optional domain (narration, description, academic, etc) for error pattern context
+        domain: Optional COCA genre domain (spoken, academic, newspaper, fiction, magazine, web, blog, movies, tv) for error pattern context
     
     Returns:
         IndicatorFeedback object or None if not implemented
@@ -906,12 +906,10 @@ def get_domain_error_patterns(domain: str) -> Dict[str, List[Dict]]:
     """
     
     try:
-        from app.services.pos_error_patterns import POSErrorPatternManager, DomainType
-        
+        from app.services.pos_error_patterns import POSErrorPatternManager
+
         manager = POSErrorPatternManager()
-        domain_enum = DomainType[domain.upper()]
-        
-        error_patterns = manager.get_errors_by_domain(domain_enum, sort_by_frequency=True)
+        error_patterns = manager.get_errors_by_domain(domain.lower(), sort_by_frequency=True)
         
         # Format for inclusion in feedback
         formatted_patterns = []

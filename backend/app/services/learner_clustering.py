@@ -3,9 +3,20 @@ Learner Profiling via K-Means Clustering
 ─────────────────────────────────────────────────────────────────────────────
 
 Research Foundation:
-  Goldshtein et al. (2024, applsci-14-04182): K-Means clustering on 18 TAASSC
-  syntax indices identified 4 distinct learner writer profiles, enabling
-  personalized feedback beyond a single CEFR score.
+  Goldshtein, M., Alhashim, A. G., & Roscoe, R. D. (2024). An NLP-based exploration
+  of variance in student writing and syntax: Implications for automated writing
+  evaluation. Computers, 13(7), 160. https://doi.org/10.3390/computers13070160
+  NLP + k-means clustering on a large corpus (n=36,207 essays) identified 4 distinct
+  syntactic writer profiles; no single profile was consistently "good" or "bad",
+  supporting nuanced, multi-indicator feedback over a single holistic score.
+
+  Tang, X., Chen, H., Lin, D., & Li, K. (2024). Incorporating fine-grained linguistic
+  features and explainable AI into multi-dimensional automated writing assessment.
+  Applied Sciences, 14(10), 4182. https://doi.org/10.3390/app14104182
+  PCA on micro-level and aggregated linguistic features fed into Random Forest
+  Regression outperformed linear AES baselines; SHAP analysis revealed which
+  indicators drive each writing quality construct — methodology mirrored here for
+  indicator weighting in cluster centroid construction.
 
   Yan et al. (2020): PCA + cluster analysis on Aptis CAF indices revealed
   4 proficiency-based learner groupings (LMTD, VOCD, EFC/C, disfluency).

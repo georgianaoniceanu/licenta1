@@ -20,6 +20,7 @@
  */
 
 import { Platform } from 'react-native';
+import { Audio } from 'expo-av';
 
 export interface VoiceProfile {
   rate: number;                          // 0.5–1.5  — Speech rate multiplier
@@ -46,8 +47,8 @@ export const USER_VOICES: Record<string, VoiceProfile> = {
             description: 'Confident, near-native rate — C1 learner' },
 
   // ── Job personas (6 fictional users) ────────────────────────────────────
-  ana:    { rate: 0.80, pitch: 1.18, preferredGender: 'female', accent: 'en-US',
-            description: 'Young, hesitant — A2→B1 medical student' },
+  ana:    { rate: 0.72, pitch: 1.18, preferredGender: 'female', accent: 'en-US',
+            description: 'Young, hesitant — A1→A2 medical student' },
   mihai:  { rate: 1.00, pitch: 0.95, preferredGender: 'male',   accent: 'en-US',
             description: 'Technical, steady — B1→B2 developer' },
   elena:  { rate: 0.95, pitch: 1.08, preferredGender: 'female', accent: 'en-GB',
@@ -168,6 +169,34 @@ export function speakAsUser(opts: SpeakOptions): boolean {
   }
 }
 
+/**
+ * Speak an isolated phoneme cue with a clear American (en-US) voice, slowly.
+ * Used by the Accent DNA globe — pronounces the sound, not example words.
+ */
+export function speakPhoneme(cue: string): boolean {
+  if (!isSpeechAvailable()) return false;
+  try { window.speechSynthesis.cancel(); } catch {}
+
+  const utter = new SpeechSynthesisUtterance(cue);
+  utter.lang  = 'en-US';
+  utter.rate  = 0.6;   // slow for clarity
+  utter.pitch = 1.0;
+
+  if (!_voicesCache.length) {
+    try { _voicesCache = window.speechSynthesis.getVoices(); } catch {}
+  }
+  // Prefer a US English voice, ideally a natural one
+  const usVoices = _voicesCache.filter(v => v.lang === 'en-US');
+  const preferred =
+    usVoices.find(v => /(samantha|alex|ava|joanna|matthew|google us english)/i.test(v.name)) ||
+    usVoices[0] ||
+    _voicesCache.find(v => v.lang.startsWith('en'));
+  if (preferred) utter.voice = preferred;
+
+  try { window.speechSynthesis.speak(utter); return true; }
+  catch { return false; }
+}
+
 /** Stop any ongoing speech synthesis. */
 export function stopSpeaking(): void {
   if (!isSpeechAvailable()) return;
@@ -180,4 +209,79 @@ export function stopSpeaking(): void {
 export function getVoiceProfile(preset?: string | null): VoiceProfile {
   if (preset && USER_VOICES[preset]) return USER_VOICES[preset];
   return USER_VOICES.medium;
+}
+
+// ── Bundled audio playback (real recordings via expo-av) ─────────────────────
+
+let _currentSound: Audio.Sound | null = null;
+
+/**
+ * Play a bundled audio asset (require()'d MP3) via expo-av.
+ * Works on web and native. Returns true if playback started.
+ */
+export async function playAudioAsset(
+  assetModule: any,
+  cbs?: { onStart?: () => void; onEnd?: () => void; onError?: (msg?: string) => void },
+): Promise<boolean> {
+  if (!assetModule) {
+    cbs?.onError?.('no-asset');
+    return false;
+  }
+  try {
+    await stopAudioAsset();
+    const { sound } = await Audio.Sound.createAsync(assetModule, { shouldPlay: true });
+    _currentSound = sound;
+    cbs?.onStart?.();
+    sound.setOnPlaybackStatusUpdate((status: any) => {
+      if (status?.isLoaded && status.didJustFinish) {
+        cbs?.onEnd?.();
+        sound.unloadAsync().catch(() => {});
+        if (_currentSound === sound) _currentSound = null;
+      }
+    });
+    return true;
+  } catch (e: any) {
+    cbs?.onError?.(e?.message ?? String(e));
+    return false;
+  }
+}
+
+/** Stop any bundled audio currently playing. */
+export async function stopAudioAsset(): Promise<void> {
+  if (_currentSound) {
+    const s = _currentSound;
+    _currentSound = null;
+    try { await s.stopAsync(); } catch {}
+    try { await s.unloadAsync(); } catch {}
+  }
+}
+
+/**
+ * Unified playback: prefer a real bundled recording, fall back to TTS.
+ * Returns true if any playback started.
+ */
+export async function playRecordingOrTTS(opts: {
+  audioModule?: any | null;
+  text: string;
+  preset?: string | null;
+  onStart?: () => void;
+  onEnd?: () => void;
+  onError?: (msg?: string) => void;
+}): Promise<boolean> {
+  if (opts.audioModule) {
+    return playAudioAsset(opts.audioModule, {
+      onStart: opts.onStart, onEnd: opts.onEnd, onError: opts.onError,
+    });
+  }
+  // Fallback: synthesized voice
+  return speakAsUser({
+    text: opts.text, preset: opts.preset,
+    onStart: opts.onStart, onEnd: opts.onEnd, onError: opts.onError,
+  });
+}
+
+/** Stop everything — both TTS and bundled audio. */
+export function stopAllPlayback(): void {
+  stopSpeaking();
+  void stopAudioAsset();
 }

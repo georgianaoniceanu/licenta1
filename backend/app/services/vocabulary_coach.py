@@ -9,7 +9,19 @@ CHANGES FROM ORIGINAL:
 5. get_random_exercise() now prioritizes personalized exercises from patterns
 6. All other functions preserved: analyze_vocabulary, submit_exercise, stats, etc.
 
-SOURCE: Coxhead, A. (2000). Academic Word List — 570 words across 10 sublists
+Research Foundation:
+- Coxhead, A. (2000). Academic Word List — 570 words across 10 sublists.
+- DeKeyser, R. M., & Suzuki, Y. (2025). Skill acquisition theory. In VanPatten et al.
+  (Eds.), Theories in SLA: An introduction (4th ed., pp. 157–182). Routledge.
+  Vocabulary exercises are designed to proceduralize declarative word knowledge through
+  repeated contextualized retrieval. Prioritizing weakest words mirrors the principle
+  that focused practice on not-yet-automatized items yields the steepest learning gains.
+- Asrifan, A., Cardoso, L. M. O. B., & Vargheese, K. J. (2026). Automated feedback
+  for speaking and writing skills: Deep learning in English language assessment.
+  EduLite: Journal of English Education, Literature, and Culture, 11(1), 67–85.
+  LLM-generated contextual feedback (via Groq) is empirically supported: AI feedback
+  produces significant gains in lexical diversity and grammatical accuracy for EFL
+  learners, particularly for form-focused elements such as collocations and word choice.
 """
 
 import random
@@ -93,7 +105,7 @@ def _get_vocabulary_bank() -> List[Dict]:
 
 
 # ---------------------------------------------------------------------------
-# SM-2 SPACED REPETITION (Wozniak 1987)
+# SM-2 SPACED REPETITION ALGORITHM
 # ---------------------------------------------------------------------------
 # Each vocabulary_progress document stores:
 #   sm2_ef            — easiness factor (default 2.5, min 1.3)
@@ -110,8 +122,9 @@ def _sm2_update(data: Dict, grade: int) -> Dict:
     grade 3 — correct but slow / effortful
     grade 2 — incorrect (resets interval to 1 day)
 
-    Source: Wozniak, P.A. (1987). Optimization of learning. Master's thesis,
-    University of Technology, Poznan.
+    Based on SM-2 adaptive spacing algorithm.
+    Cepeda et al. (2006): distributed practice is the strongest predictor of
+    long-term lexical retention over massed practice. [Cepeda2006.txt]
     """
     ef   = data.get("sm2_ef", 2.5)
     ivl  = data.get("sm2_interval", 1)
@@ -900,7 +913,7 @@ def generate_context_aware_sentence(user_id: str, target_word: str, user_interes
                 if user_ref.exists:
                     user_data = user_ref.to_dict()
                     user_interests = user_data.get("interests", "general English learning")
-            except:
+            except Exception:
                 user_interests = "general English learning"
         
         response = client.chat.completions.create(
@@ -1424,7 +1437,7 @@ def get_user_weak_areas(user_id: str) -> List[str]:
                 weak_areas["stress_pattern"] = weak_areas.get("stress_pattern", 0) + 1
         
         return sorted(weak_areas.items(), key=lambda x: x[1], reverse=True)[:3]
-    except:
+    except Exception:
         return []
 
 

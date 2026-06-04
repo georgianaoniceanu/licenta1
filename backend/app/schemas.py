@@ -32,16 +32,6 @@ class CEFRLevel(str, Enum):
     C1 = "C1"
 
 
-class DomainType(str, Enum):
-    """Assessment task domain (Bloom's taxonomy + practical contexts)"""
-    NARRATION = "narration"  # Storytelling, describing events sequentially
-    DESCRIPTION = "description"  # Detailed description of objects, places, people
-    ARGUMENTATION = "argumentation"  # Making arguments, persuading, justifying opinions
-    CONVERSATION = "conversation"  # Interactive dialogue, responding spontaneously
-    ACADEMIC = "academic"  # Formal academic writing/presentations
-    TECHNICAL = "technical"  # Specialized domain vocabulary (medical, legal, etc)
-
-
 class OfficialTest(str, Enum):
     IELTS = "IELTS"
     CAMBRIDGE_CAE = "Cambridge CAE"
@@ -55,7 +45,7 @@ class AssessmentMetadata(BaseModel):
     user_id: str
     cefr_level: CEFRLevel
     target_test: OfficialTest
-    domain: DomainType = DomainType.DESCRIPTION  # Default: general description
+    domain: str = "academic"  # COCAGenre value: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
     l1: str = "Romanian"
 
 
@@ -160,7 +150,7 @@ class OnboardingRequest(BaseModel):
     """User onboarding questionnaire"""
     user_id: str
     learning_goals: LearningGoal
-    primary_domain: DomainType
+    primary_domain: str  # COCAGenre value: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
     pain_points: List[PainPoint]
     target_exam: Optional[OfficialTest] = None
     self_assessed_cefr: CEFRLevel

@@ -34,6 +34,7 @@ import {
   JOBS_BY_ID,
   type Job,
 } from '@/constants/jobsDatabase';
+import { getSubgenreWords } from '@/constants/cocaSubgenreWords';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
 const BG     = '#F8FAFC';
@@ -49,17 +50,21 @@ const C_GOAL = '#10B981';  // green — GOAL
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const VENN_W = Math.min(SCREEN_W - 32, 360);
-const VENN_H = VENN_W * 0.85;
-const R      = VENN_W * 0.30;          // circle radius
-const CX     = VENN_W / 2;             // center X
-const CY     = VENN_H / 2;
-const OFF    = R * 0.55;               // offset for each circle
-// Three circles positioned at: top (JOB), bottom-left (EXAM), bottom-right (GOAL)
-const POS = {
-  job:  { x: CX - R,           y: CY - R - OFF * 0.5 },
-  exam: { x: CX - R - OFF,     y: CY - R + OFF * 0.55 },
-  goal: { x: CX - R + OFF,     y: CY - R + OFF * 0.55 },
+const R      = VENN_W * 0.275;         // circle radius
+const SEP    = R * 0.72;               // half horizontal separation of lower circles
+const VGAP   = R * 0.82;               // vertical drop from top circle to lower circles
+const BAND   = 28;                     // headroom for the outside labels (top & bottom)
+const CX     = VENN_W / 2;             // centre X
+const JOB_CY = BAND + R;               // top (JOB) circle centre Y
+const LOW_CY = JOB_CY + VGAP;          // lower (EXAM / GOAL) circle centre Y
+const VENN_H = LOW_CY + R + BAND;      // total height incl. label bands
+// Circle CENTRES (top: JOB, bottom-left: EXAM, bottom-right: GOAL)
+const CC = {
+  job:  { cx: CX,       cy: JOB_CY },
+  exam: { cx: CX - SEP, cy: LOW_CY },
+  goal: { cx: CX + SEP, cy: LOW_CY },
 };
+const CENTROID_Y = (JOB_CY + 2 * LOW_CY) / 3;   // y of the triple-overlap region
 
 // Map exam target → recommended COCA subgenres
 const EXAM_COVERAGE: Record<string, string[]> = {
@@ -68,6 +73,7 @@ const EXAM_COVERAGE: Record<string, string[]> = {
   cambridge_fce:   ['ACAD:Humanities', 'NEWS:News_Natl', 'MAG:News/Opin', 'NEWS:Life', 'NEWS:Editorial', 'Web:Info'],
   cambridge_cae:   ['ACAD:Humanities', 'ACAD:Sci/Tech', 'NEWS:Editorial', 'MAG:News/Opin', 'NEWS:News_Intl', 'Web:Acad', 'Blog:Arg'],
   cambridge_cpe:   ['FIC:Gen (Book)', 'ACAD:Humanities', 'ACAD:Phil/Rel', 'NEWS:Editorial', 'MAG:News/Opin', 'ACAD:History', 'Web:Acad'],
+  cambridge_pet:   ['NEWS:News_Natl', 'NEWS:Life', 'MAG:Home/Health', 'Blog:Pers', 'Web:Info', 'SPOK:NPR'],
   toefl_ibt:       ['ACAD:Sci/Tech', 'ACAD:Education', 'ACAD:Humanities', 'NEWS:News_Natl', 'Web:Acad', 'MAG:News/Opin'],
   pte_core:        ['NEWS:News_Natl', 'NEWS:News_Local', 'Blog:Info', 'Web:Info', 'MAG:Soc/Arts', 'SPOK:CNN'],
   general:         ['NEWS:News_Natl', 'NEWS:Life', 'MAG:News/Opin', 'Web:Info', 'Blog:Info'],
@@ -76,7 +82,7 @@ const EXAM_COVERAGE: Record<string, string[]> = {
 // Map primary goal → recommended COCA subgenres
 const GOAL_COVERAGE: Record<string, string[]> = {
   vocabulary:    ['ACAD:Sci/Tech', 'ACAD:Humanities', 'MAG:Sci/Tech', 'MAG:News/Opin', 'FIC:Gen (Book)', 'NEWS:Editorial', 'Web:Acad'],
-  pronunciation: ['SPOK:CNN', 'SPOK:NPR', 'SPOK:ABC', 'TV:Drama', 'Mov:Drama', 'TV:Reality'],
+  pronunciation: ['SPOK:CNN', 'SPOK:NPR', 'SPOK:ABC', 'TV:Drama', 'Mov:Drama', 'TV:Reality', 'NEWS:News_Natl'],
   grammar:       ['ACAD:Humanities', 'ACAD:Education', 'NEWS:Editorial', 'MAG:News/Opin', 'FIC:Gen (Book)', 'Web:Acad'],
   fluency:       ['SPOK:CNN', 'SPOK:NPR', 'TV:Comedy', 'TV:Drama', 'Mov:Comedy', 'Blog:Pers'],
   complexity:    ['ACAD:Phil/Rel', 'ACAD:Humanities', 'ACAD:Law/PolSci', 'NEWS:Editorial', 'FIC:Gen (Book)', 'Web:Acad'],
@@ -94,6 +100,11 @@ type Bucket =
   | 'goalOnly'     // in GOAL only, not covered
   | 'onTrack'      // in intersection AND covered
   | 'wasted';      // covered but in none of the 3
+
+// Filter chips operate on *circle membership* (matching the JOB/EXAM/GOAL
+// badges on each card), not on the mutually-exclusive buckets above — so
+// tapping "JOB" shows every subgenre in the JOB circle, covered or not.
+type FilterKey = 'all' | 'priority' | 'job' | 'exam' | 'goal' | 'done' | 'wasted';
 
 interface CoverageState {
   jobId: string | null;
@@ -143,67 +154,64 @@ function VennDiagram({
   jeCount: number; jgCount: number; egCount: number; allCount: number;
   coveredAll: number; coveredJE: number; coveredJG: number; coveredEG: number;
 }) {
+  // Region counts
+  const jobOnly  = jobCount  - jeCount - jgCount + allCount;
+  const examOnly = examCount - jeCount - egCount + allCount;
+  const goalOnly = goalCount - jgCount - egCount + allCount;
+  const je = jeCount - allCount;
+  const jg = jgCount - allCount;
+  const eg = egCount - allCount;
+
+  const circle = (c: { cx: number; cy: number }, fill: string, border: string) => (
+    <View
+      style={[styles.vennCircle, {
+        left: c.cx - R, top: c.cy - R,
+        width: R * 2, height: R * 2, borderRadius: R,
+        backgroundColor: fill, borderColor: border,
+      }]}
+      pointerEvents="none"
+    />
+  );
+
+  // Centred number bubble at an (x,y) point
+  const num = (x: number, y: number, value: number, color = '#1E293B', big = false) => (
+    <Text style={[
+      big ? styles.vennCountBig : styles.vennCount,
+      { left: x - 18, top: y - (big ? 13 : 11), color },
+    ]}>
+      {value}
+    </Text>
+  );
+
   return (
     <View style={{ width: VENN_W, height: VENN_H, alignSelf: 'center' }}>
-      {/* JOB circle (top) */}
-      <View style={[styles.vennCircle, {
-        left: POS.job.x, top: POS.job.y,
-        width: R * 2, height: R * 2, borderRadius: R,
-        backgroundColor: C_JOB + '4D',  // 30% opacity
-        borderColor: C_JOB,
-      }]} pointerEvents="none" />
+      {circle(CC.exam, C_EXAM + '33', C_EXAM)}
+      {circle(CC.goal, C_GOAL + '33', C_GOAL)}
+      {circle(CC.job,  C_JOB  + '33', C_JOB)}
 
-      {/* EXAM circle (bottom-left) */}
-      <View style={[styles.vennCircle, {
-        left: POS.exam.x, top: POS.exam.y,
-        width: R * 2, height: R * 2, borderRadius: R,
-        backgroundColor: C_EXAM + '4D',
-        borderColor: C_EXAM,
-      }]} pointerEvents="none" />
+      {/* ── Outside labels (pills) ─────────────────────────────────── */}
+      <View style={[styles.vennPill, { left: CX - 28, top: JOB_CY - R - BAND + 2, borderColor: C_JOB }]}>
+        <Text style={[styles.vennPillText, { color: C_JOB }]}>JOB</Text>
+      </View>
+      <View style={[styles.vennPill, { left: CC.exam.cx - R + 2, top: LOW_CY + R + 4, borderColor: C_EXAM }]}>
+        <Text style={[styles.vennPillText, { color: C_EXAM }]}>EXAM</Text>
+      </View>
+      <View style={[styles.vennPill, { left: CC.goal.cx + R - 50, top: LOW_CY + R + 4, borderColor: C_GOAL }]}>
+        <Text style={[styles.vennPillText, { color: C_GOAL }]}>GOAL</Text>
+      </View>
 
-      {/* GOAL circle (bottom-right) */}
-      <View style={[styles.vennCircle, {
-        left: POS.goal.x, top: POS.goal.y,
-        width: R * 2, height: R * 2, borderRadius: R,
-        backgroundColor: C_GOAL + '4D',
-        borderColor: C_GOAL,
-      }]} pointerEvents="none" />
+      {/* ── Region counts ──────────────────────────────────────────── */}
+      {num(CX,            JOB_CY - R * 0.42, jobOnly,  C_JOB)}
+      {num(CC.exam.cx - R * 0.46, LOW_CY + R * 0.30, examOnly, C_EXAM)}
+      {num(CC.goal.cx + R * 0.46, LOW_CY + R * 0.30, goalOnly, C_GOAL)}
 
-      {/* Labels (job-only, exam-only, goal-only outer regions) */}
-      <Text style={[styles.vennLabel, { left: POS.job.x + R - 30, top: POS.job.y - 4, color: C_JOB }]}>JOB</Text>
-      <Text style={[styles.vennLabel, { left: POS.exam.x - 6, top: POS.exam.y + R * 2 - 16, color: C_EXAM }]}>EXAM</Text>
-      <Text style={[styles.vennLabel, { left: POS.goal.x + R * 2 - 50, top: POS.goal.y + R * 2 - 16, color: C_GOAL }]}>GOAL</Text>
+      {/* Pairwise lens counts */}
+      {num((CX + CC.exam.cx) / 2 - R * 0.10, (JOB_CY + LOW_CY) / 2, je, '#6D5BD0')}
+      {num((CX + CC.goal.cx) / 2 + R * 0.10, (JOB_CY + LOW_CY) / 2, jg, '#0E9F6E')}
+      {num(CX,            LOW_CY + R * 0.40, eg, '#3B6FB0')}
 
-      {/* Outer counters (only-X regions) */}
-      <Text style={[styles.vennCount, { left: POS.job.x + R - 16, top: POS.job.y + R * 0.35 }]}>
-        {jobCount - jeCount - jgCount + allCount}
-      </Text>
-      <Text style={[styles.vennCount, { left: POS.exam.x + R * 0.35, top: POS.exam.y + R * 1.05 }]}>
-        {examCount - jeCount - egCount + allCount}
-      </Text>
-      <Text style={[styles.vennCount, { left: POS.goal.x + R * 1.0, top: POS.goal.y + R * 1.05 }]}>
-        {goalCount - jgCount - egCount + allCount}
-      </Text>
-
-      {/* Pairwise intersection counters */}
-      <Text style={[styles.vennPairCount, {
-        left: CX - 60, top: POS.job.y + R + 6, color: '#7C3AED',
-      }]}>
-        JE: {jeCount - allCount}
-      </Text>
-      <Text style={[styles.vennPairCount, {
-        left: CX + 18, top: POS.job.y + R + 6, color: '#059669',
-      }]}>
-        JG: {jgCount - allCount}
-      </Text>
-      <Text style={[styles.vennPairCount, {
-        left: CX - 24, top: POS.exam.y + R + R * 0.30, color: '#0F766E',
-      }]}>
-        EG: {egCount - allCount}
-      </Text>
-
-      {/* Center (all-three) — the sweet spot */}
-      <View style={[styles.vennCenter, { left: CX - 28, top: CY - 14 }]}>
+      {/* ── Centre (all-three) — the sweet spot ────────────────────── */}
+      <View style={[styles.vennCenter, { left: CX - 28, top: CENTROID_Y - 18 }]}>
         <Text style={styles.vennCenterCount}>{allCount}</Text>
         <Text style={styles.vennCenterCovered}>✓ {coveredAll}/{allCount}</Text>
       </View>
@@ -218,7 +226,8 @@ export default function CoverageMapScreen() {
     jobId: null, examTarget: 'general', primaryGoal: 'vocabulary',
     covered: [], jobCodes: [], examCodes: [], goalCodes: [],
   });
-  const [filterBucket, setFilterBucket] = useState<Bucket | 'all'>('all');
+  const [filterBucket, setFilterBucket] = useState<FilterKey>('all');
+  const [expandedCode, setExpandedCode] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const [rJob, rExam, rGoal, rGenre] = await Promise.all([
@@ -280,16 +289,37 @@ export default function CoverageMapScreen() {
   // On track = covered AND in one of the recommendation sets
   buckets.onTrack = state.covered.filter(c => universe.has(c));
 
+  // Priority gaps = un-covered subgenres that appear in 2+ of the 3 circles.
+  // (The strict "all-3" centre is rare; "2+ circles" is the meaningful,
+  //  high-ROI signal — it is almost always non-zero once a job is set.)
+  const priorityGapCount =
+    buckets.urgent.length + buckets.priorityJE.length +
+    buckets.priorityJG.length + buckets.priorityEG.length;
+
   const totalRecommended = universe.size;
   const totalCovered     = buckets.onTrack.length;
   const coveragePct      = totalRecommended > 0
     ? Math.round(100 * totalCovered / totalRecommended)
     : 0;
 
-  // Filtered codes for display
-  const displayedCodes = filterBucket === 'all'
-    ? allCodes.sort()
-    : buckets[filterBucket];
+  // Filtered codes for display — JOB/EXAM/GOAL filter by circle membership
+  // (so they match the badges on each card), the rest by status.
+  const priorityCodes = [
+    ...buckets.urgent, ...buckets.priorityJE,
+    ...buckets.priorityJG, ...buckets.priorityEG,
+  ];
+  const displayedCodes: string[] = (() => {
+    switch (filterBucket) {
+      case 'all':      return [...allCodes].sort();
+      case 'priority': return priorityCodes;
+      case 'job':      return allCodes.filter(c => state.jobCodes.includes(c));
+      case 'exam':     return allCodes.filter(c => state.examCodes.includes(c));
+      case 'goal':     return allCodes.filter(c => state.goalCodes.includes(c));
+      case 'done':     return buckets.onTrack;
+      case 'wasted':   return buckets.wasted;
+      default:         return [...allCodes].sort();
+    }
+  })();
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -368,9 +398,9 @@ export default function CoverageMapScreen() {
           <InsightCard
             icon="alert-triangle"
             color="#EF4444"
-            count={buckets.urgent.length}
-            label="URGENT"
-            sub="In all 3 circles — must master"
+            count={priorityGapCount}
+            label="PRIORITY"
+            sub="In 2+ of your circles — do these first"
           />
           <InsightCard
             icon="check-circle"
@@ -392,16 +422,13 @@ export default function CoverageMapScreen() {
         <Text style={styles.sectionTitle}>Breakdown</Text>
         <View style={styles.filterRow}>
           {[
-            { key: 'all',        label: 'All',       color: TEXT2 },
-            { key: 'urgent',     label: '🔥 Urgent', color: '#EF4444' },
-            { key: 'priorityJE', label: 'JOB+EXAM',  color: '#7C3AED' },
-            { key: 'priorityJG', label: 'JOB+GOAL',  color: '#059669' },
-            { key: 'priorityEG', label: 'EXAM+GOAL', color: '#0F766E' },
-            { key: 'jobOnly',    label: 'JOB',       color: C_JOB },
-            { key: 'examOnly',   label: 'EXAM',      color: C_EXAM },
-            { key: 'goalOnly',   label: 'GOAL',      color: C_GOAL },
-            { key: 'onTrack',    label: '✓ Done',    color: '#10B981' },
-            { key: 'wasted',     label: '🗑 Wasted', color: '#94A3B8' },
+            { key: 'all',      label: 'All',         color: TEXT2 },
+            { key: 'priority', label: '🔥 Priority', color: '#EF4444' },
+            { key: 'job',      label: 'JOB',         color: C_JOB },
+            { key: 'exam',     label: 'EXAM',        color: C_EXAM },
+            { key: 'goal',     label: 'GOAL',        color: C_GOAL },
+            { key: 'done',     label: '✓ Done',      color: '#10B981' },
+            { key: 'wasted',   label: '🗑 Wasted',   color: '#94A3B8' },
           ].map(f => (
             <TouchableOpacity
               key={f.key}
@@ -436,45 +463,94 @@ export default function CoverageMapScreen() {
             const { bucket, sources } = classifySubgenre(code, state);
             const isCovered = state.covered.includes(code);
             const mainColor = COCA_MAIN_BY_KEY[sub.main]?.color ?? TEXT2;
+            const words = getSubgenreWords(code);
+            const isOpen = expandedCode === code;
 
             return (
-              <View key={code} style={[
-                styles.codeCard,
-                { borderLeftColor: bucketColor(bucket) },
-              ]}>
-                <View style={[styles.codeBadge, { backgroundColor: mainColor + '20' }]}>
-                  <Text style={[styles.codeBadgeText, { color: mainColor }]}>
-                    {sub.icon}
-                  </Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <View style={styles.codeTitleRow}>
-                    <Text style={styles.codeTitle}>{sub.label}</Text>
-                    {isCovered ? (
-                      <View style={styles.checkBadge}>
-                        <Feather name="check" size={11} color="#fff" />
-                      </View>
+              <View key={code}>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setExpandedCode(isOpen ? null : code)}
+                  style={[
+                    styles.codeCard,
+                    { borderLeftColor: bucketColor(bucket) },
+                    isOpen && { borderColor: mainColor, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
+                  ]}
+                >
+                  <View style={[styles.codeBadge, { backgroundColor: mainColor + '20' }]}>
+                    <Text style={[styles.codeBadgeText, { color: mainColor }]}>
+                      {sub.icon}
+                    </Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.codeTitleRow}>
+                      <Text style={styles.codeTitle}>{sub.label}</Text>
+                      {isCovered ? (
+                        <View style={styles.checkBadge}>
+                          <Feather name="check" size={11} color="#fff" />
+                        </View>
+                      ) : (
+                        <View style={[styles.checkBadge, { backgroundColor: '#E2E8F0' }]}>
+                          <Feather name="x" size={11} color="#94A3B8" />
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.codeDesc} numberOfLines={1}>{sub.description}</Text>
+                    <View style={styles.codeSourcesRow}>
+                      {sources.map(s => (
+                        <View key={s} style={[styles.sourceBadge, {
+                          backgroundColor: s === 'JOB' ? C_JOB + '20' : s === 'EXAM' ? C_EXAM + '20' : C_GOAL + '20',
+                        }]}>
+                          <Text style={[styles.sourceBadgeText, {
+                            color: s === 'JOB' ? C_JOB : s === 'EXAM' ? C_EXAM : C_GOAL,
+                          }]}>
+                            {s}
+                          </Text>
+                        </View>
+                      ))}
+                      {words.length > 0 && (
+                        <View style={styles.wordsCountBadge}>
+                          <Feather name="book-open" size={9} color={mainColor} />
+                          <Text style={[styles.wordsCountText, { color: mainColor }]}>
+                            {words.length} words
+                          </Text>
+                          <Feather name={isOpen ? 'chevron-up' : 'chevron-down'} size={12} color={mainColor} />
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Expanded: distinctive words to practise for this domain */}
+                {isOpen && (
+                  <View style={[styles.wordsPanel, { borderColor: mainColor }]}>
+                    <Text style={styles.wordsPanelTitle}>
+                      Key vocabulary for {sub.label}
+                    </Text>
+                    <Text style={styles.wordsPanelHint}>
+                      Words most characteristic of this register (COCA keyness).
+                    </Text>
+                    {words.length === 0 ? (
+                      <Text style={styles.wordsEmpty}>No word data for this subgenre.</Text>
                     ) : (
-                      <View style={[styles.checkBadge, { backgroundColor: '#E2E8F0' }]}>
-                        <Feather name="x" size={11} color="#94A3B8" />
+                      <View style={styles.wordsWrap}>
+                        {words.map((w, i) => (
+                          <View key={w + i} style={[styles.wordChip, { backgroundColor: mainColor + '12', borderColor: mainColor + '33' }]}>
+                            <Text style={[styles.wordChipText, { color: mainColor }]}>{w}</Text>
+                          </View>
+                        ))}
                       </View>
                     )}
+                    <TouchableOpacity
+                      style={[styles.practiceBtn, { backgroundColor: mainColor }]}
+                      activeOpacity={0.85}
+                      onPress={() => router.push('/(tabs)/vocabulary')}
+                    >
+                      <Feather name="play" size={13} color="#fff" />
+                      <Text style={styles.practiceBtnText}>Practise these words</Text>
+                    </TouchableOpacity>
                   </View>
-                  <Text style={styles.codeDesc} numberOfLines={1}>{sub.description}</Text>
-                  <View style={styles.codeSourcesRow}>
-                    {sources.map(s => (
-                      <View key={s} style={[styles.sourceBadge, {
-                        backgroundColor: s === 'JOB' ? C_JOB + '20' : s === 'EXAM' ? C_EXAM + '20' : C_GOAL + '20',
-                      }]}>
-                        <Text style={[styles.sourceBadgeText, {
-                          color: s === 'JOB' ? C_JOB : s === 'EXAM' ? C_EXAM : C_GOAL,
-                        }]}>
-                          {s}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
+                )}
               </View>
             );
           })}
@@ -495,6 +571,12 @@ export default function CoverageMapScreen() {
           <Text style={[styles.theoryText, { marginTop: 6 }]}>
             Coverage map plots all <Text style={{ fontWeight: '800' }}>96 COCA subgenres</Text> (Davies 2008)
             against three recommendation sources. O*NET-SOC 2018 occupational taxonomy is used for job → register mapping.
+          </Text>
+          <Text style={[styles.theoryText, { marginTop: 6 }]}>
+            Per-domain word lists are the most <Text style={{ fontWeight: '800' }}>distinctive content words</Text> for
+            each register, ranked by <Text style={{ fontStyle: 'italic' }}>keyness</Text> (Scott 1997) over the
+            COCA 60k-lemma × 96-subgenre frequency matrix — not raw frequency, so they reflect what makes each
+            register characteristic.
           </Text>
         </View>
 
@@ -572,17 +654,28 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderWidth: 2,
   },
-  vennLabel: {
+  vennPill: {
     position: 'absolute',
-    fontSize: 11, fontWeight: '900', letterSpacing: 1.5,
+    paddingHorizontal: 9, paddingVertical: 3,
+    borderRadius: 999, borderWidth: 1.5,
+    backgroundColor: '#FFFFFF',
+    minWidth: 56, alignItems: 'center',
+    shadowColor: '#0F172A', shadowOpacity: 0.10,
+    shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
+  vennPillText: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
   vennCount: {
-    position: 'absolute',
-    fontSize: 18, fontWeight: '800', color: '#1E293B',
+    position: 'absolute', width: 36, textAlign: 'center',
+    fontSize: 17, fontWeight: '900',
+    textShadowColor: 'rgba(255,255,255,0.95)',
+    textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
   },
-  vennPairCount: {
-    position: 'absolute',
-    fontSize: 10, fontWeight: '800',
+  vennCountBig: {
+    position: 'absolute', width: 36, textAlign: 'center',
+    fontSize: 22, fontWeight: '900',
+    textShadowColor: 'rgba(255,255,255,0.95)',
+    textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
   },
   vennCenter: {
     position: 'absolute', width: 56, alignItems: 'center',
@@ -658,6 +751,34 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
     marginLeft: 6,
   },
+  wordsCountBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6,
+    backgroundColor: '#F1F5F9', marginLeft: 'auto',
+  },
+  wordsCountText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
+
+  // Expanded words panel
+  wordsPanel: {
+    backgroundColor: CARD,
+    borderWidth: 1, borderTopWidth: 0,
+    borderBottomLeftRadius: 10, borderBottomRightRadius: 10,
+    padding: 12, marginTop: -1, marginBottom: 2,
+  },
+  wordsPanelTitle: { fontSize: 12, fontWeight: '800', color: TEXT },
+  wordsPanelHint:  { fontSize: 10, color: TEXT2, marginTop: 1, marginBottom: 8 },
+  wordsEmpty:      { fontSize: 11, color: TEXT3, fontStyle: 'italic' },
+  wordsWrap:       { flexDirection: 'row', flexWrap: 'wrap', gap: 5 },
+  wordChip: {
+    paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 6, borderWidth: 1,
+  },
+  wordChipText: { fontSize: 11, fontWeight: '700' },
+  practiceBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    borderRadius: 9, paddingVertical: 9, marginTop: 10,
+  },
+  practiceBtnText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   emptyText: {
     fontSize: 12, color: TEXT3,

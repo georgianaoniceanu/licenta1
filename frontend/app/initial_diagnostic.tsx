@@ -57,6 +57,10 @@ interface DiagnosisResult {
   strengths: string[];
   priority_recommendations: string[];
   exam_specific_scores: Record<string, number>;
+  // RF corpus model prediction (S&I Corpus 2025, Knill et al. 2025)
+  rf_predicted_cefr?: string;
+  rf_confidence?: number;
+  rf_probabilities?: Record<string, number>;
 }
 
 interface VocabProfile {
@@ -246,6 +250,10 @@ export default function InitialDiagnosticScreen() {
         priority_recommendations: assessData.priority_recommendations || [],
         // backend returns "exam_scores" key
         exam_specific_scores: assessData.exam_scores || assessData.exam_specific_scores || {},
+        // RF corpus model prediction (Cambridge S&I Corpus 2025)
+        rf_predicted_cefr:  assessData.rf_predicted_cefr  ?? undefined,
+        rf_confidence:      assessData.rf_confidence      ?? undefined,
+        rf_probabilities:   assessData.rf_probabilities   ?? undefined,
       };
 
       // Preserve the very first baseline so Progress can always show the original starting point
@@ -411,6 +419,60 @@ export default function InitialDiagnosticScreen() {
             </View>
             <Text style={styles.scoreLabel}>Overall proficiency score</Text>
           </View>
+
+          {/* ── Second opinion: Ordinal LR + SVM ensemble ── */}
+          {diagnosis.rf_predicted_cefr && (() => {
+            const agree      = diagnosis.rf_predicted_cefr === diagnosis.predicted_cefr;
+            const conf       = diagnosis.rf_confidence ?? 0;
+            const LEVEL_DESC: Record<string, string> = {
+              'A2': 'Elementary',
+              'B1': 'Intermediate',
+              'B2': 'Upper-Intermediate',
+              'C1-C2': 'Advanced',
+            };
+            return (
+              <View style={styles.rfCard}>
+                <View style={styles.rfHeader}>
+                  <Text style={styles.rfEmoji}>🔍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.rfTitle}>Cross-check · Ordinal model</Text>
+                    <Text style={styles.rfSub}>
+                      Ordinal Logistic Regression + SVM ensemble — respects the A2→C2 ordering
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Big level display */}
+                <View style={styles.rfLevelRow}>
+                  <View style={[styles.rfLevelBox, { borderColor: TINT + '50', backgroundColor: TINT + '10' }]}>
+                    <Text style={[styles.rfLevelBig, { color: TINT }]}>{diagnosis.rf_predicted_cefr}</Text>
+                    <Text style={styles.rfLevelName}>{LEVEL_DESC[diagnosis.rf_predicted_cefr] ?? ''}</Text>
+                  </View>
+                  <View style={styles.rfLevelRight}>
+                    <Text style={styles.rfConfSub}>
+                      Confidence: <Text style={{ fontWeight: '800', color: TINT }}>{Math.round(conf * 100)}%</Text>
+                    </Text>
+                    <View style={styles.rfConfTrack}>
+                      <View style={[styles.rfConfFill, { width: `${Math.round(conf * 100)}%` as any }]} />
+                    </View>
+                    <Text style={styles.rfConfHint}>
+                      {conf >= 0.65 ? 'Strong match' : conf >= 0.45 ? 'Good match' : 'Close call'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Agreement chip */}
+                <View style={[styles.rfAgreePill, { backgroundColor: agree ? TINT + '15' : '#F59E0B15' }]}>
+                  <Text style={{ fontSize: 13 }}>{agree ? '✅' : '🤔'}</Text>
+                  <Text style={[styles.rfAgreeMsg, { color: agree ? TINT : '#B45309' }]}>
+                    {agree
+                      ? 'Both analyses agree — you\'re at ' + diagnosis.predicted_cefr
+                      : 'Analyses differ slightly (' + diagnosis.predicted_cefr + ' vs ' + diagnosis.rf_predicted_cefr + ') — your true level is between these'}
+                  </Text>
+                </View>
+              </View>
+            );
+          })()}
 
           {/* ── Exam Score Mapping (Cambridge CAE / TOEFL iBT / IELTS) ── */}
           {diagnosis.exam_specific_scores && Object.keys(diagnosis.exam_specific_scores).length > 0 && (
@@ -826,6 +888,37 @@ const styles = StyleSheet.create({
   examBarFill: { height: 4, borderRadius: 2 },
   examLabel: { fontSize: 11, fontWeight: '700', color: Colors.light.text, textAlign: 'center', lineHeight: 15 },
   examNote: { fontSize: 10, color: Colors.light.textSecondary, fontStyle: 'italic', textAlign: 'center' },
+
+  // RF "cross-checked with real learners" card
+  rfCard: {
+    backgroundColor: CARD, borderRadius: BorderRadius.md,
+    padding: Spacing.md, marginBottom: Spacing.md,
+    borderWidth: 1.5, borderColor: TINT + '35',
+  },
+  rfHeader: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 14 },
+  rfEmoji:  { fontSize: 20, marginTop: 2 },
+  rfTitle:  { fontSize: 14, fontWeight: '800', color: Colors.light.text },
+  rfSub:    { fontSize: 11, color: Colors.light.textSecondary, marginTop: 3, lineHeight: 16 },
+
+  rfLevelRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  rfLevelBox: {
+    width: 80, height: 80, borderRadius: 18,
+    borderWidth: 2, justifyContent: 'center', alignItems: 'center',
+  },
+  rfLevelBig:  { fontSize: 22, fontWeight: '900' },
+  rfLevelName: { fontSize: 9, fontWeight: '700', color: Colors.light.textSecondary, marginTop: 2, textAlign: 'center' },
+
+  rfLevelRight: { flex: 1, gap: 6 },
+  rfConfSub:    { fontSize: 12, color: Colors.light.text },
+  rfConfTrack:  { height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
+  rfConfFill:   { height: 8, backgroundColor: TINT, borderRadius: 4 },
+  rfConfHint:   { fontSize: 11, color: Colors.light.textSecondary, fontStyle: 'italic' },
+
+  rfAgreePill: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    gap: 8, borderRadius: 12, padding: 12,
+  },
+  rfAgreeMsg: { flex: 1, fontSize: 12, lineHeight: 18, fontWeight: '600' },
 
   focusCard: {
     flexDirection: 'row', alignItems: 'center', gap: Spacing.sm,

@@ -52,15 +52,12 @@ class ErrorSeverity(str, Enum):
     SEVERE = "severe"  # Severely impedes comprehension
 
 
-class DomainType(str, Enum):
-    """Learning domains"""
-    NARRATION = "narration"
-    DESCRIPTION = "description"
-    ARGUMENTATION = "argumentation"
-    CONVERSATION = "conversation"
-    ACADEMIC = "academic"
-    TECHNICAL = "technical"
-
+# COCA genre names used as domain keys (COCAGenre.value from coca_genre_classifier):
+#   academic  — scholarly journals, science, law, medicine
+#   fiction   — novels, screenplays, juvenile fiction
+#   spoken    — TV/radio dialogue, talk shows
+#   newspaper — national/local news, editorial, opinion
+#   magazine  — lifestyle, sports, science, description
 
 @dataclass
 class POSErrorPattern:
@@ -68,7 +65,7 @@ class POSErrorPattern:
     error_id: str
     pos_tag: POSTag
     error_type: ErrorType
-    domain: DomainType
+    domain: str  # COCAGenre value: academic, fiction, spoken, newspaper, magazine…
     example_correct: str
     example_incorrect: str
     frequency_percentage: float  # % of learners making this error
@@ -122,8 +119,9 @@ class CorpusAnalysisData:
         },
     }
     
-    # Error patterns by domain (from A_Corpus-based_Approach: Romanian EFL learners)
+    # Error patterns by COCA genre domain (from A_Corpus-based_Approach: Romanian EFL learners)
     # Study: 30 students, 15,000 words of translated text
+    # Keys match COCAGenre.value: academic, fiction, spoken, newspaper, magazine
     ERROR_PATTERNS_BY_DOMAIN = {
         'academic': [
             {
@@ -154,7 +152,7 @@ class CorpusAnalysisData:
                 'correction': 'Use adjective form "academic" not "academical"',
             },
         ],
-        'argumentation': [
+        'newspaper': [
             {
                 'error_id': 'ARG_001',
                 'pos_tag': POSTag.CONJUNCTION,
@@ -174,7 +172,7 @@ class CorpusAnalysisData:
                 'correction': 'Plural subject "results" requires plural verb "suggest"',
             },
         ],
-        'narration': [
+        'fiction': [
             {
                 'error_id': 'NAR_001',
                 'pos_tag': POSTag.VERB,
@@ -194,7 +192,7 @@ class CorpusAnalysisData:
                 'correction': 'Reflexive pronoun not needed after transitive verb',
             },
         ],
-        'description': [
+        'magazine': [
             {
                 'error_id': 'DESC_001',
                 'pos_tag': POSTag.ADJECTIVE,
@@ -214,7 +212,7 @@ class CorpusAnalysisData:
                 'correction': 'Use "of" not "from" with "center of"',
             },
         ],
-        'conversation': [
+        'spoken': [
             {
                 'error_id': 'CONV_001',
                 'pos_tag': POSTag.PRONOUN,
@@ -250,13 +248,13 @@ class POSErrorPatternManager:
     
     def __init__(self):
         self.error_patterns: Dict[str, POSErrorPattern] = {}
-        self.domain_errors: Dict[DomainType, List[str]] = {}
+        self.domain_errors: Dict[str, List[str]] = {}  # COCA genre code → error IDs
         self._initialize_patterns()
-    
+
     def _initialize_patterns(self):
         """Load error patterns from corpus analysis data"""
         for domain_name, errors in CorpusAnalysisData.ERROR_PATTERNS_BY_DOMAIN.items():
-            domain = DomainType[domain_name.upper()]
+            domain = domain_name  # already a COCA genre code string
             self.domain_errors[domain] = []
             
             for error_data in errors:
@@ -273,7 +271,7 @@ class POSErrorPatternManager:
                 self.error_patterns[pattern.error_id] = pattern
                 self.domain_errors[domain].append(pattern.error_id)
     
-    def get_errors_by_domain(self, domain: DomainType, 
+    def get_errors_by_domain(self, domain: str,
                             sort_by_frequency: bool = True) -> List[POSErrorPattern]:
         """Get error patterns for a specific domain"""
         error_ids = self.domain_errors.get(domain, [])
@@ -284,8 +282,8 @@ class POSErrorPatternManager:
         
         return errors
     
-    def get_errors_by_pos(self, pos_tag: POSTag, 
-                         domain: Optional[DomainType] = None) -> List[POSErrorPattern]:
+    def get_errors_by_pos(self, pos_tag: POSTag,
+                         domain: Optional[str] = None) -> List[POSErrorPattern]:
         """Get error patterns for a specific POS tag, optionally filtered by domain"""
         patterns = [
             p for p in self.error_patterns.values()
@@ -297,13 +295,13 @@ class POSErrorPatternManager:
         
         return sorted(patterns, key=lambda x: x.frequency_percentage, reverse=True)
     
-    def get_high_priority_errors(self, domain: DomainType, 
+    def get_high_priority_errors(self, domain: str,
                                 frequency_threshold: float = 40.0) -> List[POSErrorPattern]:
         """Get high-frequency errors (>40% of learners) for targeted intervention"""
         errors = self.get_errors_by_domain(domain)
         return [e for e in errors if e.frequency_percentage >= frequency_threshold]
     
-    def get_error_intervention_plan(self, domain: DomainType) -> Dict:
+    def get_error_intervention_plan(self, domain: str) -> Dict:
         """Generate intervention plan: prioritize by frequency and severity"""
         errors = self.get_errors_by_domain(domain, sort_by_frequency=True)
         
@@ -312,19 +310,28 @@ class POSErrorPatternManager:
         medium_priority = [e for e in errors if e.frequency_percentage >= 35 and e.severity == ErrorSeverity.MODERATE]
         
         return {
-            'domain': domain.value,
-            'high_priority_errors': [(e.error_id, e.example_incorrect) for e in high_priority],
-            'medium_priority_errors': [(e.error_id, e.example_incorrect) for e in medium_priority],
+            'domain': domain,
+            'high_priority_errors': [
+                {"error_id": e.error_id, "example": e.example_incorrect,
+                 "frequency": e.frequency_percentage, "severity": e.severity.value}
+                for e in high_priority
+            ],
+            'medium_priority_errors': [
+                {"error_id": e.error_id, "example": e.example_incorrect,
+                 "frequency": e.frequency_percentage, "severity": e.severity.value}
+                for e in medium_priority
+            ],
             'total_patterns': len(errors),
             'avg_frequency': sum(e.frequency_percentage for e in errors) / len(errors) if errors else 0,
         }
     
-    def get_syntactic_complexity_baseline(self, domain: DomainType) -> Dict:
-        """Get syntactic complexity expectations for domain"""
+    def get_syntactic_complexity_baseline(self, domain: str) -> Dict:
+        """Get syntactic complexity expectations for COCA genre domain"""
         domain_map = {
-            DomainType.NARRATION: 'narrative',
-            DomainType.DESCRIPTION: 'description',
-            DomainType.ARGUMENTATION: 'argumentative',
+            'fiction':   'narrative',     # Fiction → narrative complexity norms
+            'magazine':  'description',   # Magazine → description complexity norms
+            'academic':  'argumentative', # Academic → argumentative complexity norms
+            'newspaper': 'argumentative', # Newspaper editorial → argumentative norms
         }
         domain_key = domain_map.get(domain)
         

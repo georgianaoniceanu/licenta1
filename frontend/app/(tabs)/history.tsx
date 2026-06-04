@@ -18,8 +18,9 @@ import { Colors } from '../../constants/theme';
 import { VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 import {
-  speakAsUser, stopSpeaking, isSpeechAvailable, warmupVoices,
+  isSpeechAvailable, warmupVoices, playRecordingOrTTS, stopAllPlayback,
 } from '@/utils/voiceProfiles';
+import { getDemoAudio } from '@/constants/demoAudio';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type ExamSession = {
@@ -32,7 +33,7 @@ type ExamSession = {
 type CAFEntry = { ts: number; C: number; A: number; F: number; cefr: string; wps: number };
 type GrammarSession = { ts: number; severity_score: number; error_count: number; categories: Record<string, number> };
 type GenreSession = { ts: number; dominant_genre: string | null; cefr_level: string; cefr_score: number; input_mode: string };
-type ShadowSession = { ts: number; category: string; difficulty: string; score: number; transcribed: string; target_text: string };
+type ShadowSession = { ts: number; category: string; difficulty: string; score: number; transcribed: string; target_text: string; audio_id?: string };
 
 type UnifiedSession =
   | { kind: 'exam';    ts: number; data: ExamSession }
@@ -230,7 +231,9 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
   const scoreColor = data.score >= 80 ? '#22c55e' : data.score >= 60 ? '#f59e0b' : '#f87171';
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const speechOK = isSpeechAvailable();
+  const audioModule = getDemoAudio(data.audio_id);
+  // Playback is possible if there's a real recording OR speech synthesis is available
+  const canPlay = !!audioModule || isSpeechAvailable();
 
   // Waveform bars animation
   const waveAnims = useRef(Array.from({ length: 5 }, () => new Animated.Value(0.3))).current;
@@ -252,22 +255,22 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
   }, [playing]);
 
   // Stop on unmount
-  useEffect(() => () => { stopSpeaking(); }, []);
+  useEffect(() => () => { stopAllPlayback(); }, []);
 
   const togglePlay = () => {
     if (playing) {
-      stopSpeaking();
+      stopAllPlayback();
       setPlaying(false);
       return;
     }
-    const ok = speakAsUser({
+    void playRecordingOrTTS({
+      audioModule,
       text: data.transcribed,
       preset: activeDemoPreset,
       onStart: () => setPlaying(true),
       onEnd:   () => setPlaying(false),
       onError: () => setPlaying(false),
     });
-    if (!ok) setPlaying(false);
   };
 
   return (
@@ -299,7 +302,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
         <TouchableOpacity
           style={[S.playBtn, { backgroundColor: playing ? '#EF4444' : SKY }]}
           onPress={togglePlay}
-          disabled={!speechOK}
+          disabled={!canPlay}
           activeOpacity={0.8}
         >
           <Feather name={playing ? 'square' : 'play'} size={14} color="#fff" />
@@ -321,6 +324,12 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
           ))}
         </View>
 
+        {audioModule && (
+          <View style={S.realBadge}>
+            <Text style={S.realBadgeText}>REC</Text>
+          </View>
+        )}
+
         <TouchableOpacity onPress={() => setExpanded(e => !e)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <Text style={[S.expandLabel, { color: SKY }]}>
             {expanded ? 'Hide' : 'Transcript'}
@@ -328,9 +337,9 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
         </TouchableOpacity>
       </View>
 
-      {!speechOK && Platform.OS !== 'web' && (
+      {!canPlay && Platform.OS !== 'web' && (
         <Text style={S.audioFallback}>
-          Audio playback is available in the web build (Web Speech API).
+          Audio playback is available in the web build.
         </Text>
       )}
 
@@ -379,7 +388,7 @@ export default function HistoryScreen() {
   const [activeDemoPreset, setActiveDemoPreset] = useState<string | null>(null);
 
   // Warm up Web Speech voices on mount (web only)
-  useEffect(() => { warmupVoices(); return () => { stopSpeaking(); }; }, []);
+  useEffect(() => { warmupVoices(); return () => { stopAllPlayback(); }; }, []);
 
   const load = useCallback(async () => {
     try {
@@ -589,6 +598,11 @@ const S = StyleSheet.create({
     borderRadius: 2,
   },
   expandLabel: { fontSize: 12, fontWeight: '700' },
+  realBadge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 4, paddingHorizontal: 5, paddingVertical: 1,
+  },
+  realBadgeText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
   audioFallback: {
     fontSize: 10, color: Colors.light.textLight,
     fontStyle: 'italic',

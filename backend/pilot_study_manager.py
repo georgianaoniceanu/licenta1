@@ -1,8 +1,21 @@
 """
 Pilot Study Manager
-Handles participant recruitment, baseline/post-test assessment, 
-treatment vs control randomization, and statistical validation
+Handles participant recruitment, baseline/post-test assessment,
+treatment vs control randomization, and statistical validation.
 Based on: PILOT_STUDY_PROTOCOL.md
+
+Research Foundation:
+- Dimova, S. (2022). Performance-based speaking tests: Possibilities in local language
+  testing. Language Teaching Research Quarterly, 29, 120–133. Local language tests serve
+  diagnostic and placement purposes by involving local expertise (students, instructors)
+  and enabling continuous validation. This pilot instantiates Dimova's framework: task
+  design, rating scale, and iterative validation are all grounded in local (Romanian EFL)
+  instructional context.
+- Norris, J. M. (2017). Task-based language assessment: Aligning designs with intended
+  uses and consequences. JLTA Journal, 21, 3–20. Pre-test/post-test design with
+  treatment vs. control groups mirrors the high-stakes TBLA validation logic: intended
+  use (diagnostic accuracy) must be empirically validated through consequence evidence
+  (Pearson r ≥ 0.75 between system CEFR and official test scores).
 
 Main functions:
 - Manage participant enrollment and consent

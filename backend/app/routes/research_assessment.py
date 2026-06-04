@@ -11,8 +11,11 @@ Blocked Requirements Implementation:
 - Professor Enhancements: 10 standardized assessment indicators (assessment_indicators.py)
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
+import logging
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 
 from sqlalchemy.orm import Session
@@ -21,17 +24,17 @@ from database import get_db, OnboardingProfile
 from app import schemas as api_schemas
 
 from app.services.vocabulary_management import (
-    vocabulary_manager, VocabularyManager, DomainType, CEFRLevel
+    vocabulary_manager, VocabularyManager, CEFRLevel
 )
 from app.services.pos_error_patterns import (
-    error_pattern_manager, POSErrorPatternManager, ErrorType, DomainType as DomainErrorType
+    error_pattern_manager, POSErrorPatternManager, ErrorType
 )
 from app.services.module_effectiveness import (
     module_effectiveness_calculator, ModuleType, ErrorType as ModuleErrorType
 )
 from app.services.learning_curves import (
     learning_curve_predictor, LearningCurvePredictor, CEFRLevel as CurveCEFRLevel,
-    IndividualDifferencesFactor, LearningDimension
+    IndividualDifferencesFactor, LearningDimension, SLAProgressionData
 )
 from app.services.assessment_indicators import (
     assessment_calculator, AssessmentIndicatorsCalculator, IndicatorType, ExamType
@@ -140,7 +143,7 @@ router = APIRouter(prefix="/assessment", tags=["research-based-assessment"])
 class DiagnosticTextRequest(BaseModel):
     """Request to analyze a learner's text sample and compute all 10 indicators."""
     text: str
-    domain: str = "description"
+    domain: str = "spoken"
     self_assessed_cefr: str = "B1"
     audio_duration_seconds: Optional[float] = None  # if audio was recorded
 
@@ -192,24 +195,26 @@ def analyze_diagnostic_text(payload: DiagnosticTextRequest):
         "vocabulary_profile": vocab_profile,
         "learner_cluster": cluster_profile,
         "research_note": (
-            "Indicators: MTLD (Şahin Kızıl 2024; McCarthy & Jarvis 2010), "
-            "IDL (Neumanova 2025), NLP analysis (Lee 2021; Ahari et al. 2025), "
+            "Indicators: MTLD (Şahin Kızıl 2024; Kolahi Ahari et al. 2025), "
+            "IDL (Neumanova 2015), NLP analysis (Lee 2021; Ahari et al. 2025), "
             "EFC/C accuracy (Li & Shintani 2010; Zechner et al. 2009). "
             "Romanian errors: Pungă & Pârlog (2015). "
-            "Vocabulary profile: EVP (Cambridge), NAWL, new-GSL (Brezina & Gablasova 2015). "
+            "Vocabulary profile: EVP (Cambridge), NAWL, AWL (Coxhead 2000). "
             "Learner cluster: K-Means (Goldshtein et al. 2024; Yan et al. 2020)."
         ),
     }
 
 
 @router.get("/diagnostic-prompt")
-def get_prompt(domain: str = "description"):
+def get_prompt(domain: str = "spoken"):
     """
     Return the writing/speaking prompt for the initial diagnostic task,
-    adapted to the learner's target domain.
+    adapted to the learner's target COCA genre domain.
 
-    Based on Dimova (2022) performance-based speaking task types and
-    Knoch (2009) diagnostic writing task design.
+    Prompt register calibrated per COCA genre (Davies):
+      spoken/movies/tv → conversational; academic → formal explanation;
+      newspaper → editorial; fiction → narrative; web/blog → informal.
+    Based on Knoch (2009) diagnostic writing task design.
     """
     return get_diagnostic_prompt(domain)
 
@@ -237,7 +242,7 @@ class InitialAssessmentRequest(BaseModel):
 
 
 @router.post("/initial-assessment")
-def run_initial_assessment(payload: InitialAssessmentRequest):
+def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Optional[str] = Header(None)):
     """
     STEP 1: Run complete initial assessment with all 10 indicators.
     
@@ -297,7 +302,33 @@ def run_initial_assessment(payload: InitialAssessmentRequest):
     }
     cluster_profile = classify_learner(raw_for_cluster)
 
-    return {
+    # ── Ordinal LR + SVM ensemble prediction (Agresti 2002; Cortes & Vapnik 1995)
+    # Passes all 10 CAF indicators directly — predictor resolves aliases internally.
+    # articulation_rate alias handled by cefr_predictor._FEATURE_ALIASES.
+    rf_cefr, rf_confidence, rf_probabilities = None, None, {}
+    try:
+        from app.services.cefr_predictor import predict_cefr as _cefr_predict
+        _cefr_feats = {
+            "lexical_diversity":        payload.lexical_diversity,
+            "lexical_sophistication":   getattr(payload, "lexical_sophistication", 0.0),
+            "word_length":              payload.word_length,
+            "sentence_complexity":      payload.sentence_complexity,
+            "subordination_ratio":      payload.subordination_ratio,
+            "syntactic_complexity":     payload.syntactic_complexity,
+            "articulation_rate":        payload.articulation_rate,
+            "pause_frequency":          payload.pause_frequency,
+            "cohesion_score":           payload.cohesion_score,
+            "morphosyntactic_accuracy": getattr(payload, "morphosyntactic_accuracy", 0.0),
+        }
+        _cefr_res        = _cefr_predict(_cefr_feats)
+        rf_cefr          = _cefr_res["predicted_cefr"]
+        rf_confidence    = _cefr_res["confidence"]
+        rf_probabilities = _cefr_res["all_probabilities"]
+    except Exception as _cefr_err:
+        logger.warning("CEFR predictor failed: %s", _cefr_err, exc_info=True)
+        # fields remain None — frontend handles gracefully
+
+    response_payload = {
         "user_id": result.user_id,
         "domain": result.domain,
         "predicted_cefr": result.predicted_cefr,
@@ -321,7 +352,68 @@ def run_initial_assessment(payload: InitialAssessmentRequest):
         "framework": result.assessment_framework,
         "research_summary": result.research_summary,
         "learner_cluster": cluster_profile,
+        # Ordinal LR + SVM ensemble (Agresti 2002; Cortes & Vapnik 1995)
+        # 4-class A2/B1/B2/C1-C2; OrdinalLR respects CEFR ordinal scale
+        "rf_predicted_cefr":  rf_cefr,        # kept as rf_ for frontend compatibility
+        "rf_confidence":      rf_confidence,
+        "rf_probabilities":   rf_probabilities,
     }
+
+    # ── Auto-persist to Firestore so history survives app reinstalls ──────────
+    # Only runs when the user is authenticated; silently skipped otherwise.
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            from app.services.firestore import save_assessment
+            from app.services.auth import verify_token as _vt
+            _tok  = authorization.replace("Bearer ", "")
+            _user = _vt(_tok)
+            save_assessment(_user["uid"], {
+                "cefr":              result.predicted_cefr,
+                "overall_score":     result.overall_score,
+                "domain":            result.domain,
+                "rf_predicted_cefr": rf_cefr,
+                "rf_confidence":     rf_confidence,
+                # store only key summary per indicator (not full research sources)
+                "indicators": [
+                    {
+                        "name":     ind.indicator,
+                        "score":    round(ind.normalized_score, 1),
+                        "severity": ind.severity,
+                        "cefr":     ind.cefr_level,
+                    }
+                    for ind in result.indicators
+                ],
+            })
+        except Exception:
+            pass  # Firestore save is best-effort; never break the assessment
+
+    return response_payload
+
+
+# ============================================================================
+# ASSESSMENT HISTORY — persisted in Firestore, survives app reinstall
+# ============================================================================
+
+@router.get("/history")
+def get_assessment_history(authorization: Optional[str] = Header(None)):
+    """
+    Return a user's past diagnostic assessments from Firestore (newest first).
+    Each entry: ts, cefr, overall_score, domain, rf_predicted_cefr, indicators[].
+    Used by the Profile screen to show progress over time.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        from app.services.firestore import get_assessments
+        from app.services.auth import verify_token as _vt
+        _tok  = authorization.replace("Bearer ", "")
+        _user = _vt(_tok)
+        history = get_assessments(_user["uid"])
+        return {"success": True, "data": history}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
 
 
 # ============================================================================
@@ -509,7 +601,7 @@ def get_assessment_report(user_id: str):
             "Saito, K., Webb, S., Trofimovich, P., & Isaacs, T. (2016). Lexical profiles of comprehensible second language speech. Studies in Second Language Acquisition, 38(4), 677-702.",
             "Li, S., & Shintani, N. (2010). The effectiveness of corrective feedback in SLA: A meta-analysis. Language Learning, 60(2), 322-340.",
             "Crossley, S. A., Kyle, K., & McNamara, D. S. (2016). Predicting text coherence, lexical quality, and essay scores from linguistic complexity measures and linguistic patterns. Journal of Writing Research, 8(1), 181-205.",
-            "Norris, J. M., & Ortega, L. (2009). Measurement for language research. John Benjamins Publishing Company."
+            "Barrot, J. S., & Agdeppa, J. Y. (2021). Complexity, accuracy, and fluency as indices of college-level L2 writers' proficiency. Assessing Writing, 47, 100510."
         ],
         "assessment_methodology": "CAF (Complexity-Accuracy-Fluency) framework with 10 standardized SLA research-backed indicators mapped to CEFR levels and international exams."
     }
@@ -633,7 +725,7 @@ def get_vocabulary_by_cefr(cefr_level: str, limit: int = Query(50, le=200)):
                 nawl_band=item.nawl_band,
                 cefr_level=item.cefr_level.value,
                 frequency_score=item.get_frequency_score(),
-                domains=[d.value for d in item.domains],
+                domains=sorted(item.domains),
             )
             for item in vocab_items
         ]
@@ -647,7 +739,7 @@ def get_vocabulary_by_domain(domain: str, cefr_level: str, limit: int = Query(50
     Get vocabulary items for specific domain and CEFR level
     
     Research basis: Domain-specific vocabulary from AWL + NAWL
-    Domains: narration, description, argumentation, conversation, academic, technical
+    Domains (COCAGenre values): academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
     
     Args:
         domain: Learning domain
@@ -655,9 +747,8 @@ def get_vocabulary_by_domain(domain: str, cefr_level: str, limit: int = Query(50
         limit: Maximum number of words
     """
     try:
-        domain_enum = DomainType[domain.upper()]
         level = CEFRLevel[cefr_level.upper()]
-        vocab_items = vocabulary_manager.get_vocabulary_by_domain(domain_enum, level, limit)
+        vocab_items = vocabulary_manager.get_vocabulary_by_domain(domain.lower(), level, limit)
         
         return [
             VocabularyResponse(
@@ -667,7 +758,7 @@ def get_vocabulary_by_domain(domain: str, cefr_level: str, limit: int = Query(50
                 nawl_band=item.nawl_band,
                 cefr_level=item.cefr_level.value,
                 frequency_score=item.get_frequency_score(),
-                domains=[d.value for d in item.domains],
+                domains=sorted(item.domains),
             )
             for item in vocab_items
         ]
@@ -690,8 +781,8 @@ def get_vocabulary_learning_path(request: VocabularyLearningPathRequest):
     """
     try:
         current_level = CEFRLevel[request.current_level.upper()]
-        domain = DomainType[request.domain.upper()]
-        
+        domain = request.domain.lower()
+
         learning_path = vocabulary_manager.get_learning_path(current_level, domain, request.num_words)
         
         return VocabularyLearningPathResponse(
@@ -715,18 +806,17 @@ def get_pos_errors_by_domain(domain: str):
     Analyzes error frequency in learner corpora (30+ Romanian learners, 320+ essays)
     
     Args:
-        domain: Learning domain (narration, description, argumentation, etc.)
+        domain: COCAGenre value (academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv)
     """
     try:
-        domain_enum = DomainErrorType[domain.upper()]
-        errors = error_pattern_manager.get_errors_by_domain(domain_enum)
-        
+        errors = error_pattern_manager.get_errors_by_domain(domain.lower())
+
         return [
             POSErrorPatternResponse(
                 error_id=err.error_id,
                 pos_tag=err.pos_tag.value,
                 error_type=err.error_type.value,
-                domain=err.domain.value,
+                domain=err.domain,
                 example_correct=err.example_correct,
                 example_incorrect=err.example_incorrect,
                 frequency_percentage=err.frequency_percentage,
@@ -752,19 +842,18 @@ def get_high_priority_errors(domain: str, frequency_threshold: float = Query(40.
         frequency_threshold: Minimum frequency percentage (default 40%)
     """
     try:
-        domain_enum = DomainErrorType[domain.upper()]
         # Adjust threshold dynamically
         threshold = min(max(frequency_threshold, 20.0), 80.0)
-        
-        errors = error_pattern_manager.get_errors_by_domain(domain_enum)
+
+        errors = error_pattern_manager.get_errors_by_domain(domain.lower())
         filtered = [e for e in errors if e.frequency_percentage >= threshold]
-        
+
         return [
             POSErrorPatternResponse(
                 error_id=err.error_id,
                 pos_tag=err.pos_tag.value,
                 error_type=err.error_type.value,
-                domain=err.domain.value,
+                domain=err.domain,
                 example_correct=err.example_correct,
                 example_incorrect=err.example_incorrect,
                 frequency_percentage=err.frequency_percentage,
@@ -789,8 +878,7 @@ def get_error_intervention_plan(domain: str):
         domain: Learning domain
     """
     try:
-        domain_enum = DomainErrorType[domain.upper()]
-        plan = error_pattern_manager.get_error_intervention_plan(domain_enum)
+        plan = error_pattern_manager.get_error_intervention_plan(domain.lower())
         
         return ErrorInterventionPlanResponse(
             domain=plan['domain'],
@@ -806,21 +894,32 @@ def get_error_intervention_plan(domain: str):
 # MODULE EFFECTIVENESS ENDPOINTS
 # ============================================================================
 
+@router.get("/module-effectiveness/matrix")
+def get_effectiveness_matrix():
+    """
+    Get complete module × error type effectiveness matrix
+
+    Research basis: Meta-analyses (Cepeda, Li, Saito, Plonsky & Kim)
+    Provides comprehensive mapping of which modules work best for each error type
+    """
+    return module_effectiveness_calculator.get_error_to_module_mapping()
+
+
 @router.get("/module-effectiveness/{error_type}", response_model=ModuleRecommendationResponse)
 def get_module_recommendations(error_type: str):
     """
     Get module recommendations for addressing a specific error type
-    
+
     Research basis: Cepeda (vocabulary), Li (grammar), Saito (pronunciation), Plonsky & Kim (tasks)
     Returns modules ranked by effectiveness (only >50% effectiveness)
-    
+
     Args:
         error_type: Type of error to address (morphosyntax, lexical, pronunciation, etc.)
     """
     try:
         error_enum = ModuleErrorType[error_type.upper()]
         recommendations = module_effectiveness_calculator.recommend_modules_for_error(error_enum)
-        
+
         return ModuleRecommendationResponse(
             error_type=error_type,
             recommended_modules=[
@@ -830,17 +929,6 @@ def get_module_recommendations(error_type: str):
         )
     except KeyError:
         raise HTTPException(status_code=400, detail=f"Invalid error type: {error_type}")
-
-
-@router.get("/module-effectiveness/matrix")
-def get_effectiveness_matrix():
-    """
-    Get complete module × error type effectiveness matrix
-    
-    Research basis: Meta-analyses (Cepeda, Li, Saito, Plonsky & Kim)
-    Provides comprehensive mapping of which modules work best for each error type
-    """
-    return module_effectiveness_calculator.get_error_to_module_mapping()
 
 
 @router.get("/meta-analysis/{analysis_id}")
@@ -909,7 +997,7 @@ def create_learner_profile(request: LearningCurveRequest):
             next_level=next_level_info[0].value if next_level_info else None,
             proficiency_profile={k.value: v for k, v in profile.proficiency_scores.items()},
             development_rates={
-                k.value: LearningDimension[k.name].weekly_improvement
+                k.value: SLAProgressionData.DEVELOPMENT_RATES[k].weekly_improvement
                 for k in profile.proficiency_scores.keys()
             },
         )
@@ -936,7 +1024,7 @@ def estimate_growth(learner_id: str, weeks_ahead: int = Query(12, ge=1, le=52)):
     """
     Estimate learner proficiency growth over next N weeks
     
-    Research basis: Larsen-Freeman dynamic systems theory
+    Research basis: De Jong (2023) — non-linear CAF development; DeKeyser & Suzuki (2025) — power law of automatization
     Accounts for individual differences and asymptotic ceiling effects
     
     Args:
@@ -959,7 +1047,7 @@ def get_breakthrough_recommendations(learner_id: str):
     """
     Get recommendations to overcome learning plateaus
     
-    Research basis: Dynamic systems theory, Larsen-Freeman
+    Research basis: De Jong (2023) — plateau patterns in L2 speaking; DeKeyser & Suzuki (2025) — breakthrough via focused practice
     Recommends strategies based on individual differences
     
     Args:
@@ -1203,7 +1291,7 @@ def create_initial_assessment(payload: api_schemas.OnboardingRequest, db: Sessio
     profile = OnboardingProfile(
         user_identifier=payload.user_id,
         learning_goal=payload.learning_goals.value if hasattr(payload.learning_goals, 'value') else str(payload.learning_goals),
-        primary_domain=payload.primary_domain.value if hasattr(payload.primary_domain, 'value') else str(payload.primary_domain),
+        primary_domain=str(payload.primary_domain),
         pain_points=[p.value if hasattr(p, 'value') else str(p) for p in payload.pain_points],
         target_exam=payload.target_exam.value if payload.target_exam else None,
         self_assessed_cefr=payload.self_assessed_cefr.value if hasattr(payload.self_assessed_cefr, 'value') else str(payload.self_assessed_cefr),

@@ -18,11 +18,13 @@ import { getAuth, signOut } from 'firebase/auth';
 import { getFreshToken } from '@/utils/auth';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { API_URL } from '@/constants/api';
+import { API_URL, ASSESSMENT_ENDPOINTS } from '@/constants/api';
 import {
-  speakAsUser, stopSpeaking, isSpeechAvailable, warmupVoices, getVoiceProfile,
+  isSpeechAvailable, warmupVoices, getVoiceProfile,
+  playRecordingOrTTS, stopAllPlayback,
 } from '@/utils/voiceProfiles';
 import { JOBS_BY_ID } from '@/constants/jobsDatabase';
+import { getDemoAudio } from '@/constants/demoAudio';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -40,6 +42,10 @@ type BaselineDiagnosis = {
   indicators: Indicator[];
   critical_areas: string[];
   strengths: string[];
+  // RF corpus model (Cambridge S&I Corpus 2025)
+  rf_predicted_cefr?: string;
+  rf_confidence?: number;
+  rf_probabilities?: Record<string, number>;
 };
 
 type OnboardingProfile = {
@@ -49,6 +55,15 @@ type OnboardingProfile = {
   target_exam?: string;
   perceived_weak_areas?: string[];
   daily_study_minutes?: number;
+};
+
+type AssessmentRecord = {
+  id?: string;
+  ts: number;
+  cefr: string;
+  overall_score: number;
+  domain?: string;
+  rf_predicted_cefr?: string;
 };
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
@@ -67,6 +82,7 @@ const TEXT3  = '#94A3B8';
 const CEFR_COLORS: Record<string, string> = {
   A1: '#94A3B8', A2: '#64748B', B1: '#3B82F6',
   B2: '#8B5CF6', C1: '#F59E0B', C2: '#1EE8B5',
+  'C1-C2': '#F59E0B',   // RF model groups C1 and C2 together
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -161,8 +177,13 @@ function VoiceProfileCard({
 }: { preset: string | null; displayName: string; jobId: string | null }) {
   const profile = getVoiceProfile(preset);
   const [playing, setPlaying] = useState(false);
-  const speechOK = isSpeechAvailable();
+  const audioModule = getDemoAudio(preset ? `${preset}_voice` : null);
+  const hasRealRecording = !!audioModule;
+  const canPlay = hasRealRecording || isSpeechAvailable();
   const job = jobId ? JOBS_BY_ID[jobId] : null;
+
+  // Stop playback on unmount
+  useEffect(() => () => { stopAllPlayback(); }, []);
 
   // Waveform animation
   const waveAnims = useRef(Array.from({ length: 7 }, () => new Animated.Value(0.3))).current;
@@ -188,18 +209,18 @@ function VoiceProfileCard({
 
   const handlePlay = () => {
     if (playing) {
-      stopSpeaking();
+      stopAllPlayback();
       setPlaying(false);
       return;
     }
-    const ok = speakAsUser({
+    void playRecordingOrTTS({
+      audioModule,
       text: sampleText,
       preset,
       onStart: () => setPlaying(true),
       onEnd:   () => setPlaying(false),
       onError: () => setPlaying(false),
     });
-    if (!ok) setPlaying(false);
   };
 
   return (
@@ -212,6 +233,11 @@ function VoiceProfileCard({
           <Text style={S.voiceTitle}>Voice Profile</Text>
           <Text style={S.voiceSubtitle}>{profile.description}</Text>
         </View>
+        {hasRealRecording && (
+          <View style={S.voiceRealBadge}>
+            <Text style={S.voiceRealBadgeText}>● REC</Text>
+          </View>
+        )}
       </View>
 
       <View style={S.voiceMetricsRow}>
@@ -231,12 +257,12 @@ function VoiceProfileCard({
         <TouchableOpacity
           style={[S.voicePlayBtn, { backgroundColor: playing ? '#EF4444' : PURPLE }]}
           onPress={handlePlay}
-          disabled={!speechOK}
+          disabled={!canPlay}
           activeOpacity={0.85}
         >
           <Feather name={playing ? 'square' : 'play'} size={16} color="#fff" />
           <Text style={S.voicePlayBtnText}>
-            {playing ? 'Stop' : 'Listen to sample'}
+            {playing ? 'Stop' : hasRealRecording ? 'Play recording' : 'Listen to sample'}
           </Text>
         </TouchableOpacity>
 
@@ -258,9 +284,9 @@ function VoiceProfileCard({
 
       <Text style={S.voiceSampleText} numberOfLines={2}>"{sampleText}"</Text>
 
-      {!speechOK && Platform.OS !== 'web' && (
+      {!canPlay && Platform.OS !== 'web' && (
         <Text style={S.voiceFallback}>
-          Voice playback is available in the web build (Web Speech API).
+          Voice playback is available in the web build.
         </Text>
       )}
     </View>
@@ -285,9 +311,10 @@ export default function ProfileScreen() {
   const [profile,    setProfile]    = useState<OnboardingProfile | null>(null);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeDemoPreset, setActiveDemoPreset] = useState<string | null>(null);
-  const [demoDisplayName,  setDemoDisplayName]  = useState<string | null>(null);
-  const [userJobId,        setUserJobId]        = useState<string | null>(null);
+  const [activeDemoPreset, setActiveDemoPreset]  = useState<string | null>(null);
+  const [demoDisplayName,  setDemoDisplayName]   = useState<string | null>(null);
+  const [userJobId,        setUserJobId]         = useState<string | null>(null);
+  const [assessmentHistory, setAssessmentHistory] = useState<AssessmentRecord[]>([]);
 
   // Use the demo's name when in a job-persona demo, otherwise the firebase name
   const displayName = demoDisplayName || user?.displayName || user?.email?.split('@')[0] || 'Learner';
@@ -296,8 +323,9 @@ export default function ProfileScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [stored, token, demoPreset, demoName, jobId] = await Promise.all([
+      const [stored, storedOrig, token, demoPreset, demoName, jobId] = await Promise.all([
         AsyncStorage.getItem('baselineDiagnosis'),
+        AsyncStorage.getItem('baselineDiagnosisOriginal'),
         getFreshToken(),
         AsyncStorage.getItem('active_demo_preset'),
         AsyncStorage.getItem('userDisplayName'),
@@ -307,11 +335,58 @@ export default function ProfileScreen() {
       setActiveDemoPreset(demoPreset);
       setDemoDisplayName(demoName);
       setUserJobId(jobId);
+
       if (token) {
-        const res = await fetch(`${API_URL}/auth/onboarding`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) setProfile(await res.json());
+        // Load onboarding profile and assessment history in parallel
+        const [profileRes, histRes] = await Promise.all([
+          fetch(`${API_URL}/auth/onboarding`,        { headers: { Authorization: `Bearer ${token}` } }),
+          fetch(ASSESSMENT_ENDPOINTS.HISTORY,         { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (profileRes.ok) setProfile(await profileRes.json());
+
+        // Build history: Firestore records + AsyncStorage fallback entries
+        let records: AssessmentRecord[] = [];
+        if (histRes.ok) {
+          const j = await histRes.json();
+          records = (j.data ?? []).map((r: any) => ({
+            id:              r.id,
+            ts:              r.ts ?? 0,
+            cefr:            r.cefr ?? '?',
+            overall_score:   r.overall_score ?? 0,
+            domain:          r.domain,
+            rf_predicted_cefr: r.rf_predicted_cefr,
+          }));
+        }
+
+        // Merge AsyncStorage baselines as fallback when Firestore is empty
+        // (happens before the first post-update assessment)
+        if (records.length === 0) {
+          if (stored) {
+            const d = JSON.parse(stored);
+            records.push({
+              ts: Date.now(), cefr: d.predicted_cefr ?? '?',
+              overall_score: d.overall_score ?? 0,
+            });
+          }
+          if (storedOrig) {
+            const d = JSON.parse(storedOrig);
+            records.push({
+              ts: Date.now() - 86400000, cefr: d.predicted_cefr ?? '?',
+              overall_score: d.overall_score ?? 0,
+            });
+          }
+        }
+
+        // Deduplicate by ts (Firestore may already include the current baseline)
+        const seen = new Set<number>();
+        records = records.filter(r => { if (seen.has(r.ts)) return false; seen.add(r.ts); return true; });
+        setAssessmentHistory(records.slice(0, 20));
+      } else {
+        // Offline: build history from AsyncStorage only
+        const records: AssessmentRecord[] = [];
+        if (stored)     { const d = JSON.parse(stored);     records.push({ ts: Date.now(),             cefr: d.predicted_cefr ?? '?', overall_score: d.overall_score ?? 0 }); }
+        if (storedOrig) { const d = JSON.parse(storedOrig); records.push({ ts: Date.now() - 86400000, cefr: d.predicted_cefr ?? '?', overall_score: d.overall_score ?? 0 }); }
+        setAssessmentHistory(records);
       }
     } catch (e) {
       console.error('Profile load error:', e);
@@ -320,7 +395,7 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  useEffect(() => { warmupVoices(); loadData(); return () => { stopSpeaking(); }; }, [loadData]);
+  useEffect(() => { warmupVoices(); loadData(); return () => { stopAllPlayback(); }; }, [loadData]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -454,6 +529,105 @@ export default function ProfileScreen() {
                       : 'Close to your estimate'}
                 </Text>
               </View>
+            </View>
+          </View>
+        )}
+
+        {/* ── Level verified by AI card ── */}
+        {diagnosis?.rf_predicted_cefr && (() => {
+          const agree   = diagnosis.rf_predicted_cefr === diagnosis.predicted_cefr;
+          const conf    = diagnosis.rf_confidence ?? 0;
+          const rfColor = CEFR_COLORS[diagnosis.rf_predicted_cefr] ?? TEAL;
+          const LEVEL_DESC: Record<string, string> = {
+            'A2': 'Elementary', 'B1': 'Intermediate',
+            'B2': 'Upper-Intermediate', 'C1-C2': 'Advanced',
+          };
+          return (
+            <View style={S.section}>
+              <Text style={S.sectionTitle}>Level check · Ordinal model</Text>
+              <View style={S.rfCard}>
+                <View style={S.rfTopRow}>
+                  <View style={S.rfTextCol}>
+                    <Text style={S.rfHeading}>Cross-check via Ordinal LR + SVM</Text>
+                    <Text style={S.rfBodyText}>
+                      Ordinal Logistic Regression + SVM ensemble, trained on CEFR-calibrated pilot measurements (Agresti 2002).
+                    </Text>
+                  </View>
+                  <View style={[S.rfBadge, { backgroundColor: rfColor + '18', borderColor: rfColor + '55' }]}>
+                    <Text style={[S.rfBadgeLevel, { color: rfColor }]}>{diagnosis.rf_predicted_cefr}</Text>
+                    <Text style={[S.rfBadgeDesc, { color: rfColor }]}>
+                      {LEVEL_DESC[diagnosis.rf_predicted_cefr] ?? ''}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Confidence bar */}
+                <View style={S.rfConfRow}>
+                  <Text style={S.rfConfHint}>
+                    Confidence: <Text style={{ fontWeight: '700', color: TEXT }}>{Math.round(conf * 100)}%</Text>
+                  </Text>
+                  <View style={S.rfConfTrack}>
+                    <View style={[S.rfConfFill, { width: `${Math.round(conf * 100)}%` as any, backgroundColor: rfColor }]} />
+                  </View>
+                </View>
+
+                {/* Agree / differ note */}
+                <View style={[S.rfNotePill, { backgroundColor: agree ? TEAL + '10' : '#F59E0B10' }]}>
+                  <Feather
+                    name={agree ? 'check-circle' : 'info'}
+                    size={14}
+                    color={agree ? TEAL : '#D97706'}
+                  />
+                  <Text style={[S.rfNoteText, { color: agree ? TEAL : '#92400E' }]}>
+                    {agree
+                      ? `Both analyses agree — you're at ${diagnosis.predicted_cefr}`
+                      : `One analysis says ${diagnosis.predicted_cefr}, another says ${diagnosis.rf_predicted_cefr} — your level is somewhere between these`}
+                  </Text>
+                </View>
+              </View>
+            </View>
+          );
+        })()}
+
+        {/* ── Assessment History ── */}
+        {assessmentHistory.length > 0 && (
+          <View style={S.section}>
+            <Text style={S.sectionTitle}>Assessment History</Text>
+            <View style={S.card}>
+              {assessmentHistory.map((rec, i) => {
+                const c  = CEFR_COLORS[rec.cefr] ?? TEAL;
+                const dt = new Date(rec.ts).toLocaleDateString('ro-RO', {
+                  day: '2-digit', month: 'short', year: 'numeric',
+                });
+                const isLatest = i === 0;
+                return (
+                  <View
+                    key={rec.id ?? rec.ts}
+                    style={[S.histRow, i < assessmentHistory.length - 1 && S.histBorder]}
+                  >
+                    {/* Timeline dot + line */}
+                    <View style={S.histDotCol}>
+                      <View style={[S.histDot, { backgroundColor: c }]} />
+                      {i < assessmentHistory.length - 1 && <View style={S.histLine} />}
+                    </View>
+                    {/* Content */}
+                    <View style={S.histContent}>
+                      <View style={S.histTop}>
+                        <View style={[S.histCefrBadge, { backgroundColor: c + '18', borderColor: c + '44' }]}>
+                          <Text style={[S.histCefrText, { color: c }]}>{rec.cefr}</Text>
+                        </View>
+                        {isLatest && (
+                          <View style={S.histLatestTag}>
+                            <Text style={S.histLatestTagText}>latest</Text>
+                          </View>
+                        )}
+                        <Text style={S.histScore}>{Math.round(rec.overall_score)}%</Text>
+                      </View>
+                      <Text style={S.histDate}>{dt}{rec.domain ? ` · ${rec.domain}` : ''}</Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           </View>
         )}
@@ -637,6 +811,71 @@ const S = StyleSheet.create({
   miniTitle:    { fontSize: 12, fontWeight: '800' },
   miniBullet:   { fontSize: 11, color: TEXT2, lineHeight: 16 },
 
+  // Level-check card (RF model, user-friendly)
+  rfCard: {
+    backgroundColor: CARD, borderRadius: 18,
+    padding: 16, borderWidth: 1, borderColor: BORDER,
+  },
+  rfTopRow:     { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 14 },
+  rfTextCol:    { flex: 1 },
+  rfHeading:    { fontSize: 14, fontWeight: '800', color: TEXT, marginBottom: 4 },
+  rfBodyText:   { fontSize: 12, color: TEXT2, lineHeight: 18 },
+  rfBadge: {
+    alignItems: 'center', paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 14, borderWidth: 1.5, minWidth: 72,
+  },
+  rfBadgeLevel: { fontSize: 20, fontWeight: '900' },
+  rfBadgeDesc:  { fontSize: 9, fontWeight: '700', marginTop: 2, textAlign: 'center' },
+  rfConfRow:    { gap: 6, marginBottom: 12 },
+  rfConfHint:   { fontSize: 12, color: TEXT2 },
+  rfConfTrack:  { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden' },
+  rfConfFill:   { height: 8, borderRadius: 4 },
+  rfNotePill: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 8,
+    borderRadius: 10, padding: 10,
+  },
+  rfNoteText:   { flex: 1, fontSize: 12, fontWeight: '500', lineHeight: 18 },
+
+  // Assessment History timeline
+  histRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    paddingVertical: 10,
+  },
+  histBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+  },
+  histDotCol: { alignItems: 'center', width: 14 },
+  histDot: {
+    width: 12, height: 12, borderRadius: 6, marginTop: 3,
+  },
+  histLine: {
+    width: 2, flex: 1, backgroundColor: BORDER,
+    marginTop: 4, minHeight: 16,
+  },
+  histContent: { flex: 1, gap: 3 },
+  histTop: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+  },
+  histCefrBadge: {
+    borderRadius: 8, borderWidth: 1,
+    paddingHorizontal: 8, paddingVertical: 3,
+  },
+  histCefrText: { fontSize: 12, fontWeight: '800' },
+  histLatestTag: {
+    backgroundColor: TEAL + '18', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  histLatestTagText: {
+    fontSize: 9, fontWeight: '800', color: TEAL, letterSpacing: 0.5,
+  },
+  histScore: {
+    marginLeft: 'auto' as any, fontSize: 12, fontWeight: '700', color: TEXT2,
+  },
+  histDate: { fontSize: 11, color: TEXT3 },
+
   // Sign out
   logoutBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
@@ -662,6 +901,11 @@ const S = StyleSheet.create({
   },
   voiceTitle: { fontSize: 14, fontWeight: '800', color: TEXT },
   voiceSubtitle: { fontSize: 11, color: TEXT2, marginTop: 1 },
+  voiceRealBadge: {
+    backgroundColor: '#EF4444',
+    borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
+  },
+  voiceRealBadgeText: { fontSize: 9, fontWeight: '900', color: '#fff', letterSpacing: 0.5 },
 
   voiceMetricsRow: {
     flexDirection: 'row', gap: 6,

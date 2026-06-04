@@ -43,18 +43,70 @@ def get_user_sessions(user_id: str) -> list:
         .limit(20)\
         .stream()
     return [{"id": s.id, **s.to_dict()} for s in sessions]
-def save_shadow_session(user_id: str, original_text: str, transcribed: str, score: int) -> str:
+def save_shadow_session(
+    user_id: str,
+    original_text: str,
+    transcribed: str,
+    score: int,
+    *,
+    wpm: int = 0,
+    word_accuracy: int = 0,
+    phoneme_score: int | None = None,
+    pause_count: int = 0,
+    pause_rate_per_min: float = 0.0,
+    fluency_label: str = "unknown",
+    genre: str = "_default",
+    duration_s: float = 0.0,
+) -> str:
+    """
+    Persist a shadow speaking session with full metrics for progress tracking.
+
+    Extended fields (added for trend analysis):
+      wpm, word_accuracy, phoneme_score, pause_count, pause_rate_per_min,
+      fluency_label, genre, duration_s.
+    """
     db = get_db()
     session = {
-        "user_id": user_id,
-        "type": "shadow",
-        "original_text": original_text,
-        "transcribed_text": transcribed,
-        "accuracy_score": score,
-        "created_at": datetime.utcnow().isoformat(),
+        "user_id":            user_id,
+        "type":               "shadow",
+        "original_text":      original_text,
+        "transcribed_text":   transcribed,
+        "accuracy_score":     score,
+        "wpm":                wpm,
+        "word_accuracy":      word_accuracy,
+        "phoneme_score":      phoneme_score,
+        "pause_count":        pause_count,
+        "pause_rate_per_min": pause_rate_per_min,
+        "fluency_label":      fluency_label,
+        "genre":              genre,
+        "duration_s":         duration_s,
+        "created_at":         datetime.utcnow().isoformat(),
     }
     doc_ref = db.collection("sessions").add(session)
     return doc_ref[1].id
+
+
+def get_shadow_sessions(user_id: str, limit: int = 30) -> list:
+    """
+    Return shadow speaking sessions for a user, ordered by created_at descending.
+    Type filter applied in Python to avoid a composite Firestore index requirement.
+    """
+    db = get_db()
+    docs = (
+        db.collection("sessions")
+        .where("user_id", "==", user_id)
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .limit(limit * 3)   # fetch extra to compensate for type filtering
+        .stream()
+    )
+    result = []
+    for s in docs:
+        d = s.to_dict()
+        if d.get("type") == "shadow":
+            result.append({"id": s.id, **d})
+            if len(result) >= limit:
+                break
+    return result
 
 def save_speaking_session(user_id: str, session_data: dict) -> str:
     db = get_db()
@@ -89,6 +141,33 @@ def get_speaking_sessions(user_id: str, limit: int = 50) -> list:
             if len(result) >= limit:
                 break
     return result
+
+
+def save_assessment(user_id: str, assessment_data: dict) -> str:
+    """Persist a diagnostic assessment snapshot to Firestore (subcollection per user)."""
+    db = get_db()
+    doc = {
+        "user_id": user_id,
+        "ts": int(datetime.utcnow().timestamp() * 1000),   # ms — matches frontend convention
+        "created_at": datetime.utcnow().isoformat(),
+        **assessment_data,
+    }
+    _, ref = db.collection("assessments").document(user_id).collection("history").add(doc)
+    return ref.id
+
+
+def get_assessments(user_id: str, limit: int = 30) -> list:
+    """Return assessment history for a user, newest first."""
+    db = get_db()
+    docs = (
+        db.collection("assessments")
+        .document(user_id)
+        .collection("history")
+        .order_by("created_at", direction=firestore.Query.DESCENDING)
+        .limit(limit)
+        .stream()
+    )
+    return [{"id": d.id, **d.to_dict()} for d in docs]
 
 
 def save_learner_profile(user_id: str, profile_data: dict) -> None:

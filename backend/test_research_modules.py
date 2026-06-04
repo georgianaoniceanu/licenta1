@@ -9,7 +9,7 @@ print("=" * 60)
 print("TEST 1: Vocabulary Management")
 print("=" * 60)
 
-from app.services.vocabulary_management import vocabulary_manager, CEFRLevel, DomainType
+from app.services.vocabulary_management import vocabulary_manager, CEFRLevel
 
 words = vocabulary_manager.get_vocabulary_by_cefr(CEFRLevel.B1, limit=5)
 print(f"✓ Loaded {len(words)} vocabulary items for B1")
@@ -21,9 +21,9 @@ print("\n" + "=" * 60)
 print("TEST 2: POS Error Patterns")
 print("=" * 60)
 
-from app.services.pos_error_patterns import error_pattern_manager, DomainType as ErrorDomain
+from app.services.pos_error_patterns import error_pattern_manager
 
-errors = error_pattern_manager.get_errors_by_domain(ErrorDomain.ACADEMIC)
+errors = error_pattern_manager.get_errors_by_domain("academic")
 print(f"✓ Loaded {len(errors)} error patterns for ACADEMIC domain")
 if errors:
     print(f"  High-frequency error: {errors[0].error_id} ({errors[0].frequency_percentage}% of learners)")

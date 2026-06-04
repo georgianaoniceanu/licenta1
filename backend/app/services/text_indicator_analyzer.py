@@ -8,8 +8,8 @@ Research sources per indicator:
 Indicator 1 — Lexical Diversity (MTLD)
   Şahin Kızıl (2024): MTLD (Measure of Textual Lexical Diversity) is the most
   robust lexical diversity index, independent of text length.
-  Article 43 (McCarthy & Jarvis 2010): vocd/MTLD validated on L2 learner corpora.
-  Algorithm: bidirectional MTLD with threshold 0.720 (McCarthy 2005).
+  Kolahi Ahari et al. (2025): MTLD is the strongest predictor of L2 speaking
+  proficiency (β = .40). Algorithm: bidirectional MTLD with threshold 0.720.
 
 Indicator 2 — Lexical Sophistication (word frequency proxy)
   Lee (2021), Laufer & Nation (1995): less frequent = more sophisticated.
@@ -20,7 +20,7 @@ Indicator 3 — Average Word Length
   Lee (2021): morphological complexity correlates with proficiency.
 
 Indicator 4 — Mean Length of Sentence (MLS)
-  Lee (2021) Table 2; Norris & Ortega (2009); Ha (2022): words per sentence.
+  Lee (2021) Table 2; Barrot & Agdeppa (2021); Ha (2022): words per sentence.
 
 Indicator 5 — Subordination Ratio (DC/T-unit)
   Lee (2021); Bardovi-Harlig (1992): subordinating conjunctions / sentences.
@@ -47,6 +47,19 @@ IDL — Index of Developmental Levels (derived)
   Neumanova (2025): IDL = (MLS × subordination_ratio) / (1 + error_rate).
   Separates CEFR levels more reliably than any single indicator.
   SER (Syntactic Error Rate) approximated from morphosyntactic_accuracy.
+
+Automated Scoring Validation
+  Tang, X., Chen, H., Lin, D., & Li, K. (2024). Incorporating fine-grained linguistic
+  features and explainable AI into multi-dimensional automated writing assessment.
+  Applied Sciences, 14(10), 4182. Demonstrates that combining micro-level features
+  (per-indicator scores) with aggregated composite features outperforms single-feature
+  scoring; Random Forest + SHAP provides both accuracy and interpretability — the
+  approach followed here for multi-indicator profile construction.
+  Dong, Y. (2026). The application of deep learning in the automatic scoring of English
+  writing. Discover Artificial Intelligence. https://doi.org/10.1007/s44163-026-01146-x
+  BiLSTM-CNN hybrid achieves Pearson r = 0.89 with human graders on ASAP 2.0 dataset,
+  evaluating grammar, coherence, vocabulary richness, and structural organization —
+  the same construct dimensions operationalized by Indicators 1–10 in this module.
 """
 
 import re
@@ -149,7 +162,7 @@ def _count_discourse_markers(text_lower: str) -> int:
 # MTLD — Measure of Textual Lexical Diversity
 # Şahin Kızıl (2024); McCarthy (2005); article 43 (D_Tools/vocd validation)
 # Bidirectional: average of forward and reverse passes.
-# Threshold 0.720 is the standard value from McCarthy & Jarvis (2010).
+# Threshold 0.720 — used in Kolahi Ahari et al. (2025); Yan et al. (2020).
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _mtld_one_direction(tokens: List[str], threshold: float = 0.720) -> float:
@@ -180,7 +193,7 @@ def _mtld_one_direction(tokens: List[str], threshold: float = 0.720) -> float:
 
 def compute_mtld(tokens: List[str], threshold: float = 0.720) -> float:
     """
-    Bidirectional MTLD (McCarthy & Jarvis 2010).
+    Bidirectional MTLD — threshold 0.720 (Kolahi Ahari et al. 2025; Yan et al. 2020).
     Returns raw MTLD score (typically 20–200 for learner texts).
     Normalized to 20–100 for the indicator scale.
     """
@@ -338,68 +351,114 @@ def _estimate_accuracy_llm(text: str) -> float:
 
 def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
     """
-    Return the writing/speaking prompt for the initial diagnostic task.
-    Based on Dimova (2022) task types and Knoch (2009) diagnostic writing design.
+    Return the writing/speaking prompt for the initial diagnostic task,
+    calibrated to the COCA register/genre of the target text.
+
+    Nine genres from Davies' Corpus of Contemporary American English (COCA):
+      spoken · fiction · magazine · newspaper · academic · web · blog · movies · tv
+
+    Source: Davies, M. — COCA; Knoch (2009) — EAP diagnostic writing design.
     """
     prompts = {
-        "narration": {
-            "title": "Narration Task",
+        # ── Spoken (TV/radio dialogue, interviews, talk shows) ────────────────
+        "spoken": {
+            "title": "Spontaneous Spoken Response",
             "instruction": (
-                "Tell the story of a memorable experience from your life — "
-                "a trip, an event, or a moment that stayed with you. "
-                "Describe what happened, who was there, and why it was important to you."
+                "Imagine you are being interviewed live on a news programme. "
+                "The host asks: 'What is the biggest challenge facing young people today?' "
+                "Respond naturally — give your opinion, support it with one or two examples, "
+                "and keep the tone conversational."
             ),
-            "hint": "Aim for 150–200 words. Use past tenses and describe events in order.",
-            "research": "Dimova (2022) — monologic narrative task; Fulcher (2003) narration design.",
+            "hint": "Aim for 150–200 words. Write as you would speak — contractions and natural phrasing are fine.",
+            "research": "Tauroza & Allison (1990) — spoken register WPM norms; COCA Spoken sub-corpus.",
         },
-        "description": {
-            "title": "Description Task",
+        # ── Fiction (novels, screenplays, juvenile fiction) ───────────────────
+        "fiction": {
+            "title": "Narrative Writing Task",
             "instruction": (
-                "Describe your hometown or a place you know very well. "
-                "Include details about its appearance, atmosphere, what makes it special, "
-                "and what someone visiting for the first time should see."
+                "Write the opening of a short story. "
+                "Set the scene, introduce a character, and hint at a conflict or problem "
+                "the character is about to face. Make the reader want to continue."
             ),
-            "hint": "Aim for 150–200 words. Use descriptive adjectives and varied vocabulary.",
-            "research": "Dimova (2022) — descriptive task characteristics.",
+            "hint": "Aim for 150–200 words. Use vivid description, past tenses, and varied sentence rhythm.",
+            "research": "COCA Fiction sub-corpus; Coxhead (2000) — narrative register vocabulary.",
         },
-        "argumentation": {
-            "title": "Opinion & Argumentation Task",
-            "instruction": (
-                "Do you think social media has more positive or negative effects on society? "
-                "Give your opinion and support it with at least two arguments and examples."
-            ),
-            "hint": "Aim for 150–200 words. Use discourse connectors: however, therefore, furthermore.",
-            "research": "Dimova (2022) — argumentative monologic task; Fulcher (2003) opinion tasks.",
-        },
-        "conversation": {
-            "title": "Spontaneous Response Task",
-            "instruction": (
-                "Imagine you are meeting a new colleague for the first time. "
-                "Introduce yourself, explain what you do, what your interests are, "
-                "and ask them two questions you would naturally want to know."
-            ),
-            "hint": "Aim for 150–200 words. Write naturally, as if speaking.",
-            "research": "Dimova (2022) — interactional task design.",
-        },
+        # ── Academic (journals, science, law, medicine) ───────────────────────
         "academic": {
             "title": "Academic Writing Task",
             "instruction": (
-                "Explain the concept of artificial intelligence to someone who has never "
-                "heard of it. Include a definition, two real-world applications, "
-                "and one potential concern about its use."
+                "Explain the concept of climate change to an educated non-specialist. "
+                "Include a clear definition, two documented causes, and one measurable consequence. "
+                "Maintain a formal, objective register throughout."
             ),
-            "hint": "Aim for 150–200 words. Use formal register and precise vocabulary.",
-            "research": "Knoch (2009) — EAP diagnostic writing; Present-Thomas et al. (2013).",
+            "hint": "Aim for 150–200 words. Use formal register, precise vocabulary, and logical connectors.",
+            "research": "Knoch (2009) — EAP diagnostic writing; Coxhead (2000) AWL; COCA Academic sub-corpus.",
         },
-        "technical": {
-            "title": "Technical Explanation Task",
+        # ── Newspaper (national/local news, editorial, opinion) ───────────────
+        "newspaper": {
+            "title": "Opinion Editorial Task",
             "instruction": (
-                "Describe a process or procedure in your area of expertise or study. "
-                "Explain the steps clearly, use accurate terminology, "
-                "and include the purpose of each main step."
+                "Write a short newspaper editorial arguing for or against the following claim: "
+                "'Remote work has permanently changed the future of office life.' "
+                "State your position clearly, give two supporting arguments, and end with a recommendation."
             ),
-            "hint": "Aim for 150–200 words. Use domain-specific vocabulary precisely.",
-            "research": "Coxhead (2000) Academic Word List — specialized vocabulary.",
+            "hint": "Aim for 150–200 words. Use discourse markers: however, consequently, in contrast.",
+            "research": "COCA Newspaper sub-corpus; Fulcher (2003) — opinion task design for L2 assessment.",
+        },
+        # ── Magazine (lifestyle, sports, science, religion) ───────────────────
+        "magazine": {
+            "title": "Magazine Feature Task",
+            "instruction": (
+                "Write a short feature article for a general-interest magazine on a topic you know well — "
+                "a sport, hobby, travel destination, or cultural tradition. "
+                "Describe it vividly, explain why it is interesting, and give the reader one surprising fact."
+            ),
+            "hint": "Aim for 150–200 words. Use descriptive adjectives, engaging tone, and varied vocabulary.",
+            "research": "COCA Magazine sub-corpus; Davies (COCA) — magazine register frequency profiles.",
+        },
+        # ── Web (informational sites, reviews, instructional) ─────────────────
+        "web": {
+            "title": "Informational Web Text Task",
+            "instruction": (
+                "Write a short 'how-to' guide explaining how to do something practical — "
+                "cook a dish, set up a device, plan a trip, or learn a skill. "
+                "Structure your text with a brief introduction, numbered steps, and a short conclusion."
+            ),
+            "hint": "Aim for 150–200 words. Use clear, direct language and imperative verb forms.",
+            "research": "COCA Web sub-corpus; Coxhead (2000) — instructional register vocabulary.",
+        },
+        # ── Blog (personal, argumentative, promotional) ───────────────────────
+        "blog": {
+            "title": "Personal Blog Post Task",
+            "instruction": (
+                "Write a blog post about something you recently changed your mind about — "
+                "a belief, a habit, or an opinion. "
+                "Explain what you used to think, what changed, and what you think now."
+            ),
+            "hint": "Aim for 150–200 words. First-person, conversational tone — be direct and honest.",
+            "research": "COCA Blog sub-corpus; Davies (COCA) — blog register frequency profiles.",
+        },
+        # ── Movies (dialogue: action, drama, comedy, sci-fi) ─────────────────
+        "movies": {
+            "title": "Film Dialogue Task",
+            "instruction": (
+                "Write a short scene (3–5 exchanges) between two characters who disagree about an important decision. "
+                "One character wants to leave a job or city; the other wants them to stay. "
+                "Show both characters' feelings through natural dialogue."
+            ),
+            "hint": "Aim for 150–200 words. Write dialogue naturally — use contractions, interruptions, emotion.",
+            "research": "COCA Movies sub-corpus; Davies (COCA) — film dialogue register profiles.",
+        },
+        # ── TV Shows (drama, comedy, reality, crime) ──────────────────────────
+        "tv": {
+            "title": "TV Drama Scene Task",
+            "instruction": (
+                "Write a scene from a TV drama. Two colleagues discover that a third person "
+                "in their team has been hiding an important piece of information. "
+                "Show their reaction through dialogue and brief stage directions."
+            ),
+            "hint": "Aim for 150–200 words. Vary pace — short sharp lines for tension, longer ones to explain.",
+            "research": "COCA TV sub-corpus; Davies (COCA) — television dialogue register profiles.",
         },
     }
-    return prompts.get(domain, prompts["description"])
+    return prompts.get(domain, prompts["spoken"])

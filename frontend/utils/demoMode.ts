@@ -12,6 +12,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { JOBS_BY_ID, type Industry } from '@/constants/jobsDatabase';
+import { accentSessionsFor, vocabSessionsFor, phonemeScoresFor } from './demoSessions';
 
 export type DemoPreset = 'weak' | 'medium' | 'strong';
 export type JobPreset  = 'ana' | 'mihai' | 'elena' | 'radu' | 'sorin' | 'diana';
@@ -23,6 +24,76 @@ const NOW = Date.now();
 const tsBack = (d: number) => NOW - d * DAY;
 const ramp   = (start: number, end: number, n: number, i: number) =>
   Math.round(start + (end - start) * (i / (n - 1)));
+
+// ─── Demo isolation: backup / restore real user data ────────────────────────
+// When a demo profile is loaded it overwrites the same AsyncStorage keys used
+// by the real account.  We back up those keys before the first demo load and
+// restore them when the demo is cleared so the real user's progress is never
+// lost by switching profiles during a thesis presentation.
+
+const REAL_BACKUP_PREFIX = '__real_backup__';
+const REAL_BACKUP_MANIFEST = '__real_backup_manifest__';
+
+// Every key that loadDemoProfile may overwrite.
+const DEMO_OVERWRITE_KEYS: readonly string[] = [
+  'baselineDiagnosis', 'baselineDiagnosisOriginal',
+  'rawIndicators',
+  'vf_caf_sessions', 'vf_exam_sessions', 'vf_grammar_sessions',
+  'vf_genre_sessions', 'vf_shadow_sessions', 'vf_accent_sessions',
+  'vf_vocab_sessions', 'vf_phoneme_scores',
+  'userTargetExam', 'userPrimaryGoal', 'userJob', 'userIndustry',
+  'userCurrentCEFR', 'userDomain', 'userIntensity', 'userWeaknesses',
+  'userDisplayName',
+  'learner_profile_anonymous', 'demo_rt_stats', 'demo_srs_state',
+] as const;
+
+async function _backupRealData(): Promise<void> {
+  // Only backup if we're not already in demo mode (don't backup demo data)
+  const alreadyDemo = await AsyncStorage.getItem('active_demo_preset');
+  if (alreadyDemo) return;
+
+  const pairs = await AsyncStorage.multiGet(DEMO_OVERWRITE_KEYS as unknown as string[]);
+  const existing: Array<[string, string]> = pairs
+    .filter(([, v]) => v !== null)
+    .map(([k, v]) => [REAL_BACKUP_PREFIX + k, v as string]);
+
+  // Record which keys had values (so we know what to restore vs. delete later)
+  const manifest = pairs
+    .filter(([, v]) => v !== null)
+    .map(([k]) => k)
+    .join(',');
+
+  if (existing.length > 0) {
+    await AsyncStorage.multiSet(existing);
+  }
+  await AsyncStorage.setItem(REAL_BACKUP_MANIFEST, manifest);
+}
+
+async function _restoreRealData(): Promise<void> {
+  const manifest = await AsyncStorage.getItem(REAL_BACKUP_MANIFEST);
+  if (!manifest) return;
+
+  const backedUpKeys = manifest.split(',').filter(Boolean);
+  const backupKeys   = backedUpKeys.map(k => REAL_BACKUP_PREFIX + k);
+
+  // Read backup values
+  const pairs = await AsyncStorage.multiGet(backupKeys);
+  const restorePairs: Array<[string, string]> = pairs
+    .filter(([, v]) => v !== null)
+    .map(([bk, v]) => [bk.replace(REAL_BACKUP_PREFIX, ''), v as string]);
+
+  if (restorePairs.length > 0) {
+    await AsyncStorage.multiSet(restorePairs);
+  }
+
+  // Remove keys that had NO value before the demo (so we leave a clean state)
+  const keysWithBackup = new Set(backedUpKeys);
+  const keysToRemove   = (DEMO_OVERWRITE_KEYS as unknown as string[]).filter(
+    k => !keysWithBackup.has(k),
+  );
+  const cleanupKeys = [...keysToRemove, ...backupKeys, REAL_BACKUP_MANIFEST];
+  await AsyncStorage.multiRemove(cleanupKeys);
+}
 
 // ─── Indicator template (same 10 for all profiles, values shift) ─────────────
 type Severity = 'critical' | 'moderate' | 'acceptable' | 'strong';
@@ -48,6 +119,7 @@ function severityFor(v: number): Severity {
 }
 
 function cefrFor(v: number): string {
+  if (v < 25) return 'A1';
   if (v < 40) return 'A2';
   if (v < 55) return 'B1';
   if (v < 72) return 'B2';
@@ -402,6 +474,107 @@ const SHADOW_SESSIONS = {
   strong: buildShadow([84, 88, 86, 90, 92, 89], ['B2', 'C1', 'C1', 'C1', 'C1', 'C1'], TRANSCRIBED_MEDIUM),
 };
 
+// ─── Persona shadow sessions (with real audio recordings) ────────────────────
+// Each persona has 2 recordings stored in assets/audio. The audio_id field
+// resolves to a bundled MP3 at playback time (see constants/demoAudio.ts).
+
+type PersonaShadow = {
+  ts: number;
+  category: string;
+  difficulty: string;
+  score: number;
+  target_text: string;
+  transcribed: string;
+  audio_id: string;
+};
+
+const PERSONA_SHADOW_SESSIONS: Record<JobPreset, PersonaShadow[]> = {
+  ana: [
+    {
+      ts: tsBack(2), category: 'Daily Conversation', difficulty: 'B1', score: 44,
+      target_text: 'Scientists have discovered a new species of deep-sea fish that can produce its own light.',
+      transcribed: 'Scientists have discover a new species of deep sea fish that can produce its own light.',
+      audio_id: 'ana_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'Daily Conversation', difficulty: 'B1', score: 36,
+      target_text: 'She carefully explained the procedure to the medical students about the importance of precision.',
+      transcribed: 'She carefully explain the procedure to the medical students about importance of precision.',
+      audio_id: 'ana_shadow_2',
+    },
+  ],
+  mihai: [
+    {
+      ts: tsBack(2), category: 'Academic Lecture', difficulty: 'B2', score: 78,
+      target_text: 'Scientists have discovered a new species of deep-sea fish that can produce its own light using bioluminescence.',
+      transcribed: 'Scientists have discovered a new species of deep-sea fish that can produce its own light using bioluminescence.',
+      audio_id: 'mihai_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'News Report', difficulty: 'B2', score: 68,
+      target_text: 'Research suggests that learning a second language can improve cognitive flexibility and memory.',
+      transcribed: 'Research suggests that learning a second language can improve cognitive flexibility and memory.',
+      audio_id: 'mihai_shadow_2',
+    },
+  ],
+  elena: [
+    {
+      ts: tsBack(2), category: 'Business Meeting', difficulty: 'B2', score: 84,
+      target_text: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      transcribed: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      audio_id: 'elena_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'News Report', difficulty: 'C1', score: 79,
+      target_text: 'The local government announced plans to expand public transportation in order to reduce traffic congestion.',
+      transcribed: 'The local government announced plans to expand public transportation in order to reduce traffic congestion.',
+      audio_id: 'elena_shadow_2',
+    },
+  ],
+  radu: [
+    {
+      ts: tsBack(2), category: 'News Report', difficulty: 'C1', score: 94,
+      target_text: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      transcribed: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      audio_id: 'radu_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'Academic Lecture', difficulty: 'C1', score: 90,
+      target_text: 'Research suggests that learning a second language can significantly improve cognitive flexibility and memory.',
+      transcribed: 'Research suggests that learning a second language can significantly improve cognitive flexibility and memory.',
+      audio_id: 'radu_shadow_2',
+    },
+  ],
+  sorin: [
+    {
+      ts: tsBack(2), category: 'Daily Conversation', difficulty: 'B1', score: 70,
+      target_text: 'The weather has been unusually warm for this time of year, and many people are enjoying outdoor activities.',
+      transcribed: 'The weather has been unusually warm for this time of year, and many people are enjoying outdoor activities.',
+      audio_id: 'sorin_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'Business Meeting', difficulty: 'B2', score: 64,
+      target_text: 'The local government announced plans to expand public transportation to reduce traffic congestion.',
+      transcribed: 'The local government announced plans to expand public transportation to reduce traffic congestion.',
+      audio_id: 'sorin_shadow_2',
+    },
+  ],
+  diana: [
+    {
+      ts: tsBack(2), category: 'Business Meeting', difficulty: 'B2', score: 85,
+      target_text: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      transcribed: 'The committee will meet on Thursday to discuss the proposed changes to the annual budget allocations.',
+      audio_id: 'diana_shadow_1',
+    },
+    {
+      ts: tsBack(5), category: 'Academic Lecture', difficulty: 'C1', score: 80,
+      target_text: 'Scientists have discovered a new species of deep-sea fish that can produce its own light using bioluminescence.',
+      transcribed: 'Scientists have discovered a new species of deep-sea fish that can produce its own light using bioluminescence.',
+      audio_id: 'diana_shadow_2',
+    },
+  ],
+};
+
 // ─── Profile assembly ────────────────────────────────────────────────────────
 
 const PROFILES = {
@@ -411,9 +584,11 @@ const PROFILES = {
     caf:      buildCAF(25, 42, 35, 54, 30, 48, 'A2', 'B1'),
     exam:     buildExam(3.0, 4.5),
     grammar:  buildGrammar(42, 68, 8, 3),
-    genre:    buildGenre(-20),
+    genre:    buildGenreFromJob('marketing-manager', 45),
     exam_goal: 'cambridge_pet',
     goal:      'pronunciation',
+    jobId:    'marketing-manager',
+    industry: 'sales_marketing',
   },
   medium: {
     original: MED_ORIGINAL,
@@ -421,9 +596,11 @@ const PROFILES = {
     caf:      buildCAF(45, 70, 60, 84, 55, 78, 'B1', 'B2'),
     exam:     buildExam(4.5, 7.0),
     grammar:  buildGrammar(58, 86, 5, 1),
-    genre:    buildGenre(0),
+    genre:    buildGenreFromJob('software-engineer', 65),
     exam_goal: 'cambridge_cae',
     goal:      'vocabulary',
+    jobId:    'software-engineer',
+    industry: 'tech',
   },
   strong: {
     original: STRONG_ORIGINAL,
@@ -431,9 +608,11 @@ const PROFILES = {
     caf:      buildCAF(70, 88, 78, 93, 72, 90, 'B2', 'C1'),
     exam:     buildExam(6.5, 8.0),
     grammar:  buildGrammar(80, 96, 2, 0),
-    genre:    buildGenre(20),
+    genre:    buildGenreFromJob('lawyer', 85),
     exam_goal: 'cambridge_cpe',
     goal:      'fluency',
+    jobId:    'lawyer',
+    industry: 'law_government',
   },
 } as const;
 
@@ -466,15 +645,15 @@ export interface JobUserBlueprint {
 export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
   ana: {
     name: 'Ana', age: 22, avatar: '👩‍⚕️',
-    bio: 'Medical student preparing to read English papers',
-    rangeLabel: 'A2 → B1',
+    bio: 'Medical student — beginner, just starting English',
+    rangeLabel: 'A1 → A2',
     jobId: 'physician', industry: 'healthcare',
-    cefr: 'A2', primaryGoal: 'grammar', domain: 'academic',
+    cefr: 'A1', primaryGoal: 'grammar', domain: 'academic',
     targetExam: 'ielts_academic',
     weaknesses: ['grammar', 'vocabulary'], intensity: 'medium',
-    originalValues: [26, 22, 32, 25, 28, 45, 32, 28, 38, 28],
-    currentValues:  [40, 35, 48, 38, 42, 58, 45, 40, 50, 42],
-    cefrOriginal: 'A2', cefrCurrent: 'B1',
+    originalValues: [18, 14, 24, 16, 20, 32, 22, 18, 26, 20],
+    currentValues:  [30, 26, 36, 28, 32, 44, 34, 30, 38, 32],
+    cefrOriginal: 'A1', cefrCurrent: 'A2',
   },
   mihai: {
     name: 'Mihai', age: 28, avatar: '👨‍💻',
@@ -592,8 +771,14 @@ function buildDiagnosisFor(u: JobUserBlueprint, which: 'original' | 'current') {
 function buildGenreFromJob(jobId: string, scoreBase: number): any[] {
   const job = JOBS_BY_ID[jobId];
   if (!job) return [];
-  // Weight: essential codes appear 2x; important codes appear 1x
-  const codes = [...job.essential, ...job.essential.slice(0, 3), ...job.important];
+  // Demo learners have PARTIAL exposure — not a finished syllabus. They've
+  // practised their secondary (important) registers plus about half of their
+  // core (essential) registers; the remaining essentials stay as visible gaps.
+  // This is what makes the Coverage Map meaningful: without leaving gaps, every
+  // JOB code would count as "covered", so the JOB∩EXAM∩GOAL centre (URGENT)
+  // could never contain an un-covered subgenre and would always read 0.
+  const practisedEssential = job.essential.filter((_, i) => i % 2 === 0);
+  const codes = [...practisedEssential, ...job.important];
 
   return codes.map((code, i) => {
     const [dom] = code.split(':');
@@ -636,8 +821,8 @@ function buildJobProfile(preset: JobPreset) {
   );
 
   // IELTS overall: map score → band  (rough proportional mapping)
-  const ieltsStart = Math.max(3.0, originalScore / 100 * 9);
-  const ieltsEnd   = Math.min(9.0, currentScore  / 100 * 9);
+  const ieltsStart = Math.max(2.0, originalScore / 100 * 9);
+  const ieltsEnd   = Math.max(ieltsStart + 0.5, Math.min(9.0, currentScore / 100 * 9));
   const exam = buildExam(ieltsStart, ieltsEnd);
 
   // Grammar: severity_score grows with proficiency, errors drop
@@ -656,7 +841,7 @@ function buildJobProfile(preset: JobPreset) {
     exam,
     grammar,
     genre: buildGenreFromJob(u.jobId, currentScore),
-    shadow: SHADOW_SESSIONS[tier],
+    shadow: PERSONA_SHADOW_SESSIONS[preset],
     learner_profile: {
       ...LEARNER_PROFILES[tier],
       total_words_practiced: LEARNER_PROFILES[tier].total_words_practiced,
@@ -684,6 +869,11 @@ function isJobPreset(p: AnyPreset): p is JobPreset {
 }
 
 export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
+  // Back up the real user's data before the first demo load.
+  // If a demo is already active (switching between presets), the backup
+  // from the first load is preserved — we don't overwrite it.
+  await _backupRealData();
+
   if (isJobPreset(preset)) {
     const p = JOB_PROFILES[preset];
     const u = p.user;
@@ -695,6 +885,9 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
       ['vf_grammar_sessions',       JSON.stringify(p.grammar)],
       ['vf_genre_sessions',         JSON.stringify(p.genre)],
       ['vf_shadow_sessions',        JSON.stringify(p.shadow)],
+      ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
+      ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
+      ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],
       ['userTargetExam',            p.exam_goal],
       ['userPrimaryGoal',           p.goal],
       ['userJob',                   u.jobId],
@@ -725,6 +918,8 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
     ['vf_genre_sessions',         JSON.stringify(p.genre)],
     ['userTargetExam',            p.exam_goal],
     ['userPrimaryGoal',           p.goal],
+    ['userJob',                   p.jobId],
+    ['userIndustry',              p.industry],
     ['onboardingCompleted',       'true'],
     ['diagnosticCompleted',       'true'],
     ['active_demo_preset',        preset],
@@ -732,6 +927,9 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
     ['demo_rt_stats',             JSON.stringify(RT_STATS[preset])],
     ['demo_srs_state',            JSON.stringify(SRS_STATES[preset])],
     ['vf_shadow_sessions',        JSON.stringify(SHADOW_SESSIONS[preset])],
+    ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
+    ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
+    ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],
   ];
   await Promise.all(writes.map(([k, v]) => AsyncStorage.setItem(k, v)));
 }
@@ -742,22 +940,15 @@ export async function loadDemoData(): Promise<void> {
 }
 
 export async function clearDemoData(): Promise<void> {
-  // Do NOT remove diagnosticCompleted or onboardingCompleted — the layout
-  // checks those on every app start and would redirect to /initial_diagnostic.
-  // We only wipe the actual data so the home screen shows the profile picker.
-  const keys = [
-    'baselineDiagnosis', 'baselineDiagnosisOriginal',
-    'vf_caf_sessions', 'vf_exam_sessions',
-    'vf_grammar_sessions', 'vf_genre_sessions',
-    'active_demo_preset',
-    'learner_profile_anonymous', 'demo_rt_stats', 'demo_srs_state',
-    'vf_shadow_sessions',
-    // Job-profile specific onboarding keys
-    'userJob', 'userIndustry', 'userCurrentCEFR',
-    'userDomain', 'userIntensity', 'userWeaknesses',
-    'userDisplayName',
-  ];
-  await Promise.all(keys.map(k => AsyncStorage.removeItem(k)));
+  // Restore the real user's data from backup (if any) before clearing demo.
+  // _restoreRealData also removes the backup keys after restoring.
+  await _restoreRealData();
+
+  // Remove the demo flag and any remaining demo-only keys that were never
+  // backed up (i.e. keys the real user never had before the demo).
+  // Note: DEMO_OVERWRITE_KEYS were already handled by _restoreRealData;
+  // we only need to clear the demo flag and per-demo extras here.
+  await AsyncStorage.removeItem('active_demo_preset');
 }
 
 export async function getActiveDemoPreset(): Promise<AnyPreset | null> {

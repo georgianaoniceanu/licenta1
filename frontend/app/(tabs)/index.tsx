@@ -394,6 +394,9 @@ export default function HomeScreen() {
   const [showNotifBanner, setShowNotifBanner] = useState(false);
   const [demoLoading,     setDemoLoading]     = useState<AnyPreset | null>(null);
   const [infoIndicator,   setInfoIndicator]   = useState<string | null>(null);
+  const [pickedUser,      setPickedUser]      = useState<{
+    name: string; avatar: string; jobTitle: string; range: string; color: string;
+  } | null>(null);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -448,6 +451,13 @@ export default function HomeScreen() {
   }, []);
 
   useEffect(() => { loadData(); warmupVoices(); }, [loadData]);
+
+  // Auto-dismiss the "you selected user" popup after a few seconds
+  useEffect(() => {
+    if (!pickedUser) return;
+    const t = setTimeout(() => setPickedUser(null), 3500);
+    return () => clearTimeout(t);
+  }, [pickedUser]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -713,6 +723,17 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
+          {/* ── Redo onboarding ── */}
+          <TouchableOpacity
+            onPress={() => router.push('/onboarding')}
+            activeOpacity={0.85}
+            style={S.redoOnboardingBtn}
+          >
+            <Feather name="compass" size={14} color={PURPLE} />
+            <Text style={S.redoOnboardingText}>{tr('redoOnboarding', lang)}</Text>
+            <Feather name="arrow-right" size={14} color={PURPLE} />
+          </TouchableOpacity>
+
           {/* ── Demo profile switcher — always visible ── */}
           <View style={S.demoSwitcher}>
             <Text style={S.demoSwitcherLabel}>{tr('demoChoose', lang)}</Text>
@@ -778,6 +799,13 @@ export default function HomeScreen() {
                         await loadDemoProfile(key);
                         await loadProfile('anonymous');
                         await loadData();
+                        setPickedUser({
+                          name: user.name,
+                          avatar: user.avatar,
+                          jobTitle: job?.title ?? user.jobId,
+                          range: user.rangeLabel,
+                          color: personaColor,
+                        });
                       } finally {
                         setDemoLoading(null);
                       }
@@ -845,6 +873,35 @@ export default function HomeScreen() {
                 </>
               );
             })()}
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* ── "You selected user X" confirmation ── */}
+      <Modal
+        visible={pickedUser !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickedUser(null)}
+      >
+        <Pressable style={S.pickOverlay} onPress={() => setPickedUser(null)}>
+          <Pressable style={[S.pickCard, { borderColor: (pickedUser?.color ?? TEAL) + '55' }]} onPress={() => {}}>
+            <View style={[S.pickAvatarWrap, { backgroundColor: (pickedUser?.color ?? TEAL) + '1A' }]}>
+              <Text style={S.pickAvatar}>{pickedUser?.avatar}</Text>
+            </View>
+            <Text style={S.pickLabel}>{tr('youSelected', lang)}</Text>
+            <Text style={[S.pickName, { color: pickedUser?.color ?? TEAL }]}>{pickedUser?.name}</Text>
+            <Text style={S.pickJob}>{pickedUser?.jobTitle}</Text>
+            <View style={[S.pickRangeBadge, { backgroundColor: (pickedUser?.color ?? TEAL) + '18', borderColor: (pickedUser?.color ?? TEAL) + '40' }]}>
+              <Text style={[S.pickRangeText, { color: pickedUser?.color ?? TEAL }]}>{pickedUser?.range}</Text>
+            </View>
+            <TouchableOpacity
+              style={[S.pickBtn, { backgroundColor: pickedUser?.color ?? TEAL }]}
+              onPress={() => setPickedUser(null)}
+              activeOpacity={0.85}
+            >
+              <Text style={S.pickBtnText}>{tr('letsGo', lang)}</Text>
+            </TouchableOpacity>
           </Pressable>
         </Pressable>
       </Modal>
@@ -1084,6 +1141,54 @@ const S = StyleSheet.create({
   personaJob: { fontSize: 9, fontWeight: '700', textAlign: 'center' },
   personaRange: { fontSize: 10, fontWeight: '700', color: TEXT2, marginTop: 2 },
 
+  // "You selected user" confirmation popup
+  pickOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(6,13,26,0.55)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  pickCard: {
+    width: '100%',
+    maxWidth: 320,
+    backgroundColor: CARD,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    paddingVertical: 26,
+    paddingHorizontal: 22,
+    alignItems: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 12 },
+    elevation: 16,
+  },
+  pickAvatarWrap: {
+    width: 72, height: 72, borderRadius: 36,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 6,
+  },
+  pickAvatar: { fontSize: 40 },
+  pickLabel: { fontSize: 12, fontWeight: '700', color: TEXT2, letterSpacing: 1, textTransform: 'uppercase' },
+  pickName: { fontSize: 24, fontWeight: '900', letterSpacing: -0.4 },
+  pickJob: { fontSize: 13, fontWeight: '600', color: TEXT2, textAlign: 'center' },
+  pickRangeBadge: {
+    marginTop: 6,
+    paddingHorizontal: 14, paddingVertical: 5,
+    borderRadius: 999, borderWidth: 1,
+  },
+  pickRangeText: { fontSize: 13, fontWeight: '800' },
+  pickBtn: {
+    marginTop: 18,
+    alignSelf: 'stretch',
+    paddingVertical: 13,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  pickBtnText: { fontSize: 15, fontWeight: '800', color: '#fff' },
+
   // Profile chips
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 20 },
   chip: {
@@ -1159,6 +1264,20 @@ const S = StyleSheet.create({
     borderColor: TEAL + '28',
   },
   reassessText: { fontSize: 14, fontWeight: '700', color: TEAL },
+
+  redoOnboardingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    borderRadius: 16,
+    paddingVertical: 15,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: PURPLE + '28',
+    backgroundColor: PURPLE + '0D',
+  },
+  redoOnboardingText: { fontSize: 14, fontWeight: '700', color: PURPLE },
 
   // Indicator info modal
   modalOverlay: {

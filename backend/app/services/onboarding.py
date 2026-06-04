@@ -26,10 +26,12 @@ Research Foundation:
      dimensions are used to initialize the dual-diagnosis.
    Source: 10.22034_ijlt.2025.492133.1395.txt
 
-5. Dimova (2022) — Task-based Speaking Assessment Domains
-   - Domain (narration, argumentation, conversation, academic) determines which
-     indicators carry most weight. Users must declare their target domain.
-   Source: EJ1361396.txt
+5. Davies (COCA) — Genre-based Domain Taxonomy
+   - COCA genre (spoken, academic, newspaper, fiction, magazine, web, blog, movies, tv)
+     determines which CAF indicators carry most weight.
+     Users declare their target register/context at onboarding.
+   Source: Davies, M. (2008-) The Corpus of Contemporary American English (COCA).
+           Available online at https://www.english-corpora.org/coca/
 
 6. Skehan (1998) — Individual Differences in SLA
    - Learning pace, study time, and motivation significantly affect development
@@ -39,7 +41,7 @@ Research Foundation:
 Onboarding Flow (6 steps):
    Step 1 — CEFR Self-Assessment (can-do descriptors)
    Step 2 — Learning Goals (CAF + lexical dimensions)
-   Step 3 — Domain Focus (narration/description/argumentation/conversation/academic)
+   Step 3 — Domain Focus (spoken/academic/newspaper/fiction/magazine/web/blog/movies/tv)
    Step 4 — Target Exam  (Cambridge / TOEFL / IELTS / PTE / General)
    Step 5 — Perceived Weak Areas  (maps directly to the 10 assessment indicators)
    Step 6 — Study Intensity (Skehan: time on task affects rate of development)
@@ -75,9 +77,9 @@ class OnboardingData:
     primary_goal: str                     # vocabulary | pronunciation | grammar |
                                           # fluency | complexity | coherence
 
-    # Step 3 — Domain focus (Dimova 2022 task types)
-    target_domain: str                    # narration | description | argumentation |
-                                          # conversation | academic | technical
+    # Step 3 — Domain focus (Davies COCA genres)
+    target_domain: str                    # spoken | fiction | academic | newspaper |
+                                          # magazine | web | blog | movies | tv
 
     # Step 4 — Target international exam
     target_exam: str                      # cambridge_fce | cambridge_cae |
@@ -199,49 +201,73 @@ GOAL_OPTIONS = [
 ]
 
 # Step 3 — Domain focus
-# Based on Dimova (2022) task types + domain weights in module_recommendation_algorithm.py
+# Uses COCA (Davies) genre taxonomy — 9 register-based domains from the
+# Corpus of Contemporary American English (lemmas_60k_subgenres.xlsx).
+# Each domain foregrounds different CAF indicators.
+# Source: Davies, M. — COCA; Tauroza & Allison (1990) — register WPM norms.
 DOMAIN_OPTIONS = [
     {
-        "value": "conversation",
-        "label": "Everyday Conversation",
-        "description": "Casual dialogues, turn-taking, quick responses.",
+        "value": "spoken",
+        "label": "Spoken English (TV / Radio)",
+        "description": "Live interviews, talk shows, news broadcasts, informal dialogue.",
         "key_indicators": ["Fluency (WPM)", "Pronunciation", "Pause Rate"],
-        "source": "Dimova (2022) — interactional tasks in performance-based speaking assessment"
-    },
-    {
-        "value": "narration",
-        "label": "Storytelling & Narration",
-        "description": "Describing events, telling stories, sequencing past experiences.",
-        "key_indicators": ["Fluency", "Coherence", "Past Tense Accuracy"],
-        "source": "Dimova (2022) — monologic narrative tasks; Fulcher (2003) — narration task design"
-    },
-    {
-        "value": "description",
-        "label": "Descriptions",
-        "description": "Describing people, places, objects in detail.",
-        "key_indicators": ["Lexical Diversity (MTLD)", "AWL%", "Adjective Use"],
-        "source": "Dimova (2022) — descriptive task characteristics"
-    },
-    {
-        "value": "argumentation",
-        "label": "Arguments & Opinions",
-        "description": "Presenting views, persuading, debating.",
-        "key_indicators": ["Coherence", "Lexical Range", "Sentence Complexity"],
-        "source": "Dimova (2022) — argumentative monologic tasks; Fulcher (2003) — opinion tasks"
+        "source": "Davies (COCA) — Spoken sub-corpus; Tauroza & Allison (1990) — spoken register norms"
     },
     {
         "value": "academic",
         "label": "Academic & Professional",
-        "description": "Presentations, formal writing, academic discussions.",
-        "key_indicators": ["AWL%", "Syntactic Complexity", "Grammar Accuracy"],
-        "source": "Knoch (2009) — EAP diagnostic assessment; Present-Thomas et al. (2013) — academic writing proficiency"
+        "description": "Scholarly articles, lectures, formal presentations, science and law.",
+        "key_indicators": ["AWL%", "Syntactic Complexity (MLS)", "Grammar Accuracy (WCR)"],
+        "source": "Davies (COCA) — Academic sub-corpus; Coxhead (2000) — Academic Word List"
     },
     {
-        "value": "technical",
-        "label": "Technical / Specialized",
-        "description": "Medical, legal, IT or other domain-specific communication.",
-        "key_indicators": ["AWL%", "Lexical Precision", "Accuracy"],
-        "source": "Coxhead (2000) — Academic Word List for specialized vocabulary"
+        "value": "newspaper",
+        "label": "News & Opinion",
+        "description": "National/local news, editorials, opinion columns, financial reporting.",
+        "key_indicators": ["Coherence", "Lexical Range (MTLD)", "Sentence Complexity"],
+        "source": "Davies (COCA) — Newspaper sub-corpus; Fulcher (2003) — opinion task design"
+    },
+    {
+        "value": "fiction",
+        "label": "Fiction & Storytelling",
+        "description": "Novels, short stories, screenplays, creative narrative writing.",
+        "key_indicators": ["Fluency", "Coherence", "Past Tense Accuracy (WCR)"],
+        "source": "Davies (COCA) — Fiction sub-corpus; COCA frequency profiles"
+    },
+    {
+        "value": "magazine",
+        "label": "Magazine & Lifestyle",
+        "description": "Feature articles, sports, science journalism, lifestyle writing.",
+        "key_indicators": ["Lexical Diversity (MTLD)", "AWL%", "Descriptive Richness"],
+        "source": "Davies (COCA) — Magazine sub-corpus; COCA frequency profiles"
+    },
+    {
+        "value": "web",
+        "label": "Web & Instructional",
+        "description": "Informational websites, how-to guides, reviews, online articles.",
+        "key_indicators": ["Coherence", "Accuracy (WCR)", "Vocabulary Range"],
+        "source": "Davies (COCA) — Web sub-corpus; COCA frequency profiles"
+    },
+    {
+        "value": "blog",
+        "label": "Blog & Personal Writing",
+        "description": "Personal blogs, opinion pieces, informal argumentative writing.",
+        "key_indicators": ["Fluency", "Coherence", "Personal Voice (MTLD)"],
+        "source": "Davies (COCA) — Blog sub-corpus; COCA frequency profiles"
+    },
+    {
+        "value": "movies",
+        "label": "Movies & Film Dialogue",
+        "description": "Film scripts across all genres — drama, comedy, action, sci-fi.",
+        "key_indicators": ["Pronunciation", "Fluency", "Expressive Delivery"],
+        "source": "Davies (COCA) — Movies sub-corpus; COCA frequency profiles"
+    },
+    {
+        "value": "tv",
+        "label": "TV Shows",
+        "description": "Television drama, comedy, reality TV, crime shows.",
+        "key_indicators": ["Pronunciation", "Micro-Fluency", "Coherence"],
+        "source": "Davies (COCA) — TV sub-corpus; COCA frequency profiles"
     },
 ]
 
@@ -453,9 +479,10 @@ def get_onboarding_questions() -> Dict:
                 "type": "single_select",
                 "required": True,
                 "research_note": (
-                    "Domain determines indicator weighting: narration prioritises fluency "
-                    "and coherence; academic emphasises grammar accuracy and lexical range "
-                    "(Dimova, 2022; Fulcher, 2003)."
+                    "COCA genre determines indicator weighting (Davies COCA; Pallotti 2009 CAF): "
+                    "spoken/movies prioritise fluency and pronunciation; "
+                    "academic/newspaper emphasise grammar accuracy and lexical range; "
+                    "fiction/blog prioritise coherence and lexical diversity."
                 ),
                 "options": DOMAIN_OPTIONS,
             },

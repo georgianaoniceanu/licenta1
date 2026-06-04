@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Comprehensive domain-specific assessment system test"""
+"""Comprehensive domain-specific assessment system test (COCA genres)"""
 
 import sys
 sys.path.insert(0, '/c/Users/LENOVO/Desktop/licenta/backend')
@@ -9,7 +9,7 @@ from module_recommendation_algorithm import (
 )
 
 print("\n" + "=" * 80)
-print("DOMAIN-SPECIFIC ASSESSMENT SYSTEM - COMPREHENSIVE TEST")
+print("DOMAIN-SPECIFIC ASSESSMENT SYSTEM - COMPREHENSIVE TEST (COCA genres)")
 print("=" * 80)
 
 # Sample learner profiles
@@ -52,30 +52,30 @@ learner_profiles = {
     },
 }
 
-# Test scenarios
+# Test scenarios — updated to COCA genre domains
 test_scenarios = [
     {
-        "name": "Low Vocabulary + Description Domain",
+        "name": "Low Vocabulary + Academic Domain",
         "profile": "low_vocabulary",
-        "domain": "description",
+        "domain": "academic",
         "expected_top_module": "Vocabulary Coach"
     },
     {
-        "name": "Low Coherence + Argumentation Domain",
+        "name": "Low Coherence + Newspaper Domain",
         "profile": "low_coherence",
-        "domain": "argumentation",
+        "domain": "newspaper",
         "expected_top_module": "Discourse Module"
     },
     {
-        "name": "Low Coherence + Narration Domain",
+        "name": "Low Coherence + Fiction Domain",
         "profile": "low_coherence",
-        "domain": "narration",
+        "domain": "fiction",
         "expected_top_module": "Discourse Module"
     },
     {
-        "name": "Pronunciation Issue + Conversation Domain",
+        "name": "Pronunciation Issue + Spoken Domain",
         "profile": "pronunciation_issue",
-        "domain": "conversation",
+        "domain": "spoken",
         "expected_top_module": "Accent Module"
     },
     {
@@ -94,26 +94,26 @@ for scenario in test_scenarios:
     print(f"Test: {scenario['name']}")
     print(f"  Profile: {scenario['profile']}")
     print(f"  Domain: {scenario['domain']}")
-    
+
     indicators = AssessmentIndicators(**learner_profiles[scenario['profile']])
     recommender = ModuleRecommender(
         cefr_level=CEFRLevel.B1,
         target_test="IELTS",
         domain=scenario['domain']
     )
-    
+
     recommendations = recommender.recommend(indicators, limit=3)
     top_module = recommendations[0].module.value if recommendations else None
-    
+
     print(f"  Recommendations:")
     for i, rec in enumerate(recommendations, 1):
         print(f"    {i}. {rec.module.value:25s} (severity: {rec.severity_score:.2f})")
-    
+
     expected = scenario['expected_top_module']
     actual = top_module
     passed = actual == expected
     all_passed = all_passed and passed
-    
+
     status = "✅ PASS" if passed else "❌ FAIL"
     print(f"  {status}: Expected '{expected}', got '{actual}'")
     print()
@@ -126,22 +126,22 @@ else:
     print("⚠️  SOME TESTS FAILED - Review recommendations above")
 print("=" * 80)
 
-# Show domain characteristics
-print("\n📌 DOMAIN WEIGHTING SUMMARY:\n")
-indicators = ["Fluency", "Coherence", "Vocabulary (MTLD)", "Pronunciation", "Grammar (WCR)"]
-domains_to_show = ["narration", "description", "argumentation", "conversation"]
+# Show COCA genre weighting summary
+print("\n📌 COCA GENRE WEIGHTING SUMMARY:\n")
+indicators_to_show = ["Fluency", "Coherence", "MTLD", "Pronunciation", "WCR"]
+coca_genres = ["spoken", "academic", "newspaper", "fiction", "movies"]
 
-print(f"{'Domain':<20}", end='')
-for ind in indicators:
-    print(f"{ind:<15}", end='')
+print(f"{'Genre':<12}", end='')
+for ind in indicators_to_show:
+    print(f"{ind:<16}", end='')
 print()
-print("-" * 80)
+print("-" * 90)
 
-for domain in domains_to_show:
-    print(f"{domain:<20}", end='')
-    for ind in indicators:
-        weight = DomainWeights.get(domain, ind)
-        print(f"{weight:<15.2f}", end='')
+for genre in coca_genres:
+    print(f"{genre:<12}", end='')
+    for ind in indicators_to_show:
+        weight = DomainWeights.get(genre, ind)
+        print(f"{weight:<16.2f}", end='')
     print()
 
 print("\n" + "=" * 80)

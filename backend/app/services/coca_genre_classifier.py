@@ -43,7 +43,38 @@ group for the headline figure. Return both views:
 import json
 import os
 import re
+from enum import Enum
 from typing import Dict, Any, List, Tuple
+
+
+class COCAGenre(str, Enum):
+    """
+    COCA register/genre domains — readable names used throughout the application.
+    Source: Davies, M. — Corpus of Contemporary American English (96 sub-categories).
+    """
+    ACADEMIC   = "academic"    # scholarly journals, science, law, medicine
+    FICTION    = "fiction"     # novels, juvenile fiction, sci-fi, screenplays
+    SPOKEN     = "spoken"      # TV/radio interviews, talk shows, news anchors
+    NEWSPAPER  = "newspaper"   # national/local news, editorial, money
+    MAGAZINE   = "magazine"    # lifestyle, sports, science, religion
+    WEB        = "web"         # informational websites, reviews, instructional
+    BLOG       = "blog"        # personal, argumentative, promotional writing
+    MOVIES     = "movies"      # movie dialogue (action, drama, comedy, sci-fi…)
+    TV         = "tv"          # TV-show dialogue (drama, reality, crime…)
+
+
+# Mapping from COCAGenre readable value → internal COCA corpus code
+GENRE_TO_CODE: Dict[str, str] = {
+    "academic":  "ACAD",
+    "fiction":   "FIC",
+    "spoken":    "SPOK",
+    "newspaper": "NEWS",
+    "magazine":  "MAG",
+    "web":       "Web",
+    "blog":      "Blog",
+    "movies":    "Mov",
+    "tv":        "TV",
+}
 
 # ─── Lazy-loaded lookup ──────────────────────────────────────────────────────
 
@@ -106,11 +137,11 @@ def classify_text_genre(text: str, top_n_subcats: int = 10) -> Dict[str, Any]:
 
     Returns:
       {
-        'distribution_groups':   {SPOK: pct, FIC: pct, MAG: pct, NEWS: pct,
-                                  ACAD: pct, Web: pct, Blog: pct, Mov: pct, TV: pct},
-        'distribution_subcats':  {'SPOK:ABC': pct, ..., 'TV:Misc': pct},   # all 96
-        'top_subcategories':     [{'name': ..., 'group': ..., 'pct': ...}, ...],
-        'dominant_group':        'ACAD',
+        'distribution_groups':   {spoken: pct, fiction: pct, magazine: pct, newspaper: pct,
+                                  academic: pct, web: pct, blog: pct, movies: pct, tv: pct},
+        'distribution_subcats':  {'SPOK:ABC': pct, ..., 'TV:Misc': pct},   # all 96 raw sub-cats
+        'top_subcategories':     [{'name': ..., 'group': readable_genre, 'pct': ...}, ...],
+        'dominant_group':        'academic',
         'dominant_label':        'Academic',
         'dominant_description':  'Vocabulary typical of scholarly …',
         'dominant_subcategory':  'ACAD:Sci/Tech',
@@ -167,31 +198,52 @@ def classify_text_genre(text: str, top_n_subcats: int = 10) -> Dict[str, Any]:
             dist_groups[g] += pct
     dist_groups = {g: round(v, 1) for g, v in dist_groups.items()}
 
-    # Top-N strongest sub-categories
+    # Map internal COCA codes → readable COCAGenre values
+    _code_to_readable = {v: k for k, v in GENRE_TO_CODE.items()}
+
+    # Top-N strongest sub-categories (group key converted to readable)
     top_subcats: List[Dict[str, Any]] = sorted(
-        ({'name': n, 'group': _top_group(n), 'pct': p} for n, p in dist_subcats.items()),
+        (
+            {
+                'name': n,
+                'group': _code_to_readable.get(_top_group(n), _top_group(n)),
+                'pct': p,
+            }
+            for n, p in dist_subcats.items()
+        ),
         key=lambda x: -x['pct'],
     )[:top_n_subcats]
 
-    # Per-group breakdown: list of (subcat, pct) sorted desc within each group
-    group_breakdown: Dict[str, List[Dict[str, Any]]] = {g: [] for g in TOP_GROUPS}
+    # Per-group breakdown with readable keys
+    group_breakdown_raw: Dict[str, List[Dict[str, Any]]] = {g: [] for g in TOP_GROUPS}
     for name, pct in dist_subcats.items():
         g = _top_group(name)
-        if g in group_breakdown:
-            group_breakdown[g].append({'name': name, 'pct': pct})
-    for g in group_breakdown:
-        group_breakdown[g].sort(key=lambda x: -x['pct'])
+        if g in group_breakdown_raw:
+            group_breakdown_raw[g].append({'name': name, 'pct': pct})
+    for g in group_breakdown_raw:
+        group_breakdown_raw[g].sort(key=lambda x: -x['pct'])
 
-    dominant_group = max(dist_groups, key=dist_groups.get)
+    group_breakdown = {
+        _code_to_readable.get(g, g): entries
+        for g, entries in group_breakdown_raw.items()
+    }
+
+    # Readable distribution_groups and dominant
+    dist_groups_readable = {
+        _code_to_readable.get(g, g): pct for g, pct in dist_groups.items()
+    }
+
+    dominant_code = max(dist_groups, key=dist_groups.get)
+    dominant_readable = _code_to_readable.get(dominant_code, dominant_code)
     dominant_subcat = top_subcats[0]['name'] if top_subcats else None
 
     return {
-        'distribution_groups': dist_groups,
+        'distribution_groups': dist_groups_readable,
         'distribution_subcats': dist_subcats,
         'top_subcategories': top_subcats,
-        'dominant_group': dominant_group,
-        'dominant_label': GROUP_LABELS[dominant_group],
-        'dominant_description': GROUP_DESCRIPTIONS[dominant_group],
+        'dominant_group': dominant_readable,
+        'dominant_label': GROUP_LABELS[dominant_code],
+        'dominant_description': GROUP_DESCRIPTIONS[dominant_code],
         'dominant_subcategory': dominant_subcat,
         'matched_words': matched,
         'total_words': total,
@@ -206,7 +258,7 @@ def classify_text_genre(text: str, top_n_subcats: int = 10) -> Dict[str, Any]:
 
 def _empty(total: int = 0) -> Dict[str, Any]:
     return {
-        'distribution_groups': {g: 0.0 for g in TOP_GROUPS},
+        'distribution_groups': {g.value: 0.0 for g in COCAGenre},
         'distribution_subcats': {},
         'top_subcategories': [],
         'dominant_group': None,
@@ -216,6 +268,6 @@ def _empty(total: int = 0) -> Dict[str, Any]:
         'matched_words': 0,
         'total_words': total,
         'coverage': 0.0,
-        'group_breakdown': {g: [] for g in TOP_GROUPS},
+        'group_breakdown': {g.value: [] for g in COCAGenre},
         'source': 'COCA (Davies)',
     }

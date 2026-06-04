@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -8,12 +9,22 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  Dimensions,
+  Easing,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
+import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '../../constants/api';
 import { useLearnerProfile } from '../../context/LearnerProfile';
 import { Colors, Animations } from '../../constants/theme';
+import { speakPhoneme, warmupVoices, playAudioAsset, stopAudioAsset, stopAllPlayback } from '@/utils/voiceProfiles';
+import { getPhonemeAudio } from '@/constants/phonemeAudio';
+import { getDemoAudio } from '@/constants/demoAudio';
+import SavedSessions from '@/components/saved-sessions';
+import type { AccentSession } from '@/utils/demoSessions';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // romanian_error: documented substitution patterns from Măchiță (2021)
 // Interlanguage Theory (Selinker 1972) + Auditory Distance Model (Brannen 2011)
@@ -218,14 +229,20 @@ type Feedback = {
   problematic_phonemes: { phoneme: string; example: string; severity: string }[];
   suggestions: { issue: string; fix: string }[];
   overall_feedback: string;
+  intelligibility_only?: boolean;
+  similarity?: { word: number; char: number };
+  missed_words?: string[];
+  alignment?: { expected: string; produced: string; ok: boolean }[];
+  word_breakdown?: { word: string; correct: number; total: number; ok: boolean; phonemes?: { p: string; ok: boolean }[] }[];
+  engine?: string;
 };
 
 type PracticeMode = 'word' | 'sentence';
 type DiffFilter = 'ALL' | 'B1' | 'B2' | 'C1';
 
 const ScoreRing = ({ score }: { score: number }) => {
-  const color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#f87171';
-  const label = score >= 80 ? 'Excellent' : score >= 60 ? 'Good' : 'Needs Work';
+  const color = score >= 88 ? '#22c55e' : score >= 70 ? '#f59e0b' : '#f87171';
+  const label = score >= 88 ? 'Excellent' : score >= 70 ? 'Good' : 'Needs Work';
   return (
     <View style={scoreRingStyles.outer}>
       <View style={[scoreRingStyles.ring, { borderColor: color }]}>
@@ -250,17 +267,393 @@ const scoreRingStyles = StyleSheet.create({
   grade: { fontSize: 13, fontWeight: '700' },
 });
 
+// ─── Phoneme Globe ────────────────────────────────────────────────────────────
+// A rotating globe with the 12 phonemes in orbit, colour-coded by status:
+//   green  = mastered (last score ≥ 75)
+//   red    = problem  (attempted but low, or flagged weak in Accent DNA profile)
+//   gold   = to cover (not attempted yet)
+const { width: ACC_SCREEN_W } = Dimensions.get('window');
+const GLOBE_BOX = Math.min(ACC_SCREEN_W - 48, 320);
+const GLOBE_CENTER = GLOBE_BOX / 2;
+const ORBIT_RADIUS = GLOBE_BOX * 0.40;
+const CHIP = 44;
+const GLOBE_D = Math.round(GLOBE_BOX * 0.46);   // central Earth diameter
+
+const WORLD_MAP = require('../../assets/images/world_map.png');
+
+// ── Spinning 3D Earth (equirectangular map scrolled inside a circular mask) ──
+function SpinningGlobe() {
+  const scroll = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(scroll, {
+        toValue: 1, duration: 22000, easing: Easing.linear, useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const mapW = GLOBE_D * 2;   // equirectangular map is 2:1 → width = 2 × height
+  const translateX = scroll.interpolate({ inputRange: [0, 1], outputRange: [0, -mapW] });
+
+  return (
+    <View style={[globeStyles.sphere, { width: GLOBE_D, height: GLOBE_D, borderRadius: GLOBE_D / 2 }]}>
+      {/* Scrolling world map — two copies for a seamless loop */}
+      <Animated.View
+        style={{ flexDirection: 'row', width: mapW * 2, height: GLOBE_D, transform: [{ translateX }] }}
+      >
+        <Image source={WORLD_MAP} style={{ width: mapW, height: GLOBE_D }} resizeMode="cover" />
+        <Image source={WORLD_MAP} style={{ width: mapW, height: GLOBE_D }} resizeMode="cover" />
+      </Animated.View>
+
+      {/* Limb darkening (left/right edges) → spherical curvature */}
+      <LinearGradient
+        colors={['rgba(2,8,20,0.65)', 'rgba(2,8,20,0)', 'rgba(2,8,20,0)', 'rgba(2,8,20,0.65)']}
+        locations={[0, 0.26, 0.74, 1]}
+        start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+      {/* Top highlight + bottom shadow → lit-from-above sphere */}
+      <LinearGradient
+        colors={['rgba(255,255,255,0.28)', 'rgba(255,255,255,0)', 'rgba(2,8,20,0.45)']}
+        locations={[0, 0.42, 1]}
+        start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
+    </View>
+  );
+}
+
+type PhonemeStatus = 'mastered' | 'problem' | 'todo';
+
+function phonemeStatus(
+  phoneme: string,
+  history: number[] | undefined,
+  weak: string[],
+): PhonemeStatus {
+  const last = history && history.length ? history[history.length - 1] : undefined;
+  if (last !== undefined) return last >= 75 ? 'mastered' : 'problem';
+  if (weak.includes(phoneme)) return 'problem';
+  return 'todo';
+}
+
+const STATUS_COLOR: Record<PhonemeStatus, string> = {
+  mastered: '#22c55e',
+  problem:  '#f87171',
+  todo:     '#FCD34D',
+};
+
+function shortGlyph(phoneme: string): string {
+  return phoneme.replace(/[\[\]\/]/g, '').split(/[\s-]/)[0] || phoneme;
+}
+
+function sentencesFor(ex: typeof PHONEME_EXERCISES[number]): string[] {
+  return PHONEME_PRACTICE[ex.phoneme] ?? [ex.practice_sentence];
+}
+
+// Practice sentences per phoneme — dense in the target sound for shadowing.
+const PHONEME_PRACTICE: Record<string, string[]> = {
+  '/u:/-/ʊ/': [
+    'The cook put good food in the cool pool.',
+    'Look at the blue moon through the window.',
+    'She took two books from the school room.',
+    'Could you choose a good fruit juice?',
+    'The wolf stood in the woods looking at the moon.',
+  ],
+  '/i:/-/ɪ/': [
+    'He still feels ill after eating six green beans.',
+    'Please sit in this seat and read the sheet.',
+    'The little kitten sleeps in the green field.',
+    'It is easy to see the big city lights.',
+    'Three thin trees grew near the deep stream.',
+  ],
+  '/ð/': [
+    'This is the other thing that bothers them.',
+    'They gathered together with their mother and father.',
+    'The weather there is better than the weather here.',
+    'Either this one or that other one will do.',
+    'Breathe smoothly and soothe yourself.',
+  ],
+  '/θ/': [
+    'Think through three thousand theories thoroughly.',
+    'Thank you for the birthday gift, Beth.',
+    'The author thought about the truth of the myth.',
+    'Three thick thorns hurt the thumb.',
+    'Both paths through the forest are worth it.',
+  ],
+  '/æ/-/ɑ:/': [
+    'My father parked the car after the bad crash.',
+    'The cat sat on a mat near the calm garden.',
+    'Pat had a chance to grab the last apple.',
+    "Mark's car cannot start in the cold dark.",
+    'The fast cab passed the large park.',
+  ],
+  '/ʌ/': [
+    'The young monk suddenly jumped up in the muddy sun.',
+    'My brother loves to run under the sun.',
+    'Such a lucky duck won the money.',
+    'The hungry cousin must hurry up.',
+    'Trust your gut and stay tough.',
+  ],
+  '[ɫ] Dark L': [
+    'The tall mill wall will fill with small hills.',
+    'Bill felt the cold metal in the hall.',
+    'Call Bill to fill the bottle well.',
+    'The bell fell on the cold wall.',
+    'Pull the heavy ball down the hill.',
+  ],
+  '/ŋ/': [
+    'Singing and dancing brings amazing energy every morning.',
+    'The king is bringing a strong young singer.',
+    'Running and jumping make my lungs strong.',
+    'Long mornings of working bring nothing.',
+    'The ringing bell kept ringing all evening.',
+  ],
+  '[kʰ]': [
+    'The kind king kept a clean, cool, quiet castle.',
+    'Kate can quickly cook a clean cake.',
+    'The clever kid kicked the cold can.',
+    'Keep the key in a quiet corner.',
+    "Carl's car key is cracked.",
+  ],
+  '/ə/': [
+    'About a dozen of us arrived around eleven in the morning.',
+    'The teacher gave a banana to the woman.',
+    'A famous problem about the camera appeared.',
+    'Around seven, the children awoke alone.',
+    'The doctor sent a letter to the manager.',
+  ],
+  '[pʰ]': [
+    'Peter picked a pretty pink pepper plant in the park.',
+    'Paul put a paper plate on the porch.',
+    'The puppy played with a purple pillow.',
+    'Please pass the perfect pepperoni pizza.',
+    'Pam paid for the expensive purple paint.',
+  ],
+  '[tʰ]': [
+    'Ten tiny turtles took time to talk to Tom today.',
+    'Tom took two tickets to the theater.',
+    'The teacher told the students to take notes.',
+    'Tina tried to type the title twice.',
+    'Take time to taste the tea.',
+  ],
+};
+
+// Common spellings of each phoneme (American English, source: Rachel's English
+// sound chart). Helps learners recognise the sound across different spellings.
+const PHONEME_SPELLINGS: Record<string, { pattern: string; example: string }[]> = {
+  '/u:/-/ʊ/': [
+    { pattern: 'oo', example: 'too / wood' }, { pattern: 'o', example: 'do / wolf' },
+    { pattern: 'ou', example: 'you / could' }, { pattern: 'u', example: 'flute / sugar' },
+    { pattern: 'ue', example: 'blue' }, { pattern: 'ui', example: 'juice / build' },
+  ],
+  '/i:/-/ɪ/': [
+    { pattern: 'ee', example: 'weep / been' }, { pattern: 'ea', example: 'heat' },
+    { pattern: 'e', example: 'be / pretty' }, { pattern: 'ie', example: 'brief' },
+    { pattern: 'y', example: 'melody / symbol' }, { pattern: 'i', example: 'police / him' },
+  ],
+  '/ð/': [
+    { pattern: 'th', example: 'those / this' },
+  ],
+  '/θ/': [
+    { pattern: 'th', example: 'thanks / thin' },
+  ],
+  '/æ/-/ɑ:/': [
+    { pattern: 'a', example: 'bat / father' }, { pattern: 'ai', example: 'plaid' },
+    { pattern: 'au', example: 'aunt' }, { pattern: 'ea', example: 'heart' },
+    { pattern: 'o', example: 'body' },
+  ],
+  '/ʌ/': [
+    { pattern: 'u', example: 'up' }, { pattern: 'o', example: 'love' },
+    { pattern: 'oo', example: 'blood' }, { pattern: 'ou', example: 'trouble' },
+    { pattern: 'oe', example: 'does' },
+  ],
+  '[ɫ] Dark L': [
+    { pattern: 'l', example: 'love' }, { pattern: 'll', example: 'million' },
+  ],
+  '/ŋ/': [
+    { pattern: 'ng', example: 'ring' }, { pattern: 'n + k', example: 'think' },
+    { pattern: 'n + g', example: 'anger' },
+  ],
+  '[kʰ]': [
+    { pattern: 'c', example: 'cap' }, { pattern: 'k', example: 'king' },
+    { pattern: 'ck', example: 'back' }, { pattern: 'ch', example: 'choir' },
+    { pattern: 'q', example: 'quiet' },
+  ],
+  '/ə/': [
+    { pattern: 'a', example: 'about' }, { pattern: 'e', example: 'anthem' },
+    { pattern: 'i', example: 'possible' }, { pattern: 'o', example: 'bottom' },
+    { pattern: 'ou', example: 'jealous' }, { pattern: 'u', example: 'autumn' },
+  ],
+  '[pʰ]': [
+    { pattern: 'p', example: 'pear' }, { pattern: 'pp', example: 'happy' },
+  ],
+  '[tʰ]': [
+    { pattern: 't', example: 'tap' }, { pattern: 'ed', example: 'tripped' },
+    { pattern: 'tt', example: 'better' },
+  ],
+};
+
+// TTS cues to pronounce each phoneme in isolation (American voice).
+// Vowels render cleanly; consonants use a minimal schwa so the sound is produced.
+const PHONEME_CUE: Record<string, string> = {
+  '/u:/-/ʊ/':   'oooo',
+  '/i:/-/ɪ/':   'eee',
+  '/ð/':        'thuh',   // voiced TH
+  '/θ/':        'th',     // unvoiced TH
+  '/æ/-/ɑ:/':   'aaa',
+  '/ʌ/':        'uhh',
+  '[ɫ] Dark L': 'ull',
+  '/ŋ/':        'ng',
+  '[kʰ]':       'kuh',
+  '/ə/':        'uh',
+  '[pʰ]':       'puh',
+  '[tʰ]':       'tuh',
+};
+
+function PhonemeGlobe({
+  exercises, attemptHistory, weakPhonemes, onSelect,
+}: {
+  exercises: typeof PHONEME_EXERCISES;
+  attemptHistory: Record<string, number[]>;
+  weakPhonemes: string[];
+  onSelect: (ex: typeof PHONEME_EXERCISES[number]) => void;
+}) {
+  const spin = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const loop = Animated.loop(
+      Animated.timing(spin, {
+        toValue: 1, duration: 60000, easing: Easing.linear, useNativeDriver: true,
+      })
+    );
+    loop.start();
+    return () => loop.stop();
+  }, []);
+
+  const rotate        = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '360deg'] });
+  const counterRotate = spin.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '-360deg'] });
+
+  const counts = exercises.reduce(
+    (acc, ex) => {
+      const s = phonemeStatus(ex.phoneme, attemptHistory[ex.phoneme], weakPhonemes);
+      acc[s]++; return acc;
+    },
+    { mastered: 0, problem: 0, todo: 0 } as Record<PhonemeStatus, number>,
+  );
+
+  return (
+    <View style={globeStyles.wrap}>
+      <View style={{ width: GLOBE_BOX, height: GLOBE_BOX, alignSelf: 'center' }}>
+        {/* Central spinning Earth */}
+        <View style={{ position: 'absolute', left: GLOBE_CENTER - GLOBE_D / 2, top: GLOBE_CENTER - GLOBE_D / 2 }}>
+          <SpinningGlobe />
+        </View>
+
+        {/* Orbiting phonemes (ring rotates; chips counter-rotate to stay upright) */}
+        <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ rotate }] }]} pointerEvents="box-none">
+          {exercises.map((ex, i) => {
+            const angle = (i / exercises.length) * 2 * Math.PI - Math.PI / 2;
+            const x = GLOBE_CENTER + ORBIT_RADIUS * Math.cos(angle) - CHIP / 2;
+            const y = GLOBE_CENTER + ORBIT_RADIUS * Math.sin(angle) - CHIP / 2;
+            const status = phonemeStatus(ex.phoneme, attemptHistory[ex.phoneme], weakPhonemes);
+            const color = STATUS_COLOR[status];
+            return (
+              <Animated.View
+                key={ex.phoneme}
+                style={{ position: 'absolute', left: x, top: y, transform: [{ rotate: counterRotate }] }}
+              >
+                <TouchableOpacity
+                  style={[globeStyles.chip, { borderColor: color, backgroundColor: color + '22' }]}
+                  onPress={() => onSelect(ex)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={[globeStyles.chipText, { color }]}>{shortGlyph(ex.phoneme)}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            );
+          })}
+        </Animated.View>
+      </View>
+
+      {/* Legend */}
+      <View style={globeStyles.legend}>
+        <View style={globeStyles.legendItem}>
+          <View style={[globeStyles.legendDot, { backgroundColor: STATUS_COLOR.mastered }]} />
+          <Text style={globeStyles.legendText}>Mastered {counts.mastered}</Text>
+        </View>
+        <View style={globeStyles.legendItem}>
+          <View style={[globeStyles.legendDot, { backgroundColor: STATUS_COLOR.problem }]} />
+          <Text style={globeStyles.legendText}>Needs work {counts.problem}</Text>
+        </View>
+        <View style={globeStyles.legendItem}>
+          <View style={[globeStyles.legendDot, { backgroundColor: STATUS_COLOR.todo }]} />
+          <Text style={globeStyles.legendText}>To explore {counts.todo}</Text>
+        </View>
+      </View>
+
+      {/* Source attribution */}
+      <Text style={globeStyles.source}>
+        Globe map: Wikimedia Commons (CC BY-SA)
+      </Text>
+    </View>
+  );
+}
+
+const globeStyles = StyleSheet.create({
+  wrap: {
+    backgroundColor: '#060D1A',
+    borderRadius: 20,
+    paddingVertical: 16,
+    marginBottom: 20,
+    overflow: 'hidden',
+  },
+  sphere: {
+    overflow: 'hidden',
+    backgroundColor: '#0A2540',
+    borderWidth: 2.5,
+    borderColor: '#FCD34D',
+    shadowColor: '#1EE8B5',
+    shadowOpacity: 0.6,
+    shadowRadius: 22,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 10,
+  },
+
+  chip: {
+    width: CHIP, height: CHIP, borderRadius: CHIP / 2,
+    borderWidth: 1.5,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  chipText: { fontSize: 15, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginTop: 8, flexWrap: 'wrap' },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  legendDot: { width: 9, height: 9, borderRadius: 5 },
+  legendText: { color: '#C7D2E0', fontSize: 11, fontWeight: '700' },
+  source: { color: '#5A6B82', fontSize: 9, fontStyle: 'italic', textAlign: 'center', marginTop: 8 },
+});
+
 export default function AccentDNAScreen() {
   const router = useRouter();
-  const { updatePhonemePerformance, updateSessionMetrics } = useLearnerProfile();
+  const { updatePhonemePerformance, updateSessionMetrics, getWeakPhonemes } = useLearnerProfile();
 
   const [selectedExercise, setSelectedExercise] = useState(PHONEME_EXERCISES[0]);
   const [selectedWord, setSelectedWord] = useState(PHONEME_EXERCISES[0].words[0]);
+  const [selectedSentence, setSelectedSentence] = useState(PHONEME_EXERCISES[0].practice_sentence);
   const [practiceMode, setPracticeMode] = useState<PracticeMode>('word');
   const [diffFilter, setDiffFilter] = useState<DiffFilter>('ALL');
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [showArticulation, setShowArticulation] = useState(false);
   const [showMinimalPairs, setShowMinimalPairs] = useState(false);
+  const [showSpellings, setShowSpellings] = useState(false);
+  const [expandedWord, setExpandedWord] = useState<number | null>(null);
+  const [savedAudioId, setSavedAudioId] = useState<string | null>(null);
+  const [savedAudioPlaying, setSavedAudioPlaying] = useState(false);
 
   const [recording, setRecording] = useState<Audio.Recording | null>(null);
   const [isRecording, setIsRecording] = useState(false);
@@ -268,6 +661,7 @@ export default function AccentDNAScreen() {
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [error, setError] = useState('');
   const [attemptHistory, setAttemptHistory] = useState<Record<string, number[]>>({});
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const feedbackOpacity = useRef(new Animated.Value(0)).current;
   const feedbackScale = useRef(new Animated.Value(0.95)).current;
@@ -275,6 +669,49 @@ export default function AccentDNAScreen() {
   const pulseOpacity = useRef(new Animated.Value(0.6)).current;
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const exerciseYRef = useRef(0);
+
+  // Warm up Web Speech voices on mount; stop any playback on unmount
+  useEffect(() => { warmupVoices(); return () => { stopAllPlayback(); }; }, []);
+
+  // Load saved per-phoneme scores (demo presets seed these) so the globe shows
+  // mastered / needs-work / to-explore for the selected user.
+  useFocusEffect(useCallback(() => {
+    AsyncStorage.getItem('vf_phoneme_scores').then(raw => {
+      if (!raw) return;
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') setAttemptHistory(parsed);
+      } catch {}
+    });
+  }, []));
+
+  // Tap a phoneme on the globe → hear the isolated sound + scroll to explanation
+  const playPhonemeSound = (ex: typeof PHONEME_EXERCISES[number]) => {
+    const clip = getPhonemeAudio(ex.phoneme);
+    if (clip) {
+      void playAudioAsset(clip);                            // 100% accurate recording
+    } else {
+      speakPhoneme(PHONEME_CUE[ex.phoneme] ?? ex.phoneme);  // TTS fallback (American voice)
+    }
+  };
+
+  const handleGlobeSelect = (ex: typeof PHONEME_EXERCISES[number]) => {
+    setSelectedExercise(ex);
+    setSelectedWord(ex.words[0]);
+    setSelectedSentence(sentencesFor(ex)[0]);
+    setFeedback(null);
+    setShowArticulation(false);
+    setShowMinimalPairs(false);
+    setShowSpellings(false);
+    playPhonemeSound(ex);
+    // Scroll down to the exercise/explanation card
+    setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, exerciseYRef.current - 12), animated: true });
+    }, 180);
+  };
 
   useEffect(() => {
     if (feedback) {
@@ -315,7 +752,22 @@ export default function AccentDNAScreen() {
     : PHONEME_EXERCISES.filter(e => e.cefr === diffFilter);
 
   const currentHistory = attemptHistory[selectedExercise.phoneme] || [];
-  const targetText = practiceMode === 'word' ? selectedWord : selectedExercise.practice_sentence;
+  const targetText = practiceMode === 'word' ? selectedWord : selectedSentence;
+
+  const toggleSavedAudio = async () => {
+    if (savedAudioPlaying) {
+      await stopAudioAsset();
+      setSavedAudioPlaying(false);
+      return;
+    }
+    const mod = getDemoAudio(savedAudioId);
+    if (!mod) return;
+    await playAudioAsset(mod, {
+      onStart: () => setSavedAudioPlaying(true),
+      onEnd: () => setSavedAudioPlaying(false),
+      onError: () => setSavedAudioPlaying(false),
+    });
+  };
 
   const startRecording = async () => {
     setFeedback(null);
@@ -346,6 +798,55 @@ export default function AccentDNAScreen() {
     }
   };
 
+  // Shared analysis routine — used by both live recording and file upload.
+  const analyzeBlob = async (audioBlob: Blob, filename = 'recording.wav') => {
+    try {
+      const formData = new FormData();
+      formData.append('audio', audioBlob, filename);
+      formData.append('target_text', targetText);
+
+      const response = await fetch(`${API_URL}/accent/analyze`, {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await response.json();
+      setFeedback(data);
+      setExpandedWord(null);
+
+      setAttemptHistory(prev => {
+        const key = selectedExercise.phoneme;
+        const existing = prev[key] || [];
+        const next = { ...prev, [key]: [...existing.slice(-4), data.accuracy_score] };
+        AsyncStorage.setItem('vf_phoneme_scores', JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+
+      await updatePhonemePerformance(selectedExercise.phoneme, data.accuracy_score);
+      await updateSessionMetrics(1, 0);
+
+      // Persist as a saved session (shows up in "Practised phrases")
+      try {
+        const session: AccentSession = {
+          ts: Date.now(),
+          target_text: targetText,
+          accuracy_score: data.accuracy_score ?? 0,
+          problematic_phonemes: Array.isArray(data.problematic_phonemes)
+            ? data.problematic_phonemes.map((p: any) => p?.phoneme ?? String(p)).filter(Boolean).slice(0, 6)
+            : [],
+          exercisePhoneme: selectedExercise.phoneme,
+          feedback: data,                       // full results object
+        };
+        const raw = await AsyncStorage.getItem('vf_accent_sessions');
+        const arr = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem('vf_accent_sessions', JSON.stringify([session, ...arr].slice(0, 50)));
+      } catch {}
+    } catch {
+      setError('Could not analyze. Make sure the backend is running.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const stopAndAnalyze = async () => {
     setIsRecording(false);
     setLoading(true);
@@ -369,30 +870,41 @@ export default function AccentDNAScreen() {
         setRecording(null);
       }
 
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.wav');
-      formData.append('target_text', targetText);
-
-      const response = await fetch(`${API_URL}/accent/analyze`, {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await response.json();
-      setFeedback(data);
-
-      setAttemptHistory(prev => {
-        const key = selectedExercise.phoneme;
-        const existing = prev[key] || [];
-        return { ...prev, [key]: [...existing.slice(-4), data.accuracy_score] };
-      });
-
-      await updatePhonemePerformance(selectedExercise.phoneme, data.accuracy_score);
-      await updateSessionMetrics(1, 0);
+      await analyzeBlob(audioBlob);
     } catch {
       setError('Could not analyze. Make sure the backend is running.');
-    } finally {
       setLoading(false);
     }
+  };
+
+  // ── Upload a pre-recorded audio file instead of recording live ────────────
+  const openFilePicker = () => {
+    if (Platform.OS === 'web') {
+      fileInputRef.current?.click();
+    } else {
+      setError('Upload is available in the web version. Use the microphone on mobile.');
+    }
+  };
+
+  const handleFileSelected = async (e: any) => {
+    const file: File | undefined = e?.target?.files?.[0];
+    if (e?.target) e.target.value = '';
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|ogg|webm|flac|aac)$/i.test(file.name)) {
+      setError('Please select an audio file (MP3, WAV, M4A, OGG, WebM).');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File too large (max 15 MB). Trim the clip and try again.');
+      return;
+    }
+
+    setError('');
+    setFeedback(null);
+    setUploadedFileName(file.name);
+    setLoading(true);
+    await analyzeBlob(file, file.name);
   };
 
   const getScoreColor = (score: number) => {
@@ -410,6 +922,7 @@ export default function AccentDNAScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -426,6 +939,14 @@ export default function AccentDNAScreen() {
         <Text style={styles.pageSubtitle}>
           Romanian-English phoneme interference training. Target your exact weak spots.
         </Text>
+
+        {/* Phoneme globe — visual map of progress */}
+        <PhonemeGlobe
+          exercises={PHONEME_EXERCISES}
+          attemptHistory={attemptHistory}
+          weakPhonemes={getWeakPhonemes()}
+          onSelect={handleGlobeSelect}
+        />
 
         {/* Heatmap toggle */}
         <TouchableOpacity
@@ -455,6 +976,7 @@ export default function AccentDNAScreen() {
                   onPress={() => {
                     setSelectedExercise(ex);
                     setSelectedWord(ex.words[0]);
+                    setSelectedSentence(sentencesFor(ex)[0]);
                     setFeedback(null);
                     setShowHeatmap(false);
                   }}
@@ -469,6 +991,34 @@ export default function AccentDNAScreen() {
             })}
           </View>
         )}
+
+        {/* Previously practised — tap to open the full results */}
+        <SavedSessions<AccentSession>
+          storageKey="vf_accent_sessions"
+          title="🎯 Practised phrases"
+          accent={Colors.light.tint}
+          getLabel={(s) => s.target_text}
+          getScore={(s) => s.accuracy_score}
+          getTs={(s) => s.ts}
+          getMeta={(s) => s.problematic_phonemes.length
+            ? `Tricky sounds: ${s.problematic_phonemes.join('  ')}`
+            : undefined}
+          onPress={(s) => {
+            const ex = PHONEME_EXERCISES.find((e) => e.phoneme === s.exercisePhoneme);
+            if (ex) setSelectedExercise(ex);
+            setPracticeMode('sentence');
+            setSelectedSentence(s.target_text);
+            setFeedback(s.feedback as unknown as Feedback);
+            setExpandedWord(null);
+            setError('');
+            stopAudioAsset();
+            setSavedAudioPlaying(false);
+            setSavedAudioId(s.audioId ?? null);
+            setTimeout(() => {
+              scrollRef.current?.scrollTo({ y: Math.max(0, exerciseYRef.current - 12), animated: true });
+            }, 150);
+          }}
+        />
 
         {/* Difficulty filter */}
         <View style={styles.filterRow}>
@@ -502,9 +1052,11 @@ export default function AccentDNAScreen() {
                 onPress={() => {
                   setSelectedExercise(ex);
                   setSelectedWord(ex.words[0]);
+                  setSelectedSentence(sentencesFor(ex)[0]);
                   setFeedback(null);
                   setShowArticulation(false);
                   setShowMinimalPairs(false);
+                  setShowSpellings(false);
                 }}
               >
                 <Text style={[styles.phonemeChipText, selectedExercise.phoneme === ex.phoneme && { color: ex.color }]}>
@@ -523,7 +1075,10 @@ export default function AccentDNAScreen() {
         </ScrollView>
 
         {/* Exercise card */}
-        <View style={[styles.exerciseCard, { borderColor: selectedExercise.color + '50' }]}>
+        <View
+          style={[styles.exerciseCard, { borderColor: selectedExercise.color + '50' }]}
+          onLayout={(e) => { exerciseYRef.current = e.nativeEvent.layout.y; }}
+        >
           <View style={[styles.cardAccentLine, { backgroundColor: selectedExercise.color }]} />
           <View style={styles.exerciseContent}>
             {/* IPA */}
@@ -619,6 +1174,32 @@ export default function AccentDNAScreen() {
               </View>
             )}
 
+            {/* Expandable spellings — how this sound is written (Rachel's English) */}
+            {PHONEME_SPELLINGS[selectedExercise.phoneme] && (
+              <>
+                <TouchableOpacity
+                  style={styles.expandableHeader}
+                  onPress={() => setShowSpellings(!showSpellings)}
+                >
+                  <Text style={styles.expandableTitle}>🔤 How this sound is spelled</Text>
+                  <Text style={styles.expandableChevron}>{showSpellings ? '▲' : '▼'}</Text>
+                </TouchableOpacity>
+                {showSpellings && (
+                  <View style={[styles.expandableBody, { borderColor: selectedExercise.color + '30' }]}>
+                    {PHONEME_SPELLINGS[selectedExercise.phoneme].map((sp, i) => (
+                      <View key={i} style={styles.spellingRow}>
+                        <View style={[styles.spellingPattern, { backgroundColor: selectedExercise.color + '20' }]}>
+                          <Text style={[styles.spellingPatternText, { color: selectedExercise.color }]}>{sp.pattern}</Text>
+                        </View>
+                        <Text style={styles.spellingExample}>{sp.example}</Text>
+                      </View>
+                    ))}
+                    <Text style={styles.spellingSource}>Source: Rachel&apos;s English sound chart (American English)</Text>
+                  </View>
+                )}
+              </>
+            )}
+
             {/* Practice mode toggle */}
             <View style={styles.modeToggle}>
               <TouchableOpacity
@@ -661,10 +1242,33 @@ export default function AccentDNAScreen() {
             )}
 
             {practiceMode === 'sentence' && (
-              <View style={[styles.sentenceBox, { borderColor: selectedExercise.color + '40' }]}>
-                <Text style={styles.sentenceLabel}>Practice sentence:</Text>
-                <Text style={styles.sentenceText}>"{selectedExercise.practice_sentence}"</Text>
-              </View>
+              <>
+                <Text style={styles.sentenceLabel}>Pick a sentence to practice:</Text>
+                <View style={{ gap: 8 }}>
+                  {sentencesFor(selectedExercise).map((s, i) => {
+                    const selected = selectedSentence === s;
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[
+                          styles.sentenceOption,
+                          { borderColor: selected ? selectedExercise.color : Colors.light.border },
+                          selected && { backgroundColor: selectedExercise.color + '12' },
+                        ]}
+                        onPress={() => { setSelectedSentence(s); setFeedback(null); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[
+                          styles.sentenceOptionText,
+                          selected && { color: selectedExercise.color, fontWeight: '600' },
+                        ]}>
+                          "{s}"
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </>
             )}
           </View>
         </View>
@@ -729,6 +1333,44 @@ export default function AccentDNAScreen() {
               <Text style={styles.recordingText}>Recording... speak clearly!</Text>
             </View>
           )}
+
+          {/* ── Upload alternative ─────────────────────────────────────── */}
+          {!isRecording && (
+            <View style={styles.uploadWrap}>
+              <View style={styles.uploadDivider}>
+                <View style={styles.uploadDividerLine} />
+                <Text style={styles.uploadDividerText}>or</Text>
+                <View style={styles.uploadDividerLine} />
+              </View>
+
+              {Platform.OS === 'web' && (
+                // @ts-ignore — RN-Web renders DOM input
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.flac,.aac"
+                  onChange={handleFileSelected}
+                  style={{ display: 'none' }}
+                />
+              )}
+
+              <TouchableOpacity
+                style={styles.uploadBtn}
+                onPress={openFilePicker}
+                disabled={loading}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.uploadBtnText}>📁  Upload a recording instead</Text>
+              </TouchableOpacity>
+
+              {uploadedFileName && (
+                <Text style={styles.uploadFileName} numberOfLines={1}>📎 {uploadedFileName}</Text>
+              )}
+              {Platform.OS !== 'web' && (
+                <Text style={styles.uploadHint}>Upload works in the web version.</Text>
+              )}
+            </View>
+          )}
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -742,16 +1384,108 @@ export default function AccentDNAScreen() {
             <View style={styles.scoreCardOuter}>
               <ScoreRing score={feedback.accuracy_score} />
               <View style={styles.scoreCardMeta}>
-                <Text style={styles.transcribedLabel}>
-                  You said:{' '}
-                  <Text style={styles.transcribedText}>"{feedback.transcribed_text}"</Text>
-                </Text>
-                <Text style={styles.targetLabel}>
-                  Target:{' '}
-                  <Text style={styles.targetTextDisplay}>"{targetText}"</Text>
-                </Text>
+                {feedback.alignment && feedback.alignment.length > 0 ? (
+                  // Phoneme path — raw IPA isn't readable, so show the words they
+                  // tried + let the colour-coded breakdown below tell the story.
+                  <Text style={styles.targetLabel}>
+                    You tried to say:{' '}
+                    <Text style={styles.targetTextDisplay}>"{targetText}"</Text>
+                  </Text>
+                ) : (
+                  <>
+                    <Text style={styles.transcribedLabel}>
+                      You said:{' '}
+                      <Text style={styles.transcribedText}>"{feedback.transcribed_text}"</Text>
+                    </Text>
+                    <Text style={styles.targetLabel}>
+                      Target:{' '}
+                      <Text style={styles.targetTextDisplay}>"{targetText}"</Text>
+                    </Text>
+                    {feedback.similarity && (
+                      <Text style={styles.similarityLine}>
+                        Word match {feedback.similarity.word}% · sound match {feedback.similarity.char}%
+                      </Text>
+                    )}
+                  </>
+                )}
               </View>
             </View>
+
+            {/* Play the saved recording (cloned voice, level-calibrated) */}
+            {savedAudioId && (
+              <TouchableOpacity style={styles.playRecBtn} onPress={toggleSavedAudio} activeOpacity={0.85}>
+                <Text style={styles.playRecIcon}>{savedAudioPlaying ? '⏸' : '▶'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.playRecText}>
+                    {savedAudioPlaying ? 'Playing recording…' : 'Play your recording'}
+                  </Text>
+                  <Text style={styles.playRecSub}>How you pronounced this phrase</Text>
+                </View>
+                <Text style={styles.playRecBadge}>REC</Text>
+              </TouchableOpacity>
+            )}
+
+            {/* Word-level breakdown (readable — no IPA unless you tap) */}
+            {feedback.word_breakdown && feedback.word_breakdown.length > 0 && (
+              <View style={styles.phonemeBreakdown}>
+                <View style={styles.phonemeBreakdownHead}>
+                  <Text style={styles.overallTitle}>🔬 Word Breakdown</Text>
+                  {feedback.engine && (
+                    <Text style={styles.engineBadge}>{feedback.engine}</Text>
+                  )}
+                </View>
+                <Text style={styles.phonemeBreakdownHint}>
+                  Green = pronounced well, red = needs work. Tap a word to see the sounds.
+                </Text>
+                <View style={styles.wordStrip}>
+                  {feedback.word_breakdown.map((w, i) => {
+                    const ratio = w.total > 0 ? w.correct / w.total : 1;
+                    const color = w.ok ? '#22c55e' : ratio >= 0.5 ? '#f59e0b' : '#f87171';
+                    const isOpen = expandedWord === i;
+                    return (
+                      <TouchableOpacity
+                        key={i}
+                        style={[styles.wordChip2, { borderColor: color, backgroundColor: color + '18' }]}
+                        onPress={() => setExpandedWord(isOpen ? null : i)}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={[styles.wordChip2Text, { color }]}>{w.word}</Text>
+                        {w.total > 0 && (
+                          <Text style={styles.wordChip2Sub}>{w.correct}/{w.total}</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* Tapped word → show its sounds (IPA), colour-coded */}
+                {expandedWord !== null && feedback.word_breakdown[expandedWord]?.phonemes && (
+                  <View style={styles.wordDetail}>
+                    <Text style={styles.wordDetailTitle}>
+                      Sounds in “{feedback.word_breakdown[expandedWord].word}”:
+                    </Text>
+                    <View style={styles.phonemeStrip}>
+                      {feedback.word_breakdown[expandedWord].phonemes!.map((ph, k) => (
+                        <View key={k} style={ph.ok ? styles.phonemeChipOk : styles.phonemeChipBad}>
+                          <Text style={ph.ok ? styles.phonemeChipOkText : styles.phonemeChipBadText}>{ph.p}</Text>
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+
+            {/* Intelligibility note — honest scoring caveat */}
+            {feedback.intelligibility_only && (
+              <View style={styles.intelNote}>
+                <Text style={styles.intelNoteText}>
+                  ℹ️ Your speech was intelligible (the recogniser understood the words).
+                  Exact phoneme accuracy can&apos;t be verified from speech recognition alone,
+                  so the score reflects intelligibility — keep practising the highlighted sounds.
+                </Text>
+              </View>
+            )}
 
             {/* Overall feedback */}
             <View style={styles.overallCard}>
@@ -793,7 +1527,7 @@ export default function AccentDNAScreen() {
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={styles.tryAgainBtn}
-                onPress={() => { setFeedback(null); setError(''); }}
+                onPress={() => { setFeedback(null); setError(''); stopAudioAsset(); setSavedAudioPlaying(false); setSavedAudioId(null); }}
               >
                 <Text style={styles.tryAgainText}>🔁 Try Again</Text>
               </TouchableOpacity>
@@ -925,6 +1659,14 @@ const styles = StyleSheet.create({
   minimalPairText: { fontSize: 14, fontWeight: '700' },
   minimalPairVs: { color: Colors.light.textSecondary, fontSize: 12, fontWeight: '600' },
 
+  spellingRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 },
+  spellingPattern: {
+    minWidth: 48, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, alignItems: 'center',
+  },
+  spellingPatternText: { fontSize: 14, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+  spellingExample: { flex: 1, fontSize: 13, color: Colors.light.textSecondary, fontWeight: '500' },
+  spellingSource: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', marginTop: 6 },
+
   modeToggle: {
     flexDirection: 'row', gap: 8,
     backgroundColor: Colors.light.background,
@@ -951,8 +1693,14 @@ const styles = StyleSheet.create({
     borderRadius: 12, borderWidth: 1,
     padding: 14, gap: 6,
   },
-  sentenceLabel: { color: Colors.light.textSecondary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
+  sentenceLabel: { color: Colors.light.textSecondary, fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 8 },
   sentenceText: { color: Colors.light.text, fontSize: 14, lineHeight: 21, fontWeight: '500' },
+  sentenceOption: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 12, borderWidth: 1.5,
+    paddingHorizontal: 14, paddingVertical: 11,
+  },
+  sentenceOptionText: { color: Colors.light.text, fontSize: 14, lineHeight: 20 },
 
   historyCard: {
     backgroundColor: Colors.light.surface,
@@ -1000,6 +1748,22 @@ const styles = StyleSheet.create({
 
   errorText: { color: Colors.light.error, fontSize: 13, marginBottom: 12, textAlign: 'center' },
 
+  // Upload alternative
+  uploadWrap: { width: '100%', gap: 8, marginTop: 4 },
+  uploadDivider: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  uploadDividerLine: { flex: 1, height: 1, backgroundColor: Colors.light.border },
+  uploadDividerText: { fontSize: 12, color: Colors.light.textSecondary, fontWeight: '600' },
+  uploadBtn: {
+    alignItems: 'center', justifyContent: 'center',
+    paddingVertical: 13, borderRadius: 14,
+    borderWidth: 1.5, borderColor: Colors.light.tint + '60',
+    borderStyle: 'dashed',
+    backgroundColor: Colors.light.tint + '0C',
+  },
+  uploadBtnText: { color: Colors.light.tint, fontSize: 14, fontWeight: '700' },
+  uploadFileName: { color: Colors.light.tint, fontSize: 12, fontWeight: '600', textAlign: 'center' },
+  uploadHint: { color: Colors.light.textLight, fontSize: 11, fontStyle: 'italic', textAlign: 'center' },
+
   feedbackSection: { gap: 14 },
 
   scoreCardOuter: {
@@ -1012,6 +1776,67 @@ const styles = StyleSheet.create({
   transcribedText: { color: Colors.light.text, fontWeight: '600' },
   targetLabel: { color: Colors.light.textSecondary, fontSize: 13 },
   targetTextDisplay: { color: Colors.light.tint, fontWeight: '600' },
+  similarityLine: { color: Colors.light.textLight, fontSize: 11, fontWeight: '600', marginTop: 2 },
+
+  intelNote: {
+    backgroundColor: '#EFF6FF', borderRadius: 12,
+    borderWidth: 1, borderColor: '#BFDBFE', padding: 12,
+  },
+  intelNoteText: { color: '#1D4ED8', fontSize: 12, lineHeight: 18 },
+
+  phonemeBreakdown: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14, padding: 16,
+    borderWidth: 1, borderColor: Colors.light.border, gap: 8,
+  },
+  phonemeBreakdownHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  engineBadge: {
+    fontSize: 9, fontWeight: '700', color: '#7C3AED',
+    backgroundColor: '#7C3AED15', borderRadius: 6,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  phonemeBreakdownHint: { fontSize: 11, color: Colors.light.textSecondary, marginTop: -2 },
+  phonemeStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
+  phonemeChipOk: {
+    backgroundColor: '#22c55e18', borderWidth: 1, borderColor: '#22c55e55',
+    borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5,
+  },
+  phonemeChipOkText: { color: '#15803d', fontSize: 14, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+  phonemeChipBad: {
+    backgroundColor: '#f8717118', borderWidth: 1, borderColor: '#f8717166',
+    borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5,
+  },
+  phonemeChipBadText: { color: '#dc2626', fontSize: 14, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+
+  // Word-level breakdown
+  wordStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  wordChip2: {
+    borderWidth: 1.5, borderRadius: 10,
+    paddingHorizontal: 11, paddingVertical: 7, alignItems: 'center',
+  },
+  wordChip2Text: { fontSize: 15, fontWeight: '800' },
+  wordChip2Sub: { fontSize: 9, color: Colors.light.textSecondary, fontWeight: '700', marginTop: 1 },
+  wordDetail: {
+    marginTop: 12, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: Colors.light.border, gap: 8,
+  },
+  wordDetailTitle: { fontSize: 12, fontWeight: '700', color: Colors.light.text },
+
+  // Saved recording play button
+  playRecBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: Colors.light.tint + '12',
+    borderWidth: 1, borderColor: Colors.light.tint + '40',
+    borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14,
+  },
+  playRecIcon: { fontSize: 20, color: Colors.light.tint },
+  playRecText: { fontSize: 14, fontWeight: '700', color: Colors.light.text },
+  playRecSub: { fontSize: 11, color: Colors.light.textSecondary, marginTop: 1 },
+  playRecBadge: {
+    fontSize: 10, fontWeight: '800', color: '#dc2626',
+    backgroundColor: '#fee2e2', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
+    overflow: 'hidden',
+  },
 
   overallCard: {
     backgroundColor: Colors.light.surface,

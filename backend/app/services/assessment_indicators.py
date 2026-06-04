@@ -7,6 +7,15 @@ Based on academic research from:
 3. Ahari et al. (2025) - L2 speaking proficiency assessment model
 4. Saito (2012) - Pronunciation instruction meta-analysis
 5. Li & Shintani (2010) - Corrective feedback meta-analysis
+6. Şahin Kızıl, A. (2024). Linguistic dimensions of L2 performance: Complexity,
+   accuracy and fluency. Gaziantep University Journal of Social Sciences, 23(4),
+   1736–1740. Comprehensive CAF review validating MTLD as most robust lexical diversity
+   index (length-independent) and error-free clause ratio (EFC/C) for accuracy.
+7. Neumanová, Z. (2025). An investigation of complexity, accuracy, and fluency in the
+   speech of EFL learners. Theory and Practice of Second Language Acquisition, 11(1),
+   1–22. Empirically confirms all three CAF dimensions significantly predict oral
+   proficiency (A2→B1→B2); IDL (Index of Developmental Levels) and articulation rate
+   are the most reliable discriminators between adjacent CEFR levels.
 
 This framework provides measurable, research-backed indicators for evaluating learner proficiency.
 """
@@ -85,7 +94,7 @@ class AssessmentIndicatorsDatabase:
         primary_research=[
             "Lee (2021) - Genre effects on syntactic complexity in L2 writing (Table 3, 4)",
             "Malvern et al. (2004) - Lexical diversity and writing ability correlation",
-            "McCarthy & Jarvis (2007) - D index validation",
+            "Kolahi Ahari et al. (2025) - MTLD as strongest L2 proficiency predictor (β=.40)",
             "Yu (2010) - VOCD function application"
         ],
         interpretation="Higher values indicate greater vocabulary variety. Learners who reuse few words appear less advanced.",
@@ -166,7 +175,7 @@ class AssessmentIndicatorsDatabase:
         primary_research=[
             "Lee (2021) - Mean Length of Sentence (MLS) measure (Table 2)",
             "Lu (2010) - Syntactic complexity analyzer",
-            "Norris & Ortega (2009) - Structural complexity prediction of proficiency"
+            "Barrot & Agdeppa (2021) - MLS among 14 complexity indices across CEFR levels"
         ],
         interpretation="Longer sentences indicate more complex structures. But quality matters: longer ≠ always better.",
         automation_possible=True,
@@ -246,7 +255,6 @@ class AssessmentIndicatorsDatabase:
         },
         primary_research=[
             "Zechner et al. (2009) - TOEFL iBT Speaking features (wpsec in Table 6, selected feature #8)",
-            "Yuan & Liberman (2008) - Speech rate as fluency marker",
             "Cucchiarini et al. (2000) - Pronunciation assessment metrics"
         ],
         interpretation="Higher rates = clearer speech. Native speakers ~2.5-3.5 wps. Very high may = unclear.",
@@ -330,8 +338,7 @@ class AssessmentIndicatorsDatabase:
         primary_research=[
             "Zechner et al. (2009) - TOEFL iBT language model score (lmscore in Table 6, selected feature #29)",
             "Li & Shintani (2010) - Corrective feedback meta-analysis (d=0.48 effect on accuracy)",
-            "Saito (2012) - Pronunciation & grammar co-development",
-            "Larsen-Freeman (2006) - Accuracy trajectories in SLA"
+            "Saito (2012) - Pronunciation & grammar co-development"
         ],
         interpretation="Higher % = better grammar control. Improvement indicator post-intervention.",
         automation_possible=True,

@@ -309,4 +309,4 @@ PHONEME_EXERCISE_LEVELS = {
     ],
 }
 
-print("✅ Romanian Phonological Patterns loaded - ready for accent detection!")
+# (no side-effect prints — import-safe)

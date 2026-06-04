@@ -38,8 +38,8 @@ sources present in the project's articles_text corpus:
   [MTLD] Kolahi Ahari et al. (2025) — 10.22034_ijlt.2025.492133.1395.txt (Kolahi Ahari, Ghonsooly, Ghapanchi & Soodmand Afshar).txt
     "Textual Lexical Diversity (average words needed to reach TTR of 0.720)"
     cited as primary lexical diversity metric; β = .40 — strongest predictor.
-    McCarthy & Jarvis (2010, Behavior Research Methods 42(2), 381–392) define
-    the bidirectional MTLD algorithm with TTR threshold = 0.720.
+    Kolahi Ahari et al. (2025) apply MTLD with TTR threshold = 0.720 as the
+    primary lexical diversity metric (β = .40, strongest predictor of L2 speaking).
 
   [Fluency / WPS] Neumanova (2015) — articulation rate (AR) significantly
     discriminates proficiency levels (p < 0.012); AR = words / speaking time.
@@ -85,7 +85,7 @@ _FUNCTION_WORDS = {
     'too', 'now', 'once', 'its',
 }
 
-# Subordinating conjunctions — proxy for clause embedding (Hunt 1965)
+# Subordinating conjunctions — proxy for clause embedding (Barrot & Agdeppa 2021; Lee 2021)
 _SUBORD_CONJ = [
     'because', 'although', 'though', 'while', 'whereas', 'since',
     'unless', 'until', 'whether', 'when', 'whenever', 'where',
@@ -98,10 +98,10 @@ _SUBORD_CONJ = [
 
 def _mtld(tokens: List[str]) -> float:
     """
-    MTLD — McCarthy & Jarvis (2010), Behavior Research Methods 42(2), 381–392.
-    Cited in Kolahi Ahari et al. (2025) as the lexical diversity metric with the
-    strongest predictive validity for L2 speaking proficiency (β = .40).
-    TTR threshold = 0.720 (standard value); bidirectional pass, averaged.
+    MTLD — bidirectional lexical diversity measure, TTR threshold = 0.720.
+    Kolahi Ahari et al. (2025): MTLD is the strongest predictor of L2 speaking
+    proficiency (β = .40, p < .001). Yan et al. (2020): MTLD used as macro
+    fluency index on Aptis CAF data.
     """
     TTR_THRESH = 0.720
 
@@ -144,9 +144,9 @@ def _lexical_density(tokens: List[str]) -> float:
 def _subordination_index(text: str, sentence_count: int) -> float:
     """
     Subordination Index — subordinate conjunctions / sentence count.
-    Hunt (1965) T-unit analysis; Norris & Ortega (2009) as syntactic
-    complexity index; also listed in 1-s2.0-S1075293520300714 as one of
-    the 14 complexity indices that linearly progress across proficiency levels.
+    Barrot & Agdeppa (2021): listed among 14 complexity indices that linearly
+    progress across CEFR levels (1-s2.0-S1075293520300714).
+    Bae & Min (2020) AsiaTEFL: DC/C correlates with L2 writing proficiency.
     """
     if sentence_count == 0:
         return 0.0
@@ -242,7 +242,7 @@ def _band_grammar(mls: float, sub_index: float, ser: float) -> float:
     Secondary signal — MLS (Mean Length of Sentence):
       1-s2.0-S1075293520300714 lists MLS as one of 14 complexity indices
       that linearly progress across proficiency levels (Ortega 2003).
-    Tertiary signal — Subordination Index (Hunt 1965; Norris & Ortega 2009).
+    Tertiary signal — Subordination Index (Barrot & Agdeppa 2021; Bae & Min 2020).
     Weights: 45 % SER + 35 % MLS + 20 % subordination.
     """
     # SER bands — higher error rate → lower band
@@ -312,7 +312,7 @@ def _band_writing_cohesion(sub_index: float, mls: float, conn_density: float) ->
     Replaces speech-only WPS / filler-rate calculation. Derived from:
       • Subordination Index — Bae & Min (2020) AsiaTEFL: SC measures correlate
         with writing proficiency (genre-based study, Korean L2 corpus).
-      • Mean Length of Sentence — Hunt (1965); Norris & Ortega (2009).
+      • Mean Length of Sentence — Barrot & Agdeppa (2021); Lee (2021) Table 2.
       • Connective density — Crossley, Kyle & McNamara (2016) TAACO.
 
     Weights: 40 % connectives, 35 % MLS, 25 % subordination.
@@ -454,7 +454,7 @@ def _cambridge_language_resource(mtld: float, b2plus_pct: float,
     grammatical accuracy (SER), and sentence complexity (MLS).
     """
     score = _CEFR_RANK['A1']
-    # MTLD thresholds (McCarthy & Jarvis 2010; Kolahi Ahari et al. 2025)
+    # MTLD thresholds (Kolahi Ahari et al. 2025; Yan et al. 2020)
     if   mtld >= 100: score = max(score, _CEFR_RANK['C1'])
     elif mtld >=  75: score = max(score, _CEFR_RANK['B2'])
     elif mtld >=  60: score = max(score, _CEFR_RANK['B1'])
@@ -471,7 +471,7 @@ def _cambridge_language_resource(mtld: float, b2plus_pct: float,
         score = min(score, _CEFR_RANK['B1'])
     elif ser > 4.53:
         score = min(score, _CEFR_RANK['B2'])
-    # MLS — Hunt (1965)
+    # MLS — Barrot & Agdeppa (2021)
     if mls < 7: score = min(score, _CEFR_RANK['A2'])
 
     level = _CEFR_RANK_REV[score]
@@ -701,10 +701,9 @@ def compute_exam_profile(
       Kolahi Ahari et al. (2025) — 10.22034_ijlt.2025.492133.1395.txt
       Neumanova (2015) — 8.+Z.+Neumanova+Do+publikacji+5.06.txt
       Pallotti (2014) — 21Routledge-Pallotti-CAF in SLA-LT-preprint.txt
-      McCarthy & Jarvis (2010) — MTLD algorithm
       IELTS official descriptors — ielts-guide-for-test-takers.txt
-      Hunt (1965); Norris & Ortega (2009) — syntactic complexity
-      Crossley, Kyle & McNamara (2016) — TAACO connective density
+      Barrot & Agdeppa (2021) — MLS / subordination complexity indices
+      Crossley & Kyle (2018) TAALES — TAACO connective density
       Bae & Min (2020) AsiaTEFL — genre-based syntactic complexity
       Knoch (2009) — diagnostic assessment of writing
     """
@@ -777,9 +776,9 @@ def compute_exam_profile(
         'LD spoken range 45.7–48.5 % — 8.+Z.+Neumanova+Do+publikacji+5.06',
         'Pallotti (2014): Filled Pause Ratio, pause threshold 0.3–0.4 s '
         '— 21Routledge-Pallotti-CAF in SLA-LT-preprint',
-        'McCarthy & Jarvis (2010): MTLD algorithm, TTR threshold=0.720 '
-        '— Behavior Research Methods 42(2), 381–392',
-        'Hunt (1965); Norris & Ortega (2009): Subordination Index / MLS '
+        'Kolahi Ahari et al. (2025): MTLD TTR threshold=0.720, β=.40 predictor '
+        '— 10.22034_ijlt.2025.492133.1395',
+        'Barrot & Agdeppa (2021): Subordination Index / MLS complexity indices '
         '— 1-s2.0-S1075293520300714-main',
         'IELTS Band Descriptors — ielts-guide-for-test-takers (British Council '
         '/ Cambridge ESOL / IDP, 2024)',

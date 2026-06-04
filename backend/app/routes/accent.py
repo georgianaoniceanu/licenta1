@@ -1,10 +1,13 @@
+import logging
 from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
 from app.services.accent_dna import (
     transcribe_audio,
     analyze_pronunciation,
+    build_phoneme_result,
     ROMANIAN_PRONUNCIATION_PATTERNS,
     COARTICULATION_RULES
 )
+from app.services.phoneme_remote import assess_pronunciation
 from app.services.firestore import save_accent_session
 from app.services.auth import verify_token
 from app.services.tts import text_to_speech
@@ -14,6 +17,7 @@ import tempfile
 import os
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 @router.get("/romanian-patterns")
 async def get_romanian_patterns():
@@ -76,9 +80,15 @@ async def analyze_accent(
         tmp_path = tmp.name
 
     try:
+        # 1) Whisper ASR — always runs (needed for word accuracy + phoneme text input)
         transcribed = transcribe_audio(tmp_path)
-        result = analyze_pronunciation(transcribed, target_text)
+
+        # 2) Phoneme scoring — always succeeds (Tier 1: local CMU-dict PER;
+        #    Tier 2: Colab wav2vec2 if COLAB_PHONEME_URL is set and healthy).
+        phoneme_result = assess_pronunciation(tmp_path, target_text, transcribed)
+        result = build_phoneme_result(phoneme_result, target_text)
         result["transcribed_text"] = transcribed
+        result["phoneme_engine"] = phoneme_result.get("engine", "local-cmudict-per")
 
         if authorization and authorization.startswith("Bearer "):
             try:
@@ -91,8 +101,8 @@ async def analyze_accent(
                     score=result["accuracy_score"],
                     phonemes=result.get("problematic_phonemes", [])
                 )
-            except:
-                pass
+            except Exception as _save_err:
+                logger.warning("Could not save accent session: %s", _save_err)
 
         return result
 

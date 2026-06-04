@@ -119,6 +119,12 @@ export const HEALTH_ENDPOINT = `${API_URL}/health`;
 // Adaptive: LLM exercises targeting the user's weakest measured indicator
 // Retention: Cepeda (2006) spaced re-use tracking
 // Reading / Listening: 3rd and 4th skill coverage
+// Assessment history — persisted in Firestore, survives app reinstall
+export const ASSESSMENT_ENDPOINTS = {
+  INITIAL:  `${API_URL}/assessment/initial-assessment`,
+  HISTORY:  `${API_URL}/assessment/history`,
+};
+
 export const PRACTICE_ENDPOINTS = {
   ADAPTIVE:           `${API_URL}/practice/adaptive`,
   WORD_RETENTION:     `${API_URL}/practice/word-retention`,

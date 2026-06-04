@@ -42,6 +42,8 @@ import {
   Platform,
   StatusBar,
   ActivityIndicator,
+  Modal,
+  Pressable,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -129,6 +131,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [industryPickerOpen, setIndustryPickerOpen] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const [answers, setAnswers] = useState<{
@@ -279,36 +282,70 @@ export default function OnboardingScreen() {
         const availableJobs = answers.industry
           ? jobsByIndustry(answers.industry as Industry)
           : [];
+        const selectedInd = INDUSTRIES.find(i => i.key === answers.industry);
         return (
           <View>
-            <Text style={styles.subStepLabel}>1. Pick your industry</Text>
-            <View style={styles.industryGrid}>
-              {INDUSTRIES.map(ind => {
-                const selected = answers.industry === ind.key;
-                return (
-                  <TouchableOpacity
-                    key={ind.key}
-                    style={[
-                      styles.industryChip,
-                      selected && { borderColor: ind.color, backgroundColor: ind.color + '18' },
-                    ]}
-                    onPress={() => {
-                      // Reset job when industry changes
-                      setAnswers(prev => ({ ...prev, industry: ind.key, profession: '' }));
-                    }}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={styles.industryIcon}>{ind.icon}</Text>
-                    <Text style={[
-                      styles.industryLabel,
-                      selected && { color: ind.color, fontWeight: '800' },
-                    ]} numberOfLines={2}>
-                      {ind.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <Text style={styles.subStepLabel}>1. Choose your industry</Text>
+
+            {/* Spinner / dropdown trigger */}
+            <TouchableOpacity
+              style={[
+                styles.dropdownTrigger,
+                selectedInd && { borderColor: selectedInd.color + '70' },
+              ]}
+              onPress={() => setIndustryPickerOpen(true)}
+              activeOpacity={0.8}
+            >
+              {selectedInd ? (
+                <>
+                  <Text style={styles.dropdownIcon}>{selectedInd.icon}</Text>
+                  <Text style={styles.dropdownValue}>{selectedInd.label}</Text>
+                </>
+              ) : (
+                <Text style={styles.dropdownPlaceholder}>Select your industry…</Text>
+              )}
+              <Text style={styles.dropdownChevron}>▾</Text>
+            </TouchableOpacity>
+
+            {/* Industry picker (spinner-style modal) */}
+            <Modal
+              visible={industryPickerOpen}
+              transparent
+              animationType="fade"
+              onRequestClose={() => setIndustryPickerOpen(false)}
+            >
+              <Pressable style={styles.pickerOverlay} onPress={() => setIndustryPickerOpen(false)}>
+                <Pressable style={styles.pickerSheet} onPress={() => {}}>
+                  <View style={styles.pickerHandle} />
+                  <Text style={styles.pickerTitle}>Select your industry</Text>
+                  <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                    {INDUSTRIES.map(ind => {
+                      const selected = answers.industry === ind.key;
+                      return (
+                        <TouchableOpacity
+                          key={ind.key}
+                          style={[styles.pickerItem, selected && { backgroundColor: ind.color + '12' }]}
+                          onPress={() => {
+                            setAnswers(prev => ({ ...prev, industry: ind.key, profession: '' }));
+                            setIndustryPickerOpen(false);
+                          }}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.pickerItemIcon}>{ind.icon}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.pickerItemLabel, selected && { color: ind.color, fontWeight: '800' }]}>
+                              {ind.label}
+                            </Text>
+                            <Text style={styles.pickerItemDesc} numberOfLines={1}>{ind.description}</Text>
+                          </View>
+                          {selected && <Text style={[styles.pickerCheck, { color: ind.color }]}>✓</Text>}
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </ScrollView>
+                </Pressable>
+              </Pressable>
+            </Modal>
 
             {answers.industry && (
               <>
@@ -854,6 +891,60 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 13,
   },
+
+  // ── Industry dropdown / spinner ──────────────────────────────────────────
+  dropdownTrigger: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: Colors.light.surface,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    paddingVertical: 15,
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  dropdownIcon: { fontSize: 22 },
+  dropdownValue: { flex: 1, fontSize: 15, fontWeight: '700', color: Colors.light.text },
+  dropdownPlaceholder: { flex: 1, fontSize: 15, color: Colors.light.textLight },
+  dropdownChevron: { fontSize: 16, color: Colors.light.textSecondary, fontWeight: '700' },
+
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(6,13,26,0.45)',
+    justifyContent: 'flex-end',
+  },
+  pickerSheet: {
+    backgroundColor: Colors.light.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 28,
+  },
+  pickerHandle: {
+    alignSelf: 'center',
+    width: 40, height: 4, borderRadius: 2,
+    backgroundColor: Colors.light.border,
+    marginBottom: 12,
+  },
+  pickerTitle: {
+    fontSize: 17, fontWeight: '800', color: Colors.light.text,
+    marginBottom: 10, paddingHorizontal: 4,
+  },
+  pickerItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  pickerItemIcon: { fontSize: 24, width: 30, textAlign: 'center' },
+  pickerItemLabel: { fontSize: 15, fontWeight: '700', color: Colors.light.text },
+  pickerItemDesc: { fontSize: 12, color: Colors.light.textSecondary, marginTop: 1 },
+  pickerCheck: { fontSize: 18, fontWeight: '900' },
   jobRow: {
     flexDirection: 'row',
     alignItems: 'center',

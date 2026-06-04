@@ -36,6 +36,7 @@ from app.routes.research_assessment import router as research_router
 from app.routes.srs import router as srs_router
 from app.routes.health import router as health_router
 from app.routes.practice import router as practice_router
+from app.routes.cefr_predict import router as cefr_router
 
 app = FastAPI()
 
@@ -59,6 +60,7 @@ app.include_router(research_router)  # Includes /assessment/* routes for researc
 app.include_router(srs_router, prefix="/srs")
 app.include_router(health_router)  # /health and /health/cache/clear
 app.include_router(practice_router)  # /practice/adaptive, word-retention, reading, listening
+app.include_router(cefr_router, prefix="/cefr")  # /cefr/predict, /cefr/features (RF on S&I Corpus 2025)
 
 @app.on_event("startup")
 async def on_startup():

@@ -20,6 +20,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Animations } from '@/constants/theme';
 import { VOCABULARY_ENDPOINTS } from '@/constants/api';
 import Button from '@/components/ui/button';
+import SavedSessions from '@/components/saved-sessions';
+import type { VocabSession } from '@/utils/demoSessions';
+import { getDemoAudio } from '@/constants/demoAudio';
+import { playAudioAsset, stopAudioAsset } from '@/utils/voiceProfiles';
 
 const { width } = Dimensions.get('window');
 
@@ -234,6 +238,10 @@ const CEFR_COLOR: Record<string, string> = {
   A1: '#22c55e', A2: '#4ade80', B1: '#60a5fa', B2: '#f59e0b', C1: '#f87171', C2: '#e879f9',
 };
 
+const MODE_LABEL: Record<'record' | 'type' | 'upload', string> = {
+  record: '🎙 Speaking', type: '⌨️ Typed', upload: '📁 Uploaded audio',
+};
+
 // IELTS Speaking Band Descriptors — British Council / Cambridge ESOL (2024)
 const IELTS_BAND_DESC: Record<number, string> = {
   9: 'Speaks fluently without effort. Cohesive features are used naturally. Fully develops all topics.',
@@ -335,13 +343,17 @@ export default function VocabularyScreen() {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [manualText, setManualText] = useState('');
-  const [inputMode, setInputMode] = useState<'record' | 'type'>('record');
+  const [inputMode, setInputMode] = useState<'record' | 'type' | 'upload'>('record');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [recording, setRecording] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<ResultTab>('words');
+  const [savedAudioId, setSavedAudioId] = useState<string | null>(null);
+  const [savedAudioPlaying, setSavedAudioPlaying] = useState(false);
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const audioElRef = useRef<HTMLAudioElement | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const isWeb = Platform.OS === 'web';
 
   const resultsOpacity = useRef(new Animated.Value(0)).current;
@@ -537,9 +549,15 @@ export default function VocabularyScreen() {
         return;
       }
 
-      // File extension matches the recorded mime type
+      // File extension matches the recorded/uploaded mime type
       const mime = (window as any).__mimeType || blob.type || 'audio/webm';
-      const ext = mime.includes('mp4') ? 'm4a' : mime.includes('ogg') ? 'ogg' : 'webm';
+      const ext =
+        mime.includes('mp4') || mime.includes('m4a')             ? 'm4a'
+        : mime.includes('mpeg') || mime.includes('mp3')          ? 'mp3'
+        : mime.includes('wav')                                   ? 'wav'
+        : mime.includes('ogg')                                   ? 'ogg'
+        : mime.includes('flac')                                  ? 'flac'
+        : 'webm';
       const formData = new FormData();
       formData.append('file', blob, `recording.${ext}`);
 
@@ -631,7 +649,7 @@ export default function VocabularyScreen() {
   }, [auth]);
 
   const analyzeText = useCallback(async () => {
-    const textToAnalyze = inputMode === 'record' ? transcribedText : manualText;
+    const textToAnalyze = inputMode === 'type' ? manualText : transcribedText;
     if (!textToAnalyze.trim() || textToAnalyze.startsWith('[')) {
       Alert.alert('Invalid Input', 'Please provide actual text to analyze');
       return;
@@ -669,14 +687,14 @@ export default function VocabularyScreen() {
       const round1 = await Promise.allSettled([
         // 0: Vocabulary suggestions (always required — first result expected)
         post(VOCABULARY_ENDPOINTS.ANALYZE, { text: textToAnalyze }),
-        // 1: Pronunciation + emotion (record mode + prompt only)
-        (inputMode === 'record' && transcribedText && currentPrompt)
+        // 1: Pronunciation + emotion (audio modes + prompt only)
+        (inputMode !== 'type' && transcribedText && currentPrompt)
           ? post(VOCABULARY_ENDPOINTS.ANALYZE_PRONUNCIATION_WITH_EMOTION, {
               target_text: currentPrompt.prompt, transcribed_text: transcribedText,
             })
           : Promise.resolve(null),
-        // 2: Phonetic IPA breakdown (record mode + prompt only)
-        (inputMode === 'record' && transcribedText && currentPrompt)
+        // 2: Phonetic IPA breakdown (audio modes + prompt only)
+        (inputMode !== 'type' && transcribedText && currentPrompt)
           ? post(VOCABULARY_ENDPOINTS.PHONETIC_BREAKDOWN, {
               target_text: currentPrompt.prompt, transcribed_text: transcribedText,
             })
@@ -843,6 +861,27 @@ export default function VocabularyScreen() {
       }
 
       setAnalysisResult(finalResult);
+
+      // Persist as a saved session (shows in "Practised answers")
+      try {
+        const savedText = isWriting ? manualText : transcribedText;
+        const lvl = finalResult?.cefr_data?.vocab_cefr_level || 'B1';
+        const overall = finalResult?.exam_profile?.ielts?.overall;
+        const score = typeof overall === 'number' ? Math.round((overall / 9) * 100) : 60;
+        const session = {
+          ts: Date.now(),
+          topic: currentPrompt?.title || 'Practice',
+          promptId: selectedPrompt || 3,
+          mode: inputMode,
+          text: savedText,
+          level: lvl,
+          score,
+          result: finalResult,
+        };
+        const raw = await AsyncStorage.getItem('vf_vocab_sessions');
+        const arr = raw ? JSON.parse(raw) : [];
+        await AsyncStorage.setItem('vf_vocab_sessions', JSON.stringify([session, ...arr].slice(0, 50)));
+      } catch {}
     } catch {
       Alert.alert('Analysis Error', 'Failed to analyze text. Check your connection.');
     } finally {
@@ -859,12 +898,34 @@ export default function VocabularyScreen() {
     setInputMode('record');
     setIsRecording(false);
     setRecordingTime(0);
+    setUploadedFileName(null);
     if (audioUri && audioUri.startsWith('blob:')) {
       try { URL.revokeObjectURL(audioUri); } catch {}
     }
     setAudioUri(null);
     setAudioPlaying(false);
+    stopAudioAsset();
+    setSavedAudioId(null);
+    setSavedAudioPlaying(false);
   }, [audioUri]);
+
+  // Stop any bundled recording when leaving the screen
+  useEffect(() => () => { stopAudioAsset(); }, []);
+
+  const toggleSavedAudio = useCallback(async () => {
+    if (savedAudioPlaying) {
+      await stopAudioAsset();
+      setSavedAudioPlaying(false);
+      return;
+    }
+    const mod = getDemoAudio(savedAudioId);
+    if (!mod) return;
+    await playAudioAsset(mod, {
+      onStart: () => setSavedAudioPlaying(true),
+      onEnd: () => setSavedAudioPlaying(false),
+      onError: () => setSavedAudioPlaying(false),
+    });
+  }, [savedAudioId, savedAudioPlaying]);
 
   const togglePlayback = useCallback(() => {
     if (!audioUri) return;
@@ -878,6 +939,48 @@ export default function VocabularyScreen() {
     }
   }, [audioUri, audioPlaying, isWeb]);
 
+  // ── Audio file upload (for users who don't want to record live) ───────────
+  const openFilePicker = useCallback(() => {
+    if (isWeb) {
+      fileInputRef.current?.click();
+    } else {
+      Alert.alert('Upload Audio', 'Audio upload is currently available in the web version. On mobile, please use the Microphone or Type options.');
+    }
+  }, [isWeb]);
+
+  const handleFileSelected = useCallback(async (e: any) => {
+    const file: File | undefined = e?.target?.files?.[0];
+    // Reset the input so the same file can be re-selected later
+    if (e?.target) e.target.value = '';
+    if (!file) return;
+
+    // Validate it's an audio file
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|ogg|webm|flac|aac)$/i.test(file.name)) {
+      setTranscriptionStatus('⚠️ Please select an audio file (MP3, WAV, M4A, OGG, WebM).');
+      return;
+    }
+    // Size guard — 15 MB
+    if (file.size > 15 * 1024 * 1024) {
+      setTranscriptionStatus('⚠️ File too large (max 15 MB). Trim the clip and try again.');
+      return;
+    }
+
+    setUploadedFileName(file.name);
+    setTranscribedText('');
+
+    // Tell the backend uploader the correct mime type
+    (window as any).__mimeType = file.type || 'audio/mpeg';
+
+    // Create a playback URL
+    try {
+      if (audioUri && audioUri.startsWith('blob:')) URL.revokeObjectURL(audioUri);
+      setAudioUri(URL.createObjectURL(file));
+    } catch {}
+
+    setTranscriptionStatus('📤 Uploading audio…');
+    await sendAudioBlobToBackend(file);
+  }, [audioUri, sendAudioBlobToBackend]);
+
   // ── Screen 1: Prompt Selection ─────────────────────────────────────
   if (!selectedPrompt) {
     return (
@@ -889,6 +992,27 @@ export default function VocabularyScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.promptsContainer}>
+          {/* Previously practised answers — tap to open the full results */}
+          <SavedSessions<VocabSession>
+            storageKey="vf_vocab_sessions"
+            title="📚 Practised answers"
+            accent={Colors.light.tint}
+            getLabel={(s) => s.text}
+            getScore={(s) => s.score}
+            getTs={(s) => s.ts}
+            getMeta={(s) => `${MODE_LABEL[s.mode]} · ${s.topic} · CEFR ${s.level}`}
+            onPress={(s) => {
+              setSelectedPrompt(s.promptId);
+              setManualText(s.text);
+              setTranscribedText(s.text);
+              setInputMode(s.mode);
+              setAnalysisResult(s.result as AnalysisResult);
+              stopAudioAsset();
+              setSavedAudioPlaying(false);
+              setSavedAudioId(s.audioId ?? null);
+            }}
+          />
+
           {SPEAKING_PROMPTS.map(p => (
             <TouchableOpacity
               key={p.id}
@@ -920,7 +1044,7 @@ export default function VocabularyScreen() {
           <TouchableOpacity onPress={() => setSelectedPrompt(null)} style={styles.backBtn} activeOpacity={0.7}>
             <Text style={styles.backBtnText}>←  Back</Text>
           </TouchableOpacity>
-          <Text style={styles.topBarTitle}>{currentPrompt?.title}</Text>
+          <Text style={[styles.topBarTitle, { flex: 1 }]}>{currentPrompt?.title}</Text>
           <View style={{ width: 40 }} />
         </View>
 
@@ -934,23 +1058,23 @@ export default function VocabularyScreen() {
           {/* Demo banner */}
           {isDemoMode && (
             <View style={styles.demoBanner}>
-              <Text style={styles.demoBannerTitle}>Demo Mode — Text Analysis</Text>
+              <Text style={styles.demoBannerTitle}>Demo Mode — Text / Upload Analysis</Text>
               <Text style={styles.demoBannerText}>
-                Type at least 20 words below, then tap Analyse to see the full AI-powered vocabulary, grammar and exam profile analysis. Recording requires the native app.
+                Type at least 20 words, or use the 📁 Upload tab to analyse a pre-recorded audio file. Then tap Analyse for the full AI-powered vocabulary, grammar and exam profile.
               </Text>
             </View>
           )}
 
           {/* Input Mode Selector */}
           <View style={styles.modeSelector}>
-            {(['record', 'type'] as const).map(mode => (
+            {(['record', 'upload', 'type'] as const).map(mode => (
               <TouchableOpacity
                 key={mode}
                 style={[styles.modeTab, inputMode === mode && styles.modeTabActive]}
                 onPress={() => setInputMode(mode)}
               >
                 <Text style={[styles.modeTabText, inputMode === mode && styles.modeTabTextActive]}>
-                  {mode === 'record' ? '🎤 Microphone' : '⌨️ Type'}
+                  {mode === 'record' ? '🎤 Mic' : mode === 'upload' ? '📁 Upload' : '⌨️ Type'}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -1056,6 +1180,102 @@ export default function VocabularyScreen() {
             </View>
           )}
 
+          {/* Upload Mode */}
+          {inputMode === 'upload' && (
+            <View style={styles.recordingSection}>
+              {/* Hidden HTML file input (web) */}
+              {isWeb && (
+                // @ts-ignore — RN-Web renders DOM input
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*,.mp3,.wav,.m4a,.ogg,.webm,.flac,.aac"
+                  onChange={handleFileSelected}
+                  style={{ display: 'none' }}
+                />
+              )}
+
+              <View style={styles.uploadCard}>
+                <Text style={styles.uploadIcon}>📁</Text>
+                <Text style={styles.uploadTitle}>Upload an audio recording</Text>
+                <Text style={styles.uploadDesc}>
+                  MP3, WAV, M4A, OGG or WebM · max 15 MB.{'\n'}We&apos;ll transcribe and analyse it just like a live recording.
+                </Text>
+
+                <TouchableOpacity
+                  style={styles.uploadBtn}
+                  onPress={openFilePicker}
+                  activeOpacity={0.85}
+                  disabled={transcribing}
+                >
+                  <Text style={styles.uploadBtnText}>
+                    {uploadedFileName ? '🔄  Choose a different file' : '⬆️  Choose audio file'}
+                  </Text>
+                </TouchableOpacity>
+
+                {uploadedFileName && (
+                  <Text style={styles.uploadFileName} numberOfLines={1}>
+                    📎 {uploadedFileName}
+                  </Text>
+                )}
+
+                {!isWeb && (
+                  <Text style={styles.uploadFallback}>
+                    Upload is available in the web version. On mobile use Microphone or Type.
+                  </Text>
+                )}
+              </View>
+
+              {transcribing && (
+                <View style={styles.statusBox}>
+                  <ActivityIndicator size="small" color={Colors.light.tint} />
+                  <Text style={styles.statusText}>Transcribing uploaded audio...</Text>
+                </View>
+              )}
+
+              {transcribedText && !transcribing && (
+                <View style={styles.transcriptionBox}>
+                  <Text style={styles.transcriptionLabel}>✅ TRANSCRIBED</Text>
+                  <Text style={styles.transcriptionText}>{transcribedText}</Text>
+                  {audioUri && isWeb && (
+                    <View style={styles.audioPlayerRow}>
+                      <TouchableOpacity
+                        onPress={togglePlayback}
+                        style={[styles.audioPlayBtn, audioPlaying && { backgroundColor: Colors.light.error }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.audioPlayBtnText}>
+                          {audioPlaying ? '⏸  Pause' : '▶  Play upload'}
+                        </Text>
+                      </TouchableOpacity>
+                      <Text style={styles.audioHint}>Listen to the uploaded file</Text>
+                      {/* @ts-ignore */}
+                      <audio
+                        ref={audioElRef}
+                        src={audioUri}
+                        onEnded={() => setAudioPlaying(false)}
+                        style={{ display: 'none' }}
+                      />
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {transcriptionStatus && !transcribing && !transcribedText && (
+                <View style={[
+                  styles.statusBox,
+                  transcriptionStatus.startsWith('❌') && { borderColor: Colors.light.error, backgroundColor: Colors.light.error + '10' },
+                  transcriptionStatus.startsWith('⚠️') && { borderColor: Colors.light.warning, backgroundColor: Colors.light.warning + '10' },
+                ]}>
+                  <Text style={[
+                    styles.statusText,
+                    transcriptionStatus.startsWith('❌') && { color: Colors.light.error, fontWeight: '700' },
+                  ]}>{transcriptionStatus}</Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Type Mode */}
           {inputMode === 'type' && (
             <View style={styles.typeSection}>
@@ -1077,7 +1297,7 @@ export default function VocabularyScreen() {
             <Button
               label={loading ? 'Analyzing...' : 'Analyze Text'}
               onPress={analyzeText}
-              disabled={isRecording || transcribing || loading || (inputMode === 'record' ? !transcribedText : !manualText)}
+              disabled={isRecording || transcribing || loading || (inputMode === 'type' ? !manualText : !transcribedText)}
               variant="primary"
               style={styles.analyzeBtn}
             />
@@ -1110,7 +1330,10 @@ export default function VocabularyScreen() {
         <TouchableOpacity onPress={resetAnalysis} style={styles.backBtn} activeOpacity={0.7}>
           <Text style={styles.backBtnText}>←  Back</Text>
         </TouchableOpacity>
-        <Text style={styles.topBarTitle}>Results</Text>
+        <View style={{ flex: 1, alignItems: 'center' }}>
+          <Text style={styles.topBarTitle}>Results</Text>
+          <Text style={styles.resultModeBadge}>{MODE_LABEL[inputMode]}</Text>
+        </View>
         <View style={{ width: 40 }} />
       </View>
 
@@ -1139,6 +1362,20 @@ export default function VocabularyScreen() {
           <Text style={styles.scoreSummaryLabel}>Emotion</Text>
         </View>
       </View>
+
+      {/* Play the saved recording (speaking / uploaded sessions) */}
+      {savedAudioId && (
+        <TouchableOpacity style={styles.playRecBtn} onPress={toggleSavedAudio} activeOpacity={0.85}>
+          <Text style={styles.playRecIcon}>{savedAudioPlaying ? '⏸' : '▶'}</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.playRecText}>
+              {savedAudioPlaying ? 'Playing recording…' : 'Play your recording'}
+            </Text>
+            <Text style={styles.playRecSub}>{MODE_LABEL[inputMode]} · original audio</Text>
+          </View>
+          <Text style={styles.playRecBadge}>REC</Text>
+        </TouchableOpacity>
+      )}
 
       {/* Speech Metrics Strip — Foster & Tavakoli (2009); Bao et al. (2026) */}
       {analysisResult?.speech_metrics && (
@@ -1612,7 +1849,7 @@ export default function VocabularyScreen() {
 
                   {/* Inline highlighted transcript — segments where errors were detected */}
                   {re.highlights && re.highlights.length > 0 && (() => {
-                    const sourceText = inputMode === 'record' ? transcribedText : manualText;
+                    const sourceText = inputMode === 'type' ? manualText : transcribedText;
                     if (!sourceText) return null;
                     // Build text segments: [text, highlight, text, highlight, …]
                     const segments: Array<{ text: string; highlight?: RomanianErrorHighlight }> = [];
@@ -1921,6 +2158,7 @@ export default function VocabularyScreen() {
                   {/* Genre / Domain Profile */}
                   {analysisResult?.genre_profile && analysisResult.genre_profile.dominant_group && (() => {
                     const gp = analysisResult.genre_profile!;
+                    const domGroup: CocaGroup = gp.dominant_group ?? 'ACAD';
                     return (
                       <View style={styles.genreCard}>
                         <Text style={styles.sectionTitle}>Genre / Domain Profile</Text>
@@ -1928,12 +2166,12 @@ export default function VocabularyScreen() {
                           Davies — Corpus of Contemporary American English (96 sub-genres)
                         </Text>
                         <View style={[styles.genreDominant, {
-                          backgroundColor: GENRE_COLOR[gp.dominant_group] + '15',
-                          borderLeftColor: GENRE_COLOR[gp.dominant_group],
+                          backgroundColor: GENRE_COLOR[domGroup] + '15',
+                          borderLeftColor: GENRE_COLOR[domGroup],
                         }]}>
-                          <Text style={styles.genreDominantIcon}>{GENRE_ICON[gp.dominant_group]}</Text>
+                          <Text style={styles.genreDominantIcon}>{GENRE_ICON[domGroup]}</Text>
                           <View style={{ flex: 1 }}>
-                            <Text style={[styles.genreDominantLabel, { color: GENRE_COLOR[gp.dominant_group] }]}>
+                            <Text style={[styles.genreDominantLabel, { color: GENRE_COLOR[domGroup] }]}>
                               {gp.dominant_label}
                             </Text>
                             <Text style={styles.genreDominantDesc}>{gp.dominant_description}</Text>
@@ -2064,7 +2302,24 @@ const styles = StyleSheet.create({
     color: Colors.light.tint,
     letterSpacing: 0.2,
   },
-  topBarTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '700', color: Colors.light.text },
+  topBarTitle: { textAlign: 'center', fontSize: 17, fontWeight: '700', color: Colors.light.text },
+  resultModeBadge: { fontSize: 11, fontWeight: '700', color: Colors.light.tint, marginTop: 1 },
+
+  playRecBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginTop: 12,
+    backgroundColor: Colors.light.tint + '12',
+    borderWidth: 1, borderColor: Colors.light.tint + '40',
+    borderRadius: 14, paddingVertical: 12, paddingHorizontal: 14,
+  },
+  playRecIcon: { fontSize: 20, color: Colors.light.tint },
+  playRecText: { fontSize: 14, fontWeight: '700', color: Colors.light.text },
+  playRecSub: { fontSize: 11, color: Colors.light.textSecondary, marginTop: 1 },
+  playRecBadge: {
+    fontSize: 10, fontWeight: '800', color: '#dc2626',
+    backgroundColor: '#fee2e2', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
+    overflow: 'hidden',
+  },
 
   // ── Recording Screen ───────────────────────────────────────────────
   promptDisplay: {
@@ -2089,6 +2344,41 @@ const styles = StyleSheet.create({
 
   recordingSection: { marginHorizontal: 20, marginTop: 20, gap: 14 },
   recordingControls: { alignItems: 'center', gap: 12 },
+
+  // Upload mode
+  uploadCard: {
+    backgroundColor: Colors.light.surface,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: Colors.light.tint + '40',
+    borderStyle: 'dashed',
+    padding: 24,
+    alignItems: 'center',
+    gap: 8,
+  },
+  uploadIcon: { fontSize: 36, marginBottom: 4 },
+  uploadTitle: { fontSize: 16, fontWeight: '800', color: Colors.light.text },
+  uploadDesc: {
+    fontSize: 12, color: Colors.light.textSecondary,
+    textAlign: 'center', lineHeight: 18,
+  },
+  uploadBtn: {
+    marginTop: 8,
+    backgroundColor: Colors.light.tint,
+    paddingVertical: 13, paddingHorizontal: 28,
+    borderRadius: 14,
+    shadowColor: Colors.light.tint,
+    shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.25, shadowRadius: 10, elevation: 4,
+  },
+  uploadBtnText: { fontSize: 14, fontWeight: '800', color: '#fff' },
+  uploadFileName: {
+    marginTop: 6, fontSize: 12, fontWeight: '600',
+    color: Colors.light.tint, maxWidth: '100%',
+  },
+  uploadFallback: {
+    marginTop: 8, fontSize: 11, color: Colors.light.textLight,
+    fontStyle: 'italic', textAlign: 'center',
+  },
   recordBtn: {
     backgroundColor: Colors.light.tint,
     paddingVertical: 16, paddingHorizontal: 44,
