@@ -2,43 +2,43 @@ import { Platform } from 'react-native';
 
 const VocaFlowTheme = {
   light: {
-    // VocaFlow brand palette — refined for landing-page consistency
-    text: '#0F172A',          // Near-black for high contrast text
-    background: '#F8FAFC',    // Clean light gray background
-    tint: '#0FBA9A',          // Refined teal (primary actions)
-    tintLight: '#ECFDF5',     // Light teal for subtle backgrounds
-    accent: '#FF7A59',        // Coral for highlights and tags
-    card: '#FFFFFF',          // Card background
-    border: '#E5E7EB',        // Subtle border
-    borderSoft: '#F1F5F9',    // Even softer divider
-    surface: '#FFFFFF',       // Same as card
-    textSecondary: '#64748B', // Muted text
-    textLight: '#94A3B8',     // Even lighter
-    success: '#10B981',
-    warning: '#F59E0B',
-    danger: '#EF4444',
-    error: '#EF4444',         // Alias for danger
-    shadow: '#0F172A',
-    gradient: ['#0FBA9A', '#0AA088'],
-    accentGradient: ['#FF7A59', '#FF9A81'],
+    // VocaFlow dark palette — two accent colors: teal + purple
+    text:           '#F0F6FF',                   // white text
+    background:     '#060D1A',                   // deep navy
+    tint:           '#0FBA9A',                   // teal (primary)
+    tintLight:      'rgba(15,186,154,0.12)',      // subtle teal bg
+    accent:         '#8B5CF6',                   // purple (secondary)
+    card:           '#0F1B2D',                   // dark card
+    border:         'rgba(255,255,255,0.08)',     // subtle border
+    borderSoft:     'rgba(255,255,255,0.04)',     // softer divider
+    surface:        '#0F1B2D',                   // same as card
+    textSecondary:  '#94A3B8',                   // muted
+    textLight:      '#475569',                   // dimmer
+    success:        '#0FBA9A',                   // teal
+    warning:        '#8B5CF6',                   // purple
+    danger:         '#EF4444',
+    error:          '#EF4444',
+    shadow:         '#000000',
+    gradient:       ['#8B5CF6', '#0FBA9A'],
+    accentGradient: ['#8B5CF6', '#8B5CF6'],
   },
   dark: {
     text: '#F7F9FC',
     background: '#0D0D0D',
-    tint: '#1EE8B5',
-    accent: '#FF7A59',
+    tint: '#0FBA9A',
+    accent: '#8B5CF6',
     card: '#1A1A1A',
     border: '#2D2D2D',
     surface: '#1A1A1A', // Same as card
     textSecondary: '#D1D5DB', // Light gray for secondary text
     textLight: '#9CA3AF', // Lighter gray
-    success: '#28A745',
-    warning: '#FFC107',
-    danger: '#DC3545',
-    error: '#DC3545', // Alias for danger
+    success: '#0FBA9A',
+    warning: '#8B5CF6',
+    danger: '#EF4444',
+    error: '#EF4444', // Alias for danger
     shadow: '#000000',
-    gradient: ['#1EE8B5', '#00D4A3'],
-    accentGradient: ['#FF7A59', '#FF9A81'],
+    gradient: ['#0FBA9A', '#0AA088'],
+    accentGradient: ['#8B5CF6', '#8B5CF6'],
   },
   spacing: {
     xs: 4,
@@ -93,7 +93,7 @@ export const Colors = VocaFlowTheme;
 
 export const Gradients = {
   primary: ['#0FBA9A', '#0AA088'] as readonly string[],
-  accent:  ['#FF7A59', '#FF9A81'] as readonly string[],
+  accent:  ['#8B5CF6', '#8B5CF6'] as readonly string[],
   teal:    ['#0FBA9A', '#0AA088'] as readonly string[],
 };
 
@@ -118,25 +118,25 @@ export const BorderRadius = {
 
 export const Shadows = {
   sm: {
-    shadowColor: VocaFlowTheme.light.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
     elevation: 2,
   },
   md: {
-    shadowColor: VocaFlowTheme.light.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.4,
+    shadowRadius: 6,
+    elevation: 4,
   },
   lg: {
-    shadowColor: VocaFlowTheme.light.shadow,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 12,
+    elevation: 8,
   },
 };
 

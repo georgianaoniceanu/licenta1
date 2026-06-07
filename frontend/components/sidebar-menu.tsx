@@ -23,34 +23,38 @@ const _firebaseConfig = {
 };
 const _fbApp = getApps().length ? getApps()[0] : initializeApp(_firebaseConfig);
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useLanguage } from '@/context/Language';
 import { tr, type TKey } from '@/constants/translations';
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const BG     = '#060D1A';
 const CARD   = '#0F1B2D';
-const TEAL   = '#1EE8B5';
-const CORAL  = '#FF7A59';
+const TEAL   = '#0FBA9A';
+const CORAL  = '#8B5CF6';
 const TEXT   = '#F0F6FF';
 const TEXT2  = '#8BA0B8';
 const BORDER = 'rgba(255,255,255,0.07)';
 
 // ── Menu definition ───────────────────────────────────────────────────────────
-const MENU_ITEMS: { key: TKey; route: string; icon: string; color: string }[] = [
-  { key: 'dashboard',     route: '/(tabs)',            icon: '🏠', color: TEAL  },
-  { key: 'profile',       route: '/(tabs)/profile',   icon: '👤', color: '#EC4899' },
-  { key: 'vocabulary',    route: '/(tabs)/vocabulary', icon: '📚', color: '#7C6FFF' },
-  { key: 'accentDna',     route: '/(tabs)/accent',     icon: '🎯', color: CORAL },
-  { key: 'shadowSpeak',   route: '/(tabs)/shadow',     icon: '📢', color: '#06B6D4' },
-  { key: 'assessment',    route: '/(tabs)/assessment', icon: '📋', color: '#F59E0B' },
-  { key: 'practiceHub',   route: '/(tabs)/practice',   icon: '💪', color: '#0FBA9A' },
-  { key: 'progress',      route: '/(tabs)/progress',   icon: '📈', color: '#8B5CF6' },
-  { key: 'examProfile',   route: '/(tabs)/exam-profile', icon: '🎓', color: '#6366F1' },
-  { key: 'history',       route: '/(tabs)/history',    icon: '🕐', color: '#64748B' },
-  { key: 'dualDiagnosis', route: '/dual_diagnosis',    icon: '⚖️', color: TEAL     },
-  { key: 'coverageMap',   route: '/(tabs)/coverage-map', icon: '🗺️', color: '#FF7A59' },
-  { key: 'settings',      route: '/(tabs)/settings',   icon: '⚙️', color: '#64748B' },
-  { key: 'about',         route: '/modal',             icon: 'ℹ️', color: '#3B82F6' },
+type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
+
+const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: string }[] = [
+  { key: 'dashboard',     route: '/(tabs)',               icon: 'home',        color: TEAL      },
+  { key: 'appShowcase',   route: '/(tabs)/home',          icon: 'layers',      color: '#8B5CF6' },
+  { key: 'profile',       route: '/(tabs)/profile',       icon: 'user',        color: '#8B5CF6' },
+  { key: 'vocabulary',    route: '/(tabs)/vocabulary',    icon: 'book-open',   color: '#8B5CF6' },
+  { key: 'accentDna',     route: '/(tabs)/accent',        icon: 'mic',         color: CORAL     },
+  { key: 'shadowSpeak',   route: '/(tabs)/shadow',        icon: 'headphones',  color: '#0FBA9A' },
+  { key: 'assessment',    route: '/(tabs)/assessment',    icon: 'clipboard',   color: '#8B5CF6' },
+  { key: 'practiceHub',   route: '/(tabs)/practice',      icon: 'zap',         color: '#0FBA9A' },
+  { key: 'progress',      route: '/(tabs)/progress',      icon: 'trending-up', color: '#8B5CF6' },
+  { key: 'examProfile',   route: '/(tabs)/exam-profile',  icon: 'award',       color: '#8B5CF6' },
+  { key: 'history',       route: '/(tabs)/history',       icon: 'clock',       color: '#64748B' },
+  { key: 'dualDiagnosis', route: '/dual_diagnosis',       icon: 'bar-chart-2', color: TEAL      },
+  { key: 'coverageMap',   route: '/(tabs)/coverage-map',  icon: 'map',         color: '#8B5CF6' },
+  { key: 'settings',      route: '/(tabs)/settings',      icon: 'settings',    color: '#64748B' },
+  { key: 'about',         route: '/modal',                icon: 'info',        color: '#8B5CF6' },
 ];
 
 // ── MenuItem ──────────────────────────────────────────────────────────────────
@@ -64,7 +68,7 @@ const MenuItem = ({
 }: {
   label: string;
   route: string;
-  icon: string;
+  icon: FeatherIconName;
   color: string;
   isActive: boolean;
   onClose?: () => void;
@@ -95,7 +99,7 @@ const MenuItem = ({
         ]}
       >
         <View style={[MI.iconBox, { backgroundColor: color + '18' }]}>
-          <Text style={MI.icon}>{icon}</Text>
+          <Feather name={icon} size={17} color={isActive ? color : TEXT2} />
         </View>
         <Text style={[MI.label, isActive && { color: TEXT, fontWeight: '700' }]}>
           {label}
@@ -127,9 +131,6 @@ const MI = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  icon: {
-    fontSize: 18,
   },
   label: {
     fontSize: 14,
@@ -352,10 +353,10 @@ const S = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: 'rgba(255,122,89,0.1)',
+    backgroundColor: 'rgba(139,92,246,0.1)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,122,89,0.2)',
+    borderColor: 'rgba(139,92,246,0.2)',
   },
   logoutIcon: {
     fontSize: 18,

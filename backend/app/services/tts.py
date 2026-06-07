@@ -67,6 +67,39 @@ def text_to_speech(text: str, voice_id: str = "EXAVITQu4vr4xnSDxMaL") -> bytes:
         raise RuntimeError(error_msg)
 
 
+def text_to_speech_wav(text: str, voice_id: str = "EXAVITQu4vr4xnSDxMaL") -> bytes:
+    """
+    Generate audio as WAV (PCM 22050 Hz mono) — no ffmpeg needed.
+    Used for prosody analysis where librosa needs a decodable format.
+    ElevenLabs pcm_22050 returns raw 16-bit PCM; we wrap it in a WAV header.
+    """
+    import wave, io
+
+    if not text or not text.strip():
+        raise ValueError("Text cannot be empty")
+
+    pcm_data = b""
+    audio_gen = client.text_to_speech.convert(
+        voice_id=voice_id,
+        text=text,
+        model_id="eleven_turbo_v2",
+        output_format="pcm_22050",
+    )
+    for chunk in audio_gen:
+        pcm_data += chunk
+
+    if not pcm_data:
+        raise RuntimeError("ElevenLabs returned empty PCM data")
+
+    buf = io.BytesIO()
+    with wave.open(buf, "wb") as wf:
+        wf.setnchannels(1)
+        wf.setsampwidth(2)   # 16-bit
+        wf.setframerate(22050)
+        wf.writeframes(pcm_data)
+    return buf.getvalue()
+
+
 def get_available_voices() -> dict:
     """Get list of available voices from ElevenLabs"""
     try:

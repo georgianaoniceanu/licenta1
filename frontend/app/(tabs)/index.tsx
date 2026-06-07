@@ -82,31 +82,31 @@ type OnboardingProfile = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const BG     = '#F8FAFC';
-const CARD   = '#FFFFFF';
-const BORDER = '#E8ECF0';
+const BG     = '#060D1A';
+const CARD   = '#0F1B2D';
+const BORDER = 'rgba(255,255,255,0.08)';
 const TEAL   = '#0FBA9A';
-const CORAL  = '#FF6B47';
-const PURPLE = '#7C6FFF';
+const CORAL  = '#8B5CF6';
+const PURPLE = '#8B5CF6';
 const NAVY   = '#0A1628';
-const TEXT   = '#1E293B';
-const TEXT2  = '#64748B';
+const TEXT   = '#F0F6FF';
+const TEXT2  = '#94A3B8';
 const TEXT3  = '#94A3B8';
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical:   '#EF4444',
-  moderate:   '#F59E0B',
+  moderate:   '#8B5CF6',
   acceptable: '#0FBA9A',
-  strong:     '#7C6FFF',
+  strong:     '#8B5CF6',
 };
 
 const CEFR_COLORS: Record<string, string> = {
   A1: '#94A3B8',
   A2: '#64748B',
-  B1: '#3B82F6',
+  B1: '#8B5CF6',
   B2: '#8B5CF6',
-  C1: '#F59E0B',
-  C2: '#1EE8B5',
+  C1: '#8B5CF6',
+  C2: '#0FBA9A',
 };
 
 
@@ -131,7 +131,6 @@ const WaveBar = ({ maxH, delay, color }: { maxH: number; delay: number; color: s
         height: maxH,
         borderRadius: 2,
         backgroundColor: color,
-        marginHorizontal: 1.5,
         transform: [{ scaleY: anim }],
         opacity: anim.interpolate({ inputRange: [0.25, 1], outputRange: [0.35, 0.9] }),
       }}
@@ -140,7 +139,7 @@ const WaveBar = ({ maxH, delay, color }: { maxH: number; delay: number; color: s
 };
 
 const AnimatedWaveform = () => (
-  <View style={{ flexDirection: 'row', alignItems: 'center', height: 56 }}>
+  <View style={{ flexDirection: 'row', alignItems: 'center', height: 56, width: '100%', justifyContent: 'space-between' }}>
     {WAVE_HEIGHTS.map((h, i) => (
       <WaveBar key={i} maxH={h} delay={i * 50} color={i % 2 === 0 ? TEAL : CORAL} />
     ))}
@@ -289,7 +288,7 @@ const IR = StyleSheet.create({
   barWrap: {
     flex: 1,
     height: 6,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -382,8 +381,8 @@ export default function HomeScreen() {
   ];
   const TOOL_MODULES = [
     { label: tr('modPractice', lang),   subtitle: tr('modPracticeSub', lang),   icon: 'zap',         route: '/(tabs)/practice',   color: '#0FBA9A' },
-    { label: tr('modProgress', lang),   subtitle: tr('modProgressSub', lang),   icon: 'bar-chart-2', route: '/(tabs)/progress',   color: '#F59E0B' },
-    { label: tr('modAssessment', lang), subtitle: tr('modAssessmentSub', lang), icon: 'clipboard',   route: '/(tabs)/assessment', color: '#10B981' },
+    { label: tr('modProgress', lang),   subtitle: tr('modProgressSub', lang),   icon: 'bar-chart-2', route: '/(tabs)/progress',   color: '#8B5CF6' },
+    { label: tr('modAssessment', lang), subtitle: tr('modAssessmentSub', lang), icon: 'clipboard',   route: '/(tabs)/assessment', color: '#0FBA9A' },
   ];
 
   const [diagnosis,       setDiagnosis]       = useState<BaselineDiagnosis | null>(null);
@@ -496,7 +495,7 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={S.root}>
-      <StatusBar barStyle="dark-content" backgroundColor={BG} />
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
       <ScrollView
         contentContainerStyle={S.scroll}
@@ -641,12 +640,12 @@ export default function HomeScreen() {
           {diagnosis && diagnosis.critical_areas.length > 0 && (
             <View style={[S.section, S.alertCard]}>
               <View style={S.alertHeader}>
-                <Feather name="alert-triangle" size={13} color="#FF4D6D" />
-                <Text style={[S.sectionTitle, { color: '#FF4D6D', marginLeft: 6 }]}>{tr('focusAreas', lang)}</Text>
+                <Feather name="alert-triangle" size={13} color="#EF4444" />
+                <Text style={[S.sectionTitle, { color: '#EF4444', marginLeft: 6 }]}>{tr('focusAreas', lang)}</Text>
               </View>
               {diagnosis.critical_areas.slice(0, 3).map((area, i) => (
                 <View key={i} style={S.bulletRow}>
-                  <View style={[S.bullet, { backgroundColor: '#FF4D6D' }]} />
+                  <View style={[S.bullet, { backgroundColor: '#EF4444' }]} />
                   <Text style={S.bulletText}>{area}</Text>
                 </View>
               ))}
@@ -742,7 +741,7 @@ export default function HomeScreen() {
                 [
                   { preset: 'weak'   as DemoPreset, emoji: '📉', color: '#EF4444', range: 'A2→B1' },
                   { preset: 'medium' as DemoPreset, emoji: '📈', color: PURPLE,    range: 'B1→B2' },
-                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#F59E0B', range: 'B2→C1' },
+                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#8B5CF6', range: 'B2→C1' },
                 ]
               ).map(({ preset, emoji, color, range }) => {
                 const busy = demoLoading === preset;
@@ -777,12 +776,12 @@ export default function HomeScreen() {
                 const job = JOBS_BY_ID[user.jobId];
                 const busy = demoLoading === key;
                 const personaColor =
-                  user.industry === 'tech'              ? '#7C6FFF' :
-                  user.industry === 'healthcare'        ? '#EC4899' :
-                  user.industry === 'finance'           ? '#10B981' :
-                  user.industry === 'law_government'    ? '#6366F1' :
-                  user.industry === 'media'             ? '#FF7A59' :
-                  user.industry === 'sales_marketing'   ? '#FBBF24' :
+                  user.industry === 'tech'              ? '#8B5CF6' :
+                  user.industry === 'healthcare'        ? '#8B5CF6' :
+                  user.industry === 'finance'           ? '#0FBA9A' :
+                  user.industry === 'law_government'    ? '#8B5CF6' :
+                  user.industry === 'media'             ? '#8B5CF6' :
+                  user.industry === 'sales_marketing'   ? '#8B5CF6' :
                                                           '#64748B';
                 return (
                   <TouchableOpacity
@@ -951,12 +950,12 @@ const S = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    backgroundColor: '#FFF7ED',
+    backgroundColor: 'rgba(234,88,12,0.15)',
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 7,
     borderWidth: 1,
-    borderColor: '#FED7AA',
+    borderColor: 'rgba(234,88,12,0.35)',
   },
   streakFire: { fontSize: 14 },
   streakNum:  { fontSize: 14, fontWeight: '800', color: '#EA580C' },
@@ -1288,12 +1287,12 @@ const S = StyleSheet.create({
     paddingBottom: 24,
   },
   modalCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 20,
   },
@@ -1315,7 +1314,7 @@ const S = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     fontWeight: '800',
-    color: '#0F172A',
+    color: '#F0F6FF',
   },
   modalEli5: {
     backgroundColor: TEAL + '10',
@@ -1334,16 +1333,16 @@ const S = StyleSheet.create({
   },
   modalEli5Text: {
     fontSize: 13,
-    color: '#0F172A',
+    color: '#F0F6FF',
     lineHeight: 20,
   },
   modalSection: {
     marginBottom: 14,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   modalSectionLabel: {
     fontSize: 9,
@@ -1354,7 +1353,7 @@ const S = StyleSheet.create({
   },
   modalSectionBody: {
     fontSize: 12,
-    color: '#334155',
+    color: '#94A3B8',
     lineHeight: 18,
   },
 });

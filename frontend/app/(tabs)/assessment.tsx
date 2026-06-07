@@ -44,15 +44,15 @@ import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
-const BG    = '#F8FAFC';
-const CARD  = '#FFFFFF';
-const CARD2 = '#F8FAFC';
+const BG    = '#060D1A';
+const CARD  = '#0F1B2D';
+const CARD2 = '#060D1A';
 const TEAL  = '#0FBA9A';
-const CORAL = '#FF7A59';
-const AMBER = '#F59E0B';
-const TEXT  = '#0F172A';
-const TEXT2 = '#64748B';
-const BORDER = '#E5E7EB';
+const CORAL = '#8B5CF6';
+const AMBER = '#8B5CF6';
+const TEXT  = '#F0F6FF';
+const TEXT2 = '#94A3B8';
+const BORDER = 'rgba(255,255,255,0.08)';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Phase = 'overview' | 'writing' | 'analyzing' | 'results';
@@ -177,7 +177,7 @@ const D = StyleSheet.create({
   deltaText: { fontSize: 12, fontWeight: '800' },
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: 5, gap: 8 },
   rowLabel: { fontSize: 10, color: TEXT2, width: 36, fontWeight: '600' },
-  track: { flex: 1, height: 6, backgroundColor: '#F1F5F9', borderRadius: 3, overflow: 'hidden' },
+  track: { flex: 1, height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' },
   fill: { height: 6, borderRadius: 3 },
   pct: { fontSize: 11, fontWeight: '700', width: 28, textAlign: 'right' },
 });
@@ -319,7 +319,7 @@ export default function AssessmentScreen() {
                     key={level}
                     style={[
                       S.cefrStep,
-                      { backgroundColor: i <= blCefrIdx ? TEAL : '#E2E8F0' },
+                      { backgroundColor: i <= blCefrIdx ? TEAL : 'rgba(255,255,255,0.08)' },
                     ]}
                   >
                     <Text style={[S.cefrStepText, { color: i <= blCefrIdx ? '#fff' : TEXT2 }]}>
@@ -373,7 +373,7 @@ export default function AssessmentScreen() {
             disabled={!hasBl}
             activeOpacity={0.85}
           >
-            <View style={[S.startBtn, !hasBl && { backgroundColor: '#E2E8F0' }]}>
+            <View style={[S.startBtn, !hasBl && { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
               <Text style={[S.startBtnText, !hasBl && { color: '#94A3B8' }]}>
                 {hasBl ? 'Start Re-Assessment' : 'Complete Initial Diagnostic First'}
               </Text>
@@ -434,7 +434,7 @@ export default function AssessmentScreen() {
             disabled={!ready}
             activeOpacity={0.85}
           >
-            <View style={[S.startBtn, !ready && { backgroundColor: '#E2E8F0' }]}>
+            <View style={[S.startBtn, !ready && { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
               <Text style={[S.startBtnText, !ready && { color: '#94A3B8' }]}>
                 {ready ? 'Analyse My Progress' : `Need ${80 - wordCount} more words`}
               </Text>
@@ -661,13 +661,13 @@ const S = StyleSheet.create({
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },
   writeTitle: { flex: 1, fontSize: 17, fontWeight: '800', color: TEXT },
   wordBadge: {
     borderRadius: 999, paddingHorizontal: 12, paddingVertical: 4,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1, borderColor: BORDER,
   },
   wordBadgeText: { fontSize: 12, fontWeight: '700', color: TEXT2 },
@@ -721,7 +721,7 @@ const S = StyleSheet.create({
 
   // Summary
   summaryCard: {
-    flexDirection: 'row', gap: 10, backgroundColor: '#F8FAFC',
+    flexDirection: 'row', gap: 10, backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 12, padding: 14, borderWidth: 1, borderColor: BORDER, marginBottom: 16,
   },
   summaryText: { flex: 1, fontSize: 12, color: TEXT2, fontStyle: 'italic', lineHeight: 18 },

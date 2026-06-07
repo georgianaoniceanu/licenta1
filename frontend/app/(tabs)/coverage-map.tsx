@@ -17,10 +17,11 @@
  * study target; gaps in this region are flagged as urgent.
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
@@ -37,16 +38,16 @@ import {
 import { getSubgenreWords } from '@/constants/cocaSubgenreWords';
 
 // ── Theme ────────────────────────────────────────────────────────────────────
-const BG     = '#F8FAFC';
-const CARD   = '#FFFFFF';
-const TEXT   = '#0F172A';
+const BG     = '#060D1A';
+const CARD   = '#0F1B2D';
+const TEXT   = '#F0F6FF';
 const TEXT2  = '#64748B';
 const TEXT3  = '#94A3B8';
-const BORDER = '#E5E7EB';
+const BORDER = 'rgba(255,255,255,0.08)';
 
-const C_JOB  = '#FF7A59';  // coral — JOB
-const C_EXAM = '#7C6FFF';  // purple — EXAM
-const C_GOAL = '#10B981';  // green — GOAL
+const C_JOB  = '#8B5CF6';  // purple — JOB
+const C_EXAM = '#C4B5FD';  // light purple — EXAM (distinguishable from JOB)
+const C_GOAL = '#0FBA9A';  // teal — GOAL
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const VENN_W = Math.min(SCREEN_W - 32, 360);
@@ -132,7 +133,7 @@ function classifySubgenre(
   if (inGoal) sources.push('GOAL');
 
   if (sources.length === 0 && isCov)   return { bucket: 'wasted', sources };
-  if (sources.length === 0)             return { bucket: 'onTrack', sources }; // not recommended, not covered = ignored
+  if (sources.length === 0)             return { bucket: 'wasted', sources }; // not recommended, not covered — treat as noise
   if (isCov)                            return { bucket: 'onTrack', sources };
 
   if (inJob && inExam && inGoal)        return { bucket: 'urgent',     sources };
@@ -144,17 +145,16 @@ function classifySubgenre(
   return { bucket: 'goalOnly', sources };
 }
 
-// ── Venn diagram component (three circles via View + borderRadius) ───────────
+// ── Venn diagram — three overlapping circles ──────────────────────────────────
 function VennDiagram({
   jobCount, examCount, goalCount,
   jeCount, jgCount, egCount, allCount,
-  coveredAll, coveredJE, coveredJG, coveredEG,
+  coveredAll,
 }: {
   jobCount: number; examCount: number; goalCount: number;
   jeCount: number; jgCount: number; egCount: number; allCount: number;
-  coveredAll: number; coveredJE: number; coveredJG: number; coveredEG: number;
+  coveredAll: number;
 }) {
-  // Region counts
   const jobOnly  = jobCount  - jeCount - jgCount + allCount;
   const examOnly = examCount - jeCount - egCount + allCount;
   const goalOnly = goalCount - jgCount - egCount + allCount;
@@ -163,58 +163,98 @@ function VennDiagram({
   const eg = egCount - allCount;
 
   const circle = (c: { cx: number; cy: number }, fill: string, border: string) => (
-    <View
-      style={[styles.vennCircle, {
-        left: c.cx - R, top: c.cy - R,
-        width: R * 2, height: R * 2, borderRadius: R,
-        backgroundColor: fill, borderColor: border,
-      }]}
-      pointerEvents="none"
-    />
+    <View style={[styles.vennCircle, {
+      left: c.cx - R, top: c.cy - R,
+      width: R * 2, height: R * 2, borderRadius: R,
+      backgroundColor: fill, borderColor: border,
+    }]} pointerEvents="none" />
   );
 
-  // Centred number bubble at an (x,y) point
-  const num = (x: number, y: number, value: number, color = '#1E293B', big = false) => (
-    <Text style={[
-      big ? styles.vennCountBig : styles.vennCount,
-      { left: x - 18, top: y - (big ? 13 : 11), color },
-    ]}>
-      {value}
-    </Text>
+  const num = (x: number, y: number, value: number) => (
+    <Text style={[styles.vennCount, { left: x - 18, top: y - 12 }]}>{value}</Text>
   );
 
   return (
-    <View style={{ width: VENN_W, height: VENN_H, alignSelf: 'center' }}>
-      {circle(CC.exam, C_EXAM + '33', C_EXAM)}
-      {circle(CC.goal, C_GOAL + '33', C_GOAL)}
-      {circle(CC.job,  C_JOB  + '33', C_JOB)}
+    <View>
+      {/* ── Diagram ── */}
+      <View style={{ width: VENN_W, height: VENN_H, alignSelf: 'center' }}>
+        {circle(CC.exam, C_EXAM + '30', C_EXAM)}
+        {circle(CC.goal, C_GOAL + '30', C_GOAL)}
+        {circle(CC.job,  C_JOB  + '30', C_JOB)}
 
-      {/* ── Outside labels (pills) ─────────────────────────────────── */}
-      <View style={[styles.vennPill, { left: CX - 28, top: JOB_CY - R - BAND + 2, borderColor: C_JOB }]}>
-        <Text style={[styles.vennPillText, { color: C_JOB }]}>JOB</Text>
-      </View>
-      <View style={[styles.vennPill, { left: CC.exam.cx - R + 2, top: LOW_CY + R + 4, borderColor: C_EXAM }]}>
-        <Text style={[styles.vennPillText, { color: C_EXAM }]}>EXAM</Text>
-      </View>
-      <View style={[styles.vennPill, { left: CC.goal.cx + R - 50, top: LOW_CY + R + 4, borderColor: C_GOAL }]}>
-        <Text style={[styles.vennPillText, { color: C_GOAL }]}>GOAL</Text>
+        {/* Labels */}
+        <View style={[styles.vennPill, { left: CX - 28, top: JOB_CY - R - BAND + 2, borderColor: C_JOB }]}>
+          <View style={[styles.vennPillDot, { backgroundColor: C_JOB }]} />
+          <Text style={[styles.vennPillText, { color: C_JOB }]}>JOB</Text>
+        </View>
+        <View style={[styles.vennPill, { left: CC.exam.cx - R + 2, top: LOW_CY + R + 4, borderColor: C_EXAM }]}>
+          <View style={[styles.vennPillDot, { backgroundColor: C_EXAM }]} />
+          <Text style={[styles.vennPillText, { color: C_EXAM }]}>EXAM</Text>
+        </View>
+        <View style={[styles.vennPill, { left: CC.goal.cx + R - 54, top: LOW_CY + R + 4, borderColor: C_GOAL }]}>
+          <View style={[styles.vennPillDot, { backgroundColor: C_GOAL }]} />
+          <Text style={[styles.vennPillText, { color: C_GOAL }]}>GOAL</Text>
+        </View>
+
+        {/* Solo region numbers */}
+        {num(CX,                         JOB_CY - R * 0.44, jobOnly)}
+        {num(CC.exam.cx - R * 0.46,      LOW_CY + R * 0.30, examOnly)}
+        {num(CC.goal.cx + R * 0.46,      LOW_CY + R * 0.30, goalOnly)}
+
+        {/* Pairwise numbers */}
+        {num((CX + CC.exam.cx) / 2 - R * 0.08, (JOB_CY + LOW_CY) / 2, je)}
+        {num((CX + CC.goal.cx) / 2 + R * 0.08, (JOB_CY + LOW_CY) / 2, jg)}
+        {num(CX,                                LOW_CY + R * 0.40, eg)}
+
+        {/* Centre */}
+        <View style={[styles.vennCenter, { left: CX - 28, top: CENTROID_Y - 20 }]}>
+          <Text style={styles.vennCenterCount}>{allCount}</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+            <Feather name="check" size={9} color={C_GOAL} />
+            <Text style={styles.vennCenterCovered}>{coveredAll}/{allCount}</Text>
+          </View>
+        </View>
       </View>
 
-      {/* ── Region counts ──────────────────────────────────────────── */}
-      {num(CX,            JOB_CY - R * 0.42, jobOnly,  C_JOB)}
-      {num(CC.exam.cx - R * 0.46, LOW_CY + R * 0.30, examOnly, C_EXAM)}
-      {num(CC.goal.cx + R * 0.46, LOW_CY + R * 0.30, goalOnly, C_GOAL)}
-
-      {/* Pairwise lens counts */}
-      {num((CX + CC.exam.cx) / 2 - R * 0.10, (JOB_CY + LOW_CY) / 2, je, '#6D5BD0')}
-      {num((CX + CC.goal.cx) / 2 + R * 0.10, (JOB_CY + LOW_CY) / 2, jg, '#0E9F6E')}
-      {num(CX,            LOW_CY + R * 0.40, eg, '#3B6FB0')}
-
-      {/* ── Centre (all-three) — the sweet spot ────────────────────── */}
-      <View style={[styles.vennCenter, { left: CX - 28, top: CENTROID_Y - 18 }]}>
-        <Text style={styles.vennCenterCount}>{allCount}</Text>
-        <Text style={styles.vennCenterCovered}>✓ {coveredAll}/{allCount}</Text>
+      {/* ── Legend ── */}
+      <View style={styles.vennLegend}>
+        <View style={styles.vennLegendRow}>
+          <LegendItem color={C_JOB}  label="JOB only"       value={jobOnly}  />
+          <LegendItem color={C_EXAM} label="EXAM only"      value={examOnly} />
+          <LegendItem color={C_GOAL} label="GOAL only"      value={goalOnly} />
+        </View>
+        <View style={styles.vennLegendRow}>
+          <LegendItem color={C_JOB}  label="JOB ∩ EXAM"    value={je}       dual={C_EXAM} />
+          <LegendItem color={C_JOB}  label="JOB ∩ GOAL"    value={jg}       dual={C_GOAL} />
+          <LegendItem color={C_EXAM} label="EXAM ∩ GOAL"   value={eg}       dual={C_GOAL} />
+        </View>
+        <View style={[styles.vennLegendPriority]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <View style={{ flexDirection: 'row' }}>
+              <View style={[styles.vennLegendDot, { backgroundColor: C_JOB }]} />
+              <View style={[styles.vennLegendDot, { backgroundColor: C_EXAM, marginLeft: -4 }]} />
+              <View style={[styles.vennLegendDot, { backgroundColor: C_GOAL, marginLeft: -4 }]} />
+            </View>
+            <Text style={styles.vennLegendPriorityLabel}>JOB ∩ EXAM ∩ GOAL — Priority zone</Text>
+          </View>
+          <Text style={styles.vennLegendPriorityValue}>{allCount}</Text>
+        </View>
       </View>
+    </View>
+  );
+}
+
+function LegendItem({ color, label, value, dual }: {
+  color: string; label: string; value: number; dual?: string;
+}) {
+  return (
+    <View style={styles.vennLegendItem}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <View style={[styles.vennLegendDot, { backgroundColor: color }]} />
+        {dual && <View style={[styles.vennLegendDot, { backgroundColor: dual, marginLeft: -4 }]} />}
+      </View>
+      <Text style={styles.vennLegendLabel}>{label}</Text>
+      <Text style={[styles.vennLegendValue, { color }]}>{value}</Text>
     </View>
   );
 }
@@ -361,7 +401,7 @@ export default function CoverageMapScreen() {
           </View>
         </View>
 
-        {/* Venn diagram */}
+        {/* Venn diagram + legend */}
         <View style={styles.vennWrap}>
           <VennDiagram
             jobCount={state.jobCodes.length}
@@ -372,9 +412,6 @@ export default function CoverageMapScreen() {
             egCount={inEG.length}
             allCount={inAll3.length}
             coveredAll={coveredCount(inAll3)}
-            coveredJE={coveredCount(inJE)}
-            coveredJG={coveredCount(inJG)}
-            coveredEG={coveredCount(inEG)}
           />
         </View>
 
@@ -387,7 +424,7 @@ export default function CoverageMapScreen() {
             </Text>
           </View>
           <Text style={[styles.coveragePct, {
-            color: coveragePct >= 70 ? '#10B981' : coveragePct >= 40 ? '#F59E0B' : '#EF4444',
+            color: coveragePct >= 70 ? '#0FBA9A' : coveragePct >= 40 ? '#8B5CF6' : '#EF4444',
           }]}>
             {coveragePct}%
           </Text>
@@ -404,7 +441,7 @@ export default function CoverageMapScreen() {
           />
           <InsightCard
             icon="check-circle"
-            color="#10B981"
+            color="#0FBA9A"
             count={buckets.onTrack.length}
             label="ON TRACK"
             sub="Already covered"
@@ -421,31 +458,35 @@ export default function CoverageMapScreen() {
         {/* Filter chips */}
         <Text style={styles.sectionTitle}>Breakdown</Text>
         <View style={styles.filterRow}>
-          {[
-            { key: 'all',      label: 'All',         color: TEXT2 },
-            { key: 'priority', label: '🔥 Priority', color: '#EF4444' },
-            { key: 'job',      label: 'JOB',         color: C_JOB },
-            { key: 'exam',     label: 'EXAM',        color: C_EXAM },
-            { key: 'goal',     label: 'GOAL',        color: C_GOAL },
-            { key: 'done',     label: '✓ Done',      color: '#10B981' },
-            { key: 'wasted',   label: '🗑 Wasted',   color: '#94A3B8' },
-          ].map(f => (
-            <TouchableOpacity
-              key={f.key}
-              style={[
-                styles.filterChip,
-                filterBucket === f.key && { backgroundColor: f.color + '18', borderColor: f.color },
-              ]}
-              onPress={() => setFilterBucket(f.key as any)}
-            >
-              <Text style={[
-                styles.filterChipText,
-                filterBucket === f.key && { color: f.color, fontWeight: '800' },
-              ]}>
-                {f.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {([
+            { key: 'all',      label: 'All',      icon: 'list'         as const, color: TEXT2       },
+            { key: 'priority', label: 'Priority', icon: 'alert-circle' as const, color: '#EF4444'   },
+            { key: 'job',      label: 'JOB',      icon: 'briefcase'    as const, color: C_JOB       },
+            { key: 'exam',     label: 'EXAM',     icon: 'award'        as const, color: C_EXAM      },
+            { key: 'goal',     label: 'GOAL',     icon: 'target'       as const, color: C_GOAL      },
+            { key: 'done',     label: 'Done',     icon: 'check-circle' as const, color: '#0FBA9A'   },
+            { key: 'wasted',   label: 'Wasted',   icon: 'trash-2'      as const, color: '#94A3B8'   },
+          ] as const).map(f => {
+            const active = filterBucket === f.key;
+            return (
+              <TouchableOpacity
+                key={f.key}
+                style={[
+                  styles.filterChip,
+                  active && { backgroundColor: f.color + '18', borderColor: f.color },
+                ]}
+                onPress={() => setFilterBucket(f.key as any)}
+              >
+                <Feather name={f.icon} size={11} color={active ? f.color : TEXT2} />
+                <Text style={[
+                  styles.filterChipText,
+                  active && { color: f.color, fontWeight: '800' },
+                ]}>
+                  {f.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Code list */}
@@ -478,9 +519,7 @@ export default function CoverageMapScreen() {
                   ]}
                 >
                   <View style={[styles.codeBadge, { backgroundColor: mainColor + '20' }]}>
-                    <Text style={[styles.codeBadgeText, { color: mainColor }]}>
-                      {sub.icon}
-                    </Text>
+                    <Feather name={sub.icon as any} size={18} color={mainColor} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={styles.codeTitleRow}>
@@ -490,7 +529,7 @@ export default function CoverageMapScreen() {
                           <Feather name="check" size={11} color="#fff" />
                         </View>
                       ) : (
-                        <View style={[styles.checkBadge, { backgroundColor: '#E2E8F0' }]}>
+                        <View style={[styles.checkBadge, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
                           <Feather name="x" size={11} color="#94A3B8" />
                         </View>
                       )}
@@ -558,7 +597,10 @@ export default function CoverageMapScreen() {
 
         {/* Theory note */}
         <View style={styles.theoryCard}>
-          <Text style={styles.theoryTitle}>📚 Theoretical Basis</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Feather name="book-open" size={14} color="#1E40AF" />
+            <Text style={styles.theoryTitle}>Theoretical Basis</Text>
+          </View>
           <Text style={styles.theoryText}>
             <Text style={{ fontWeight: '800' }}>Biber & Conrad (2019)</Text> — registers cluster around
             shared lexico-grammatical features. Cross-genre exposure correlates significantly with L2 written
@@ -603,13 +645,13 @@ function InsightCard({
 function bucketColor(b: Bucket): string {
   switch (b) {
     case 'urgent':     return '#EF4444';
-    case 'priorityJE': return '#7C3AED';
-    case 'priorityJG': return '#059669';
-    case 'priorityEG': return '#0F766E';
+    case 'priorityJE': return '#8B5CF6';
+    case 'priorityJG': return '#0FBA9A';
+    case 'priorityEG': return '#0FBA9A';
     case 'jobOnly':    return C_JOB;
     case 'examOnly':   return C_EXAM;
     case 'goalOnly':   return C_GOAL;
-    case 'onTrack':    return '#10B981';
+    case 'onTrack':    return '#0FBA9A';
     case 'wasted':     return '#94A3B8';
   }
 }
@@ -620,13 +662,13 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 14,
+    paddingHorizontal: 20, paddingTop: 52, paddingBottom: 14,
     backgroundColor: CARD,
     borderBottomWidth: 1, borderBottomColor: BORDER,
   },
   backBtn: {
     width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: '#0F1B2D',
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontSize: 20, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
@@ -645,50 +687,6 @@ const styles = StyleSheet.create({
   profileVal:   { fontSize: 13, fontWeight: '700', color: TEXT, flex: 1 },
 
   // Venn
-  vennWrap: {
-    backgroundColor: CARD, borderRadius: 14,
-    borderWidth: 1, borderColor: BORDER,
-    paddingVertical: 14, marginBottom: 14,
-  },
-  vennCircle: {
-    position: 'absolute',
-    borderWidth: 2,
-  },
-  vennPill: {
-    position: 'absolute',
-    paddingHorizontal: 9, paddingVertical: 3,
-    borderRadius: 999, borderWidth: 1.5,
-    backgroundColor: '#FFFFFF',
-    minWidth: 56, alignItems: 'center',
-    shadowColor: '#0F172A', shadowOpacity: 0.10,
-    shadowRadius: 4, shadowOffset: { width: 0, height: 1 },
-    elevation: 2,
-  },
-  vennPillText: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
-  vennCount: {
-    position: 'absolute', width: 36, textAlign: 'center',
-    fontSize: 17, fontWeight: '900',
-    textShadowColor: 'rgba(255,255,255,0.95)',
-    textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
-  },
-  vennCountBig: {
-    position: 'absolute', width: 36, textAlign: 'center',
-    fontSize: 22, fontWeight: '900',
-    textShadowColor: 'rgba(255,255,255,0.95)',
-    textShadowRadius: 4, textShadowOffset: { width: 0, height: 0 },
-  },
-  vennCenter: {
-    position: 'absolute', width: 56, alignItems: 'center',
-  },
-  vennCenterCount: {
-    fontSize: 22, fontWeight: '900', color: '#0F172A',
-    textShadowColor: '#fff', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 4,
-  },
-  vennCenterCovered: {
-    fontSize: 10, fontWeight: '800', color: '#10B981',
-    textShadowColor: '#fff', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 4,
-  },
-
   // Coverage strip
   coverageStrip: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
@@ -719,6 +717,7 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   filterChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
     paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 999, borderWidth: 1,
     borderColor: BORDER, backgroundColor: CARD,
@@ -738,7 +737,6 @@ const styles = StyleSheet.create({
     width: 38, height: 38, borderRadius: 10,
     justifyContent: 'center', alignItems: 'center',
   },
-  codeBadgeText: { fontSize: 18 },
   codeTitleRow:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   codeTitle:     { fontSize: 13, fontWeight: '700', color: TEXT, flex: 1 },
   codeDesc:      { fontSize: 11, color: TEXT2, marginTop: 1 },
@@ -747,14 +745,14 @@ const styles = StyleSheet.create({
   sourceBadgeText:{ fontSize: 9, fontWeight: '900', letterSpacing: 0.5 },
   checkBadge: {
     width: 18, height: 18, borderRadius: 9,
-    backgroundColor: '#10B981',
+    backgroundColor: '#0FBA9A',
     justifyContent: 'center', alignItems: 'center',
     marginLeft: 6,
   },
   wordsCountBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6,
-    backgroundColor: '#F1F5F9', marginLeft: 'auto',
+    backgroundColor: '#0F1B2D', marginLeft: 'auto',
   },
   wordsCountText: { fontSize: 9, fontWeight: '800', letterSpacing: 0.3 },
 
@@ -787,10 +785,65 @@ const styles = StyleSheet.create({
 
   // Theory card
   theoryCard: {
-    backgroundColor: '#EFF6FF', borderRadius: 14,
-    borderWidth: 1, borderColor: '#BFDBFE',
+    backgroundColor: 'rgba(139,92,246,0.08)', borderRadius: 14,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)',
     padding: 14, marginTop: 16,
   },
-  theoryTitle: { fontSize: 13, fontWeight: '800', color: '#1E40AF', marginBottom: 8 },
-  theoryText:  { fontSize: 12, color: '#1D4ED8', lineHeight: 18 },
+  theoryTitle: { fontSize: 13, fontWeight: '800', color: '#8B5CF6', marginBottom: 8 },
+  theoryText:  { fontSize: 12, color: '#8B5CF6', lineHeight: 18 },
+
+  // Venn
+  vennWrap: {
+    backgroundColor: CARD, borderRadius: 16,
+    borderWidth: 1, borderColor: BORDER,
+    paddingTop: 14, paddingBottom: 16,
+    paddingHorizontal: 8, marginBottom: 14,
+  },
+  vennCircle: { position: 'absolute', borderWidth: 2 },
+  vennPill: {
+    position: 'absolute', flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 9, paddingVertical: 3,
+    borderRadius: 999, borderWidth: 1.5, backgroundColor: CARD,
+    minWidth: 58, justifyContent: 'center',
+  },
+  vennPillDot: { width: 6, height: 6, borderRadius: 3 },
+  vennPillText: { fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
+  vennCount: {
+    position: 'absolute', width: 36, textAlign: 'center',
+    fontSize: 20, fontWeight: '900', color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.9)',
+    textShadowRadius: 6, textShadowOffset: { width: 0, height: 1 },
+  },
+  vennCenter: { position: 'absolute', width: 56, alignItems: 'center', gap: 2 },
+  vennCenterCount: {
+    fontSize: 28, fontWeight: '900', color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.9)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6,
+  },
+  vennCenterCovered: { fontSize: 11, fontWeight: '800', color: C_GOAL },
+
+  // Legend
+  vennLegend: {
+    marginTop: 16, paddingTop: 14,
+    borderTopWidth: 1, borderTopColor: BORDER,
+    paddingHorizontal: 8, gap: 8,
+  },
+  vennLegendRow: { flexDirection: 'row', gap: 6 },
+  vennLegendItem: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: BG, borderRadius: 8,
+    paddingHorizontal: 8, paddingVertical: 6,
+    borderWidth: 1, borderColor: BORDER,
+  },
+  vennLegendDot:  { width: 9, height: 9, borderRadius: 4.5, borderWidth: 1.5, borderColor: BG },
+  vennLegendLabel:{ flex: 1, fontSize: 9, color: TEXT2, fontWeight: '600' },
+  vennLegendValue:{ fontSize: 14, fontWeight: '900' },
+
+  vennLegendPriority: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: C_JOB + '12', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderWidth: 1, borderColor: C_JOB + '30',
+  },
+  vennLegendPriorityLabel: { fontSize: 11, fontWeight: '700', color: TEXT },
+  vennLegendPriorityValue: { fontSize: 20, fontWeight: '900', color: C_JOB },
 });

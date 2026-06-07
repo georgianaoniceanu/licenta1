@@ -2,13 +2,13 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { useRouter } from 'expo-router';
 
 const TEAL   = '#0FBA9A';
-const NAVY   = '#0A1628';
-const TEXT   = '#1E293B';
-const TEXT2  = '#64748B';
+const NAVY   = '#0F1B2D';
+const TEXT   = '#F0F6FF';
+const TEXT2  = '#94A3B8';
 const TEXT3  = '#94A3B8';
-const BORDER = '#E8ECF0';
-const CARD   = '#FFFFFF';
-const BG     = '#F8FAFC';
+const BORDER = 'rgba(255,255,255,0.08)';
+const CARD   = '#0F1B2D';
+const BG     = '#060D1A';
 
 const RESEARCH = [
   { cite: 'Pallotti (2015)',          topic: 'CAF Framework — Complexity, Accuracy, Fluency' },
@@ -160,7 +160,7 @@ const S = StyleSheet.create({
   stackVal: { fontSize: 12, color: TEXT2 },
 
   closeBtn: {
-    marginTop: 24, backgroundColor: NAVY, borderRadius: 14,
+    marginTop: 24, backgroundColor: TEAL, borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
   },
   closeBtnText: { color: '#fff', fontSize: 15, fontWeight: '800' },

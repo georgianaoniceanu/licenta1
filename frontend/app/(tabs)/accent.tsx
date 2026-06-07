@@ -14,6 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '../../constants/api';
@@ -59,7 +60,7 @@ const PHONEME_EXERCISES = [
       why: 'Same tense-lax merging as /uː/-/ʊ/ — Romanian /i/ sits between the two English phonemes, causing confusion',
     },
     cefr: 'B1',
-    color: '#ff6b35',
+    color: '#8B5CF6',
   },
   {
     phoneme: '/ð/',
@@ -75,7 +76,7 @@ const PHONEME_EXERCISES = [
       why: 'Auditory Distance Model (Brannen 2011): Romanian /d/ is dental, perceived as acoustically the closest substitute for /ð/. French speakers use [z]; Romanian speakers use [d].',
     },
     cefr: 'B2',
-    color: '#ffa500',
+    color: '#8B5CF6',
   },
   {
     phoneme: '/θ/',
@@ -91,7 +92,7 @@ const PHONEME_EXERCISES = [
       why: 'Auditory Distance Model: Romanian /t/ is dental and perceived as the closest equivalent to /θ/. Unlike French speakers who prefer [f], Romanian speakers use [t] due to their richer dental consonant inventory.',
     },
     cefr: 'B2',
-    color: '#ffd700',
+    color: '#8B5CF6',
   },
   {
     phoneme: '/æ/-/ɑ:/',
@@ -107,7 +108,7 @@ const PHONEME_EXERCISES = [
       why: 'Interlanguage: /æ/ formant values fall between RP and Romanian /e/ — second best realised vowel, but still consistently undershoot the English target',
     },
     cefr: 'B2',
-    color: '#90ee90',
+    color: '#0FBA9A',
   },
   {
     phoneme: '/ʌ/',
@@ -123,7 +124,7 @@ const PHONEME_EXERCISES = [
       why: 'Romanian /a/ is more open and back; learners transfer L1 F1 values, producing a vowel that is too low and too back for English /ʌ/',
     },
     cefr: 'B1',
-    color: '#86efac',
+    color: '#0FBA9A',
   },
   {
     phoneme: '[ɫ] Dark L',
@@ -139,7 +140,7 @@ const PHONEME_EXERCISES = [
       why: 'Romanian /l/ is always realised as clear [l] — dark [ɫ] does not exist in L1. Only 50% of Romanian learners produced it correctly even once.',
     },
     cefr: 'B2',
-    color: '#4ade80',
+    color: '#0FBA9A',
   },
   {
     phoneme: '/ŋ/',
@@ -155,7 +156,7 @@ const PHONEME_EXERCISES = [
       why: 'In Romanian, [ŋ] is only an allophone of /n/ before /k/ or /g/ — it never occurs standalone. 50% of learners always added [g]; 0% correct on the word-list task.',
     },
     cefr: 'B1',
-    color: '#a855f7',
+    color: '#8B5CF6',
   },
   {
     phoneme: '[kʰ]',
@@ -171,7 +172,7 @@ const PHONEME_EXERCISES = [
       why: 'English VOT increases from bilabial to velar stops. Romanian learners over-apply this English pattern at the velar place, producing bursts longer than the 30–40 ms English norm.',
     },
     cefr: 'C1',
-    color: '#4f6ef7',
+    color: '#8B5CF6',
   },
   {
     phoneme: '/ə/',
@@ -203,7 +204,7 @@ const PHONEME_EXERCISES = [
       why: 'Romanian aspiration occurs only pre-pausally (after stops at the end of an utterance), never word-initially. Learners suppress initial aspiration by L1 transfer.',
     },
     cefr: 'C1',
-    color: '#ec4899',
+    color: '#8B5CF6',
   },
   {
     phoneme: '[tʰ]',
@@ -219,7 +220,7 @@ const PHONEME_EXERCISES = [
       why: 'Only 1 out of 10 Romanian learners produced [tʰ] correctly (Măchiță 2021). Initial aspiration is absent in Romanian; L1 transfer fully suppresses the required VOT of 30–40 ms.',
     },
     cefr: 'C1',
-    color: '#f59e0b',
+    color: '#8B5CF6',
   },
 ];
 
@@ -241,7 +242,7 @@ type PracticeMode = 'word' | 'sentence';
 type DiffFilter = 'ALL' | 'B1' | 'B2' | 'C1';
 
 const ScoreRing = ({ score }: { score: number }) => {
-  const color = score >= 88 ? '#22c55e' : score >= 70 ? '#f59e0b' : '#f87171';
+  const color = score >= 88 ? '#0FBA9A' : score >= 70 ? '#8B5CF6' : '#EF4444';
   const label = score >= 88 ? 'Excellent' : score >= 70 ? 'Good' : 'Needs Work';
   return (
     <View style={scoreRingStyles.outer}>
@@ -342,9 +343,9 @@ function phonemeStatus(
 }
 
 const STATUS_COLOR: Record<PhonemeStatus, string> = {
-  mastered: '#22c55e',
-  problem:  '#f87171',
-  todo:     '#FCD34D',
+  mastered: '#0FBA9A',
+  problem:  '#EF4444',
+  todo:     '#8B5CF6',
 };
 
 function shortGlyph(phoneme: string): string {
@@ -616,8 +617,8 @@ const globeStyles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#0A2540',
     borderWidth: 2.5,
-    borderColor: '#FCD34D',
-    shadowColor: '#1EE8B5',
+    borderColor: '#8B5CF6',
+    shadowColor: '#0FBA9A',
     shadowOpacity: 0.6,
     shadowRadius: 22,
     shadowOffset: { width: 0, height: 0 },
@@ -908,15 +909,15 @@ export default function AccentDNAScreen() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return '#22c55e';
-    if (score >= 60) return '#f59e0b';
-    return '#f87171';
+    if (score >= 80) return '#0FBA9A';
+    if (score >= 60) return '#8B5CF6';
+    return '#EF4444';
   };
 
   const getSeverityColor = (severity: string) => {
-    if (severity === 'high') return '#f87171';
-    if (severity === 'medium') return '#f59e0b';
-    return '#22c55e';
+    if (severity === 'high') return '#EF4444';
+    if (severity === 'medium') return '#8B5CF6';
+    return '#0FBA9A';
   };
 
   return (
@@ -932,7 +933,10 @@ export default function AccentDNAScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerBadge}>🧬 Accent DNA</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Feather name="activity" size={14} color={Colors.light.tint} />
+            <Text style={styles.headerBadge}>Accent DNA</Text>
+          </View>
         </View>
 
         <Text style={styles.pageTitle}>Accent DNA</Text>
@@ -953,7 +957,7 @@ export default function AccentDNAScreen() {
           style={styles.heatmapToggleBtn}
           onPress={() => setShowHeatmap(!showHeatmap)}
         >
-          <Text style={styles.heatmapToggleIcon}>🗺️</Text>
+          <Feather name="grid" size={18} color={Colors.light.tint} />
           <View style={styles.heatmapToggleContent}>
             <Text style={styles.heatmapToggleText}>
               {showHeatmap ? 'Hide' : 'Show'} Phoneme Overview
@@ -995,7 +999,7 @@ export default function AccentDNAScreen() {
         {/* Previously practised — tap to open the full results */}
         <SavedSessions<AccentSession>
           storageKey="vf_accent_sessions"
-          title="🎯 Practised phrases"
+          title="Practised phrases"
           accent={Colors.light.tint}
           getLabel={(s) => s.target_text}
           getScore={(s) => s.accuracy_score}
@@ -1091,13 +1095,16 @@ export default function AccentDNAScreen() {
               </View>
             </View>
 
-            <Text style={styles.tipText}>💡 {selectedExercise.tip}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8 }}>
+              <Feather name="zap" size={14} color={Colors.light.tint} style={{ marginTop: 2 }} />
+              <Text style={[styles.tipText, { flex: 1 }]}>{selectedExercise.tip}</Text>
+            </View>
 
             {/* Romanian error pattern — Măchiță (2021) */}
             {selectedExercise.romanian_error && (
               <View style={styles.romanianErrorBox}>
                 <View style={styles.romanianErrorHeader}>
-                  <Text style={styles.romanianErrorIcon}>⚠️</Text>
+                  <Feather name="alert-triangle" size={14} color={Colors.light.warning} />
                   <Text style={styles.romanianErrorTitle}>Typical Romanian error</Text>
                 </View>
                 <Text style={styles.romanianErrorSubstitute}>
@@ -1117,7 +1124,10 @@ export default function AccentDNAScreen() {
               style={styles.expandableHeader}
               onPress={() => setShowArticulation(!showArticulation)}
             >
-              <Text style={styles.expandableTitle}>👄 Mouth Position Guide</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <Feather name="mic" size={14} color={Colors.light.textSecondary} />
+                <Text style={styles.expandableTitle}>Mouth Position Guide</Text>
+              </View>
               <Text style={styles.expandableChevron}>{showArticulation ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {showArticulation && (
@@ -1127,24 +1137,27 @@ export default function AccentDNAScreen() {
                   .filter(s => s.trim().length > 4)
                   .map((sentence, i) => {
                     const s = sentence.trim();
-                    const icon =
-                      /tongue/i.test(s)              ? '👅' :
-                      /lip/i.test(s)                 ? '👄' :
-                      /teeth|dental|tooth/i.test(s)  ? '🦷' :
-                      /air|breath|puff|aspir|paper|flutter/i.test(s) ? '💨' :
-                      /voice|vibrat|throat/i.test(s) ? '🗣️' :
-                      /jaw|mouth|open/i.test(s)      ? '↕️' :
-                      /back.*tongue|tongue.*back|soft palate|velar/i.test(s) ? '↩️' : '▸';
+                    const icon: React.ComponentProps<typeof Feather>['name'] =
+                      /tongue/i.test(s)              ? 'move' :
+                      /lip/i.test(s)                 ? 'mic' :
+                      /teeth|dental|tooth/i.test(s)  ? 'align-center' :
+                      /air|breath|puff|aspir|paper|flutter/i.test(s) ? 'wind' :
+                      /voice|vibrat|throat/i.test(s) ? 'volume-2' :
+                      /jaw|mouth|open/i.test(s)      ? 'chevron-down' :
+                      /back.*tongue|tongue.*back|soft palate|velar/i.test(s) ? 'corner-down-left' : 'arrow-right';
                     const accent = selectedExercise.color;
                     return (
                       <View key={i} style={[styles.artStep, { borderLeftColor: accent }]}>
-                        <Text style={styles.artStepIcon}>{icon}</Text>
+                        <Feather name={icon} size={13} color={accent} />
                         <Text style={styles.artStepText}>{s}</Text>
                       </View>
                     );
                   })}
                 <View style={[styles.artTipRow, { backgroundColor: selectedExercise.color + '12' }]}>
-                  <Text style={styles.artTipLabel}>💡 KEY TIP</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Feather name="zap" size={12} color={selectedExercise.color} />
+                    <Text style={styles.artTipLabel}>KEY TIP</Text>
+                  </View>
                   <Text style={[styles.artTipText, { color: selectedExercise.color }]}>{selectedExercise.tip}</Text>
                 </View>
               </View>
@@ -1155,7 +1168,10 @@ export default function AccentDNAScreen() {
               style={styles.expandableHeader}
               onPress={() => setShowMinimalPairs(!showMinimalPairs)}
             >
-              <Text style={styles.expandableTitle}>🔀 Minimal Pairs</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                <Feather name="shuffle" size={14} color={Colors.light.textSecondary} />
+                <Text style={styles.expandableTitle}>Minimal Pairs</Text>
+              </View>
               <Text style={styles.expandableChevron}>{showMinimalPairs ? '▲' : '▼'}</Text>
             </TouchableOpacity>
             {showMinimalPairs && (
@@ -1181,7 +1197,10 @@ export default function AccentDNAScreen() {
                   style={styles.expandableHeader}
                   onPress={() => setShowSpellings(!showSpellings)}
                 >
-                  <Text style={styles.expandableTitle}>🔤 How this sound is spelled</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                    <Feather name="type" size={14} color={Colors.light.textSecondary} />
+                    <Text style={styles.expandableTitle}>How this sound is spelled</Text>
+                  </View>
                   <Text style={styles.expandableChevron}>{showSpellings ? '▲' : '▼'}</Text>
                 </TouchableOpacity>
                 {showSpellings && (
@@ -1276,7 +1295,10 @@ export default function AccentDNAScreen() {
         {/* Session attempt history */}
         {currentHistory.length > 0 && (
           <View style={styles.historyCard}>
-            <Text style={styles.historyTitle}>📊 Your Attempts This Session</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <Feather name="bar-chart-2" size={15} color={Colors.light.tint} />
+              <Text style={styles.historyTitle}>Your Attempts This Session</Text>
+            </View>
             <View style={styles.historyBars}>
               {currentHistory.map((score, i) => (
                 <View key={i} style={styles.historyBarItem}>
@@ -1318,7 +1340,7 @@ export default function AccentDNAScreen() {
                 <ActivityIndicator color="#fff" size="large" />
               ) : (
                 <>
-                  <Text style={styles.recordIcon}>{isRecording ? '⏹' : '🎙'}</Text>
+                  <Feather name={isRecording ? 'square' : 'mic'} size={28} color="#fff" />
                   <Text style={styles.recordBtnText}>
                     {isRecording ? 'Stop & Analyze' : 'Start Recording'}
                   </Text>
@@ -1360,11 +1382,17 @@ export default function AccentDNAScreen() {
                 disabled={loading}
                 activeOpacity={0.85}
               >
-                <Text style={styles.uploadBtnText}>📁  Upload a recording instead</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Feather name="upload" size={15} color={Colors.light.tint} />
+                  <Text style={styles.uploadBtnText}>Upload a recording instead</Text>
+                </View>
               </TouchableOpacity>
 
               {uploadedFileName && (
-                <Text style={styles.uploadFileName} numberOfLines={1}>📎 {uploadedFileName}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Feather name="paperclip" size={12} color={Colors.light.textSecondary} />
+                  <Text style={styles.uploadFileName} numberOfLines={1}>{uploadedFileName}</Text>
+                </View>
               )}
               {Platform.OS !== 'web' && (
                 <Text style={styles.uploadHint}>Upload works in the web version.</Text>
@@ -1414,7 +1442,7 @@ export default function AccentDNAScreen() {
             {/* Play the saved recording (cloned voice, level-calibrated) */}
             {savedAudioId && (
               <TouchableOpacity style={styles.playRecBtn} onPress={toggleSavedAudio} activeOpacity={0.85}>
-                <Text style={styles.playRecIcon}>{savedAudioPlaying ? '⏸' : '▶'}</Text>
+                <Feather name={savedAudioPlaying ? 'pause' : 'play'} size={18} color={Colors.light.tint} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.playRecText}>
                     {savedAudioPlaying ? 'Playing recording…' : 'Play your recording'}
@@ -1429,7 +1457,7 @@ export default function AccentDNAScreen() {
             {feedback.word_breakdown && feedback.word_breakdown.length > 0 && (
               <View style={styles.phonemeBreakdown}>
                 <View style={styles.phonemeBreakdownHead}>
-                  <Text style={styles.overallTitle}>🔬 Word Breakdown</Text>
+                  <Text style={styles.overallTitle}>Word Breakdown</Text>
                   {feedback.engine && (
                     <Text style={styles.engineBadge}>{feedback.engine}</Text>
                   )}
@@ -1440,7 +1468,7 @@ export default function AccentDNAScreen() {
                 <View style={styles.wordStrip}>
                   {feedback.word_breakdown.map((w, i) => {
                     const ratio = w.total > 0 ? w.correct / w.total : 1;
-                    const color = w.ok ? '#22c55e' : ratio >= 0.5 ? '#f59e0b' : '#f87171';
+                    const color = w.ok ? '#0FBA9A' : ratio >= 0.5 ? '#8B5CF6' : '#EF4444';
                     const isOpen = expandedWord === i;
                     return (
                       <TouchableOpacity
@@ -1480,7 +1508,7 @@ export default function AccentDNAScreen() {
             {feedback.intelligibility_only && (
               <View style={styles.intelNote}>
                 <Text style={styles.intelNoteText}>
-                  ℹ️ Your speech was intelligible (the recogniser understood the words).
+                  Your speech was intelligible (the recogniser understood the words).
                   Exact phoneme accuracy can&apos;t be verified from speech recognition alone,
                   so the score reflects intelligibility — keep practising the highlighted sounds.
                 </Text>
@@ -1489,14 +1517,17 @@ export default function AccentDNAScreen() {
 
             {/* Overall feedback */}
             <View style={styles.overallCard}>
-              <Text style={styles.overallTitle}>📋 Overall Feedback</Text>
+              <Text style={styles.overallTitle}>Overall Feedback</Text>
               <Text style={styles.overallText}>{feedback.overall_feedback}</Text>
             </View>
 
             {/* Problematic phonemes */}
             {feedback.problematic_phonemes?.length > 0 && (
               <View style={styles.issuesCard}>
-                <Text style={styles.issuesTitle}>⚠️ Phonemes to Work On</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Feather name="alert-triangle" size={14} color={Colors.light.warning} />
+                  <Text style={styles.issuesTitle}>Phonemes to Work On</Text>
+                </View>
                 {feedback.problematic_phonemes.map((p, i) => (
                   <View key={i} style={[styles.phonemeIssueRow, { borderColor: getSeverityColor(p.severity) + '30' }]}>
                     <View style={[styles.phonemeIssueBadge, { backgroundColor: getSeverityColor(p.severity) + '20' }]}>
@@ -1514,7 +1545,10 @@ export default function AccentDNAScreen() {
             {/* Suggestions */}
             {feedback.suggestions?.length > 0 && (
               <View style={styles.suggestionsCard}>
-                <Text style={styles.suggestionsTitle}>💡 How to Improve</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Feather name="zap" size={14} color={Colors.light.tint} />
+                  <Text style={styles.suggestionsTitle}>How to Improve</Text>
+                </View>
                 {feedback.suggestions.map((s, i) => (
                   <View key={i} style={styles.suggestionItem}>
                     <Text style={styles.suggestionIssue}>{s.issue}</Text>
@@ -1529,7 +1563,10 @@ export default function AccentDNAScreen() {
                 style={styles.tryAgainBtn}
                 onPress={() => { setFeedback(null); setError(''); stopAudioAsset(); setSavedAudioPlaying(false); setSavedAudioId(null); }}
               >
-                <Text style={styles.tryAgainText}>🔁 Try Again</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                  <Feather name="rotate-ccw" size={14} color={Colors.light.tint} />
+                  <Text style={styles.tryAgainText}>Try Again</Text>
+                </View>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.nextWordBtn}
@@ -1779,10 +1816,10 @@ const styles = StyleSheet.create({
   similarityLine: { color: Colors.light.textLight, fontSize: 11, fontWeight: '600', marginTop: 2 },
 
   intelNote: {
-    backgroundColor: '#EFF6FF', borderRadius: 12,
-    borderWidth: 1, borderColor: '#BFDBFE', padding: 12,
+    backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)', padding: 12,
   },
-  intelNoteText: { color: '#1D4ED8', fontSize: 12, lineHeight: 18 },
+  intelNoteText: { color: '#8B5CF6', fontSize: 12, lineHeight: 18 },
 
   phonemeBreakdown: {
     backgroundColor: Colors.light.surface,
@@ -1791,22 +1828,22 @@ const styles = StyleSheet.create({
   },
   phonemeBreakdownHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   engineBadge: {
-    fontSize: 9, fontWeight: '700', color: '#7C3AED',
-    backgroundColor: '#7C3AED15', borderRadius: 6,
+    fontSize: 9, fontWeight: '700', color: '#8B5CF6',
+    backgroundColor: '#8B5CF615', borderRadius: 6,
     paddingHorizontal: 6, paddingVertical: 2,
   },
   phonemeBreakdownHint: { fontSize: 11, color: Colors.light.textSecondary, marginTop: -2 },
   phonemeStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
   phonemeChipOk: {
-    backgroundColor: '#22c55e18', borderWidth: 1, borderColor: '#22c55e55',
+    backgroundColor: '#0FBA9A18', borderWidth: 1, borderColor: '#0FBA9A55',
     borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5,
   },
-  phonemeChipOkText: { color: '#15803d', fontSize: 14, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+  phonemeChipOkText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
   phonemeChipBad: {
-    backgroundColor: '#f8717118', borderWidth: 1, borderColor: '#f8717166',
+    backgroundColor: '#EF444418', borderWidth: 1, borderColor: '#EF444466',
     borderRadius: 8, paddingHorizontal: 9, paddingVertical: 5,
   },
-  phonemeChipBadText: { color: '#dc2626', fontSize: 14, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
+  phonemeChipBadText: { color: '#EF4444', fontSize: 14, fontWeight: '800', fontFamily: Platform.OS === 'ios' ? undefined : 'monospace' },
 
   // Word-level breakdown
   wordStrip: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
@@ -1833,8 +1870,8 @@ const styles = StyleSheet.create({
   playRecText: { fontSize: 14, fontWeight: '700', color: Colors.light.text },
   playRecSub: { fontSize: 11, color: Colors.light.textSecondary, marginTop: 1 },
   playRecBadge: {
-    fontSize: 10, fontWeight: '800', color: '#dc2626',
-    backgroundColor: '#fee2e2', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
+    fontSize: 10, fontWeight: '800', color: '#EF4444',
+    backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
     overflow: 'hidden',
   },
 
@@ -1888,12 +1925,12 @@ const styles = StyleSheet.create({
 
   // ── Romanian error pattern block ─────────────────────────────────────────
   romanianErrorBox: {
-    backgroundColor: '#f59e0b12',
+    backgroundColor: '#8B5CF612',
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#f59e0b40',
+    borderColor: '#8B5CF640',
     borderLeftWidth: 3,
-    borderLeftColor: '#f59e0b',
+    borderLeftColor: '#8B5CF6',
     padding: 12,
     gap: 5,
     marginTop: 4,
@@ -1908,7 +1945,7 @@ const styles = StyleSheet.create({
   romanianErrorTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#b45309',
+    color: '#8B5CF6',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

@@ -11,16 +11,16 @@ import { VOCABULARY_ENDPOINTS } from '@/constants/api';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TEAL   = '#0FBA9A';
-const NAVY   = '#0F172A';
-const SLATE  = '#64748B';
-const BORDER = '#E5E7EB';
-const CARD   = '#FFFFFF';
-const BG     = '#F8FAFC';
+const NAVY   = '#F0F6FF';
+const SLATE  = '#94A3B8';
+const BORDER = 'rgba(255,255,255,0.08)';
+const CARD   = '#0F1B2D';
+const BG     = '#060D1A';
 
 const CEFR_COLOR: Record<string, string> = {
   A1: '#94A3B8', A2: '#64748B',
-  B1: '#3B82F6', B2: '#8B5CF6',
-  C1: '#10B981', C2: '#F59E0B',
+  B1: '#8B5CF6', B2: '#8B5CF6',
+  C1: '#8B5CF6', C2: '#0FBA9A',
 };
 
 // Official CEFR descriptors — Council of Europe Global Scale (globalscale.txt)
@@ -62,10 +62,10 @@ const CAMBRIDGE_EXAM: Record<string, { name: string; code: string; tip: string }
 };
 
 const IELTS_CRITERIA = [
-  { key: 'fluency_coherence',   label: 'Fluency & Coherence',        color: '#3B82F6' },
+  { key: 'fluency_coherence',   label: 'Fluency & Coherence',        color: '#8B5CF6' },
   { key: 'lexical_resource',    label: 'Lexical Resource',           color: '#8B5CF6' },
-  { key: 'grammatical_accuracy',label: 'Grammatical Range',          color: '#10B981' },
-  { key: 'pronunciation',       label: 'Pronunciation',              color: '#F59E0B' },
+  { key: 'grammatical_accuracy',label: 'Grammatical Range',          color: '#0FBA9A' },
+  { key: 'pronunciation',       label: 'Pronunciation',              color: '#8B5CF6' },
 ] as const;
 
 const CAMBRIDGE_CRITERIA = [
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
   criterionVal: { fontSize: 15, fontWeight: '800' },
 
   bandBarTrack: {
-    height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden',
+    height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden',
   },
   bandBarFill: { height: '100%', borderRadius: 4 },
 
@@ -658,7 +658,7 @@ const styles = StyleSheet.create({
   },
   camAssessOverall: { fontSize: 13, color: SLATE, marginBottom: 12, lineHeight: 18 },
   camCriterionCard: {
-    backgroundColor: '#F8FAFC', borderRadius: 10, padding: 12,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10, padding: 12,
     borderWidth: 1, borderColor: BORDER, marginBottom: 8,
   },
   camCriterionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 14,
   },
   indicatorCell: {
-    width: '30%', backgroundColor: '#F8FAFC', borderRadius: 10,
+    width: '30%', backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10,
     padding: 10, borderWidth: 1, borderColor: BORDER, alignItems: 'center',
   },
   indicatorVal: { fontSize: 16, fontWeight: '800', color: TEAL },
@@ -699,18 +699,18 @@ const styles = StyleSheet.create({
   pteScoreRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 14 },
   pteScoreBubble: {
     width: 72, height: 72, borderRadius: 36,
-    backgroundColor: '#EFF6FF', borderWidth: 2, borderColor: '#3B82F6',
+    backgroundColor: 'rgba(139,92,246,0.12)', borderWidth: 2, borderColor: '#8B5CF6',
     justifyContent: 'center', alignItems: 'center',
   },
-  pteScoreNum: { fontSize: 26, fontWeight: '900', color: '#3B82F6', lineHeight: 30 },
+  pteScoreNum: { fontSize: 26, fontWeight: '900', color: '#8B5CF6', lineHeight: 30 },
   pteScaleLabel: { fontSize: 11, color: SLATE, fontWeight: '600' },
   pteRangeRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 },
   pteRangeLabel: { fontSize: 12, color: SLATE, fontWeight: '500' },
   pteRangeVal: { fontSize: 13, fontWeight: '700', color: NAVY },
   pteBarTrack: {
-    height: 10, backgroundColor: '#EFF6FF', borderRadius: 5, overflow: 'hidden', marginBottom: 4,
+    height: 10, backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: 5, overflow: 'hidden', marginBottom: 4,
   },
-  pteBarFill: { height: '100%', backgroundColor: '#3B82F6', borderRadius: 5 },
+  pteBarFill: { height: '100%', backgroundColor: '#8B5CF6', borderRadius: 5 },
   pteBarLabels: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   pteBarTick: { fontSize: 10, color: SLATE },
   pteNote: { fontSize: 11, color: SLATE, fontStyle: 'italic', marginBottom: 4, lineHeight: 15 },
@@ -719,15 +719,15 @@ const styles = StyleSheet.create({
   sourcesCard: {
     backgroundColor: CARD, borderRadius: 14, borderWidth: 1, borderColor: BORDER, padding: 14, gap: 10,
   },
-  sourceItem: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9', paddingBottom: 10 },
+  sourceItem: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)', paddingBottom: 10 },
   sourceShort: { fontSize: 12, fontWeight: '700', color: NAVY, marginBottom: 3 },
   sourceDetail: { fontSize: 11, color: SLATE, lineHeight: 15 },
 
   // Demo banner
   demoBanner: {
-    backgroundColor: '#EFF6FF', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 12,
+    backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)', marginBottom: 12,
   },
-  demoBannerTitle: { fontSize: 13, fontWeight: '800', color: '#1E40AF', marginBottom: 6 },
-  demoBannerText: { fontSize: 12, color: '#1D4ED8', lineHeight: 18 },
+  demoBannerTitle: { fontSize: 13, fontWeight: '800', color: '#8B5CF6', marginBottom: 6 },
+  demoBannerText: { fontSize: 12, color: '#8B5CF6', lineHeight: 18 },
 });

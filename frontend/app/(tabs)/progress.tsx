@@ -8,6 +8,7 @@ import {
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLearnerProfile } from '../../context/LearnerProfile';
@@ -110,7 +111,7 @@ const INDICATOR_PLAIN: Record<string, string> = {
 };
 
 const CEFR_COLOR: Record<string, string> = {
-  A1: '#22c55e', A2: '#4ade80', B1: '#60a5fa', B2: '#f59e0b', C1: '#f87171', C2: '#e879f9',
+  A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6', B2: '#8B5CF6', C1: '#8B5CF6', C2: '#0FBA9A',
 };
 
 // IELTS Speaking Band Descriptors — British Council / Cambridge ESOL (2024)
@@ -139,9 +140,9 @@ const CEFR_CAN_DO: Record<string, string> = {
 };
 
 const CAF_META = [
-  { key: 'C' as const, label: 'Complexity', hint: 'How varied and complex your sentences are', color: '#7C6FFF' },
-  { key: 'A' as const, label: 'Accuracy', hint: 'How clearly you pronounce words', color: '#1EE8B5' },
-  { key: 'F' as const, label: 'Fluency', hint: 'How smoothly you speak (less "um/uh" = higher score)', color: '#FF7A59' },
+  { key: 'C' as const, label: 'Complexity', hint: 'How varied and complex your sentences are', color: '#8B5CF6' },
+  { key: 'A' as const, label: 'Accuracy', hint: 'How clearly you pronounce words', color: '#0FBA9A' },
+  { key: 'F' as const, label: 'Fluency', hint: 'How smoothly you speak (less "um/uh" = higher score)', color: '#8B5CF6' },
 ];
 
 // ─── Chart helpers (pure View/StyleSheet — no SVG or external libraries) ────────
@@ -182,7 +183,7 @@ function LineChart({
         <View key={gi} style={{
           position: 'absolute', left: 0, right: 0,
           top: padY + (1 - f) * (height - 2 * padY),
-          height: 1, backgroundColor: '#F0F0F0',
+          height: 1, backgroundColor: '#0F1B2D',
         }} />
       ))}
       {pts.slice(0, -1).map((p, i) => {
@@ -243,7 +244,7 @@ function MultiLineChart({
         <View key={gi} style={{
           position: 'absolute', left: 0, right: 0,
           top: padY + (1 - f) * (height - 2 * padY),
-          height: 1, backgroundColor: '#F0F0F0',
+          height: 1, backgroundColor: '#0F1B2D',
         }} />
       ))}
       {series.map((s, si) => {
@@ -460,7 +461,7 @@ export default function ProgressScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
             <Text style={styles.backText}>←  Back</Text>
           </TouchableOpacity>
-          <Text style={styles.pageTitle}>📊 Learning Progress</Text>
+          <Text style={styles.pageTitle}>Learning Progress</Text>
           <TouchableOpacity
             style={[styles.exportBtn, exporting && { opacity: 0.7 }]}
             onPress={async () => {
@@ -517,14 +518,14 @@ export default function ProgressScreen() {
           const cefrDelta = currIdx >= 0 ? currIdx - baseIdx : 0;
 
           const EXAM_MAP = [
-            { key: 'ielts_academic', label: 'IELTS', max: 9, color: '#10B981',
+            { key: 'ielts_academic', label: 'IELTS', max: 9, color: '#0FBA9A',
               current: examSessions.length > 0
                 ? examSessions.slice(-3).reduce((s, e) => s + e.ielts_overall, 0) / Math.min(examSessions.length, 3)
                 : null,
               baseRaw: startBaseline.exam_specific_scores?.ielts_academic,
               toNative: (v: number) => ((v / 100) * 9).toFixed(1),
             },
-            { key: 'cambridge_cae', label: 'Cambridge', max: 100, color: '#7C6FFF',
+            { key: 'cambridge_cae', label: 'Cambridge', max: 100, color: '#8B5CF6',
               current: null,
               baseRaw: startBaseline.exam_specific_scores?.cambridge_cae,
               toNative: (v: number) => Math.round(v).toString(),
@@ -551,12 +552,17 @@ export default function ProgressScreen() {
                 <View style={styles.baselineScoreBox}>
                   <Text style={styles.baselineScoreLabel}>START</Text>
                   <View style={[styles.baselineCircle, { borderColor: '#64748B' }]}>
-                    <Text style={[styles.baselineCircleNum, { color: '#64748B' }]}>
-                      {Math.round(startBaseline.overall_score)}
-                    </Text>
-                    <Text style={styles.baselineCircleMax}>/100</Text>
+                    <View style={styles.baselineCircleInner}>
+                      <Text style={[styles.baselineCircleNum, { color: '#64748B' }]}>
+                        {Math.round(startBaseline.overall_score)}
+                      </Text>
+                      <Text style={styles.baselineCircleMax}>/100</Text>
+                    </View>
                   </View>
-                  <View style={[styles.cefrBadge, { backgroundColor: (CEFR_COLOR[startBaseline.predicted_cefr] ?? '#64748B') + '22' }]}>
+                  <View style={[styles.cefrBadge, {
+                    backgroundColor: (CEFR_COLOR[startBaseline.predicted_cefr] ?? '#64748B') + '20',
+                    borderColor: (CEFR_COLOR[startBaseline.predicted_cefr] ?? '#64748B') + '50',
+                  }]}>
                     <Text style={[styles.cefrBadgeText, { color: CEFR_COLOR[startBaseline.predicted_cefr] ?? '#64748B' }]}>
                       {startBaseline.predicted_cefr}
                     </Text>
@@ -568,14 +574,15 @@ export default function ProgressScreen() {
                   {delta !== null ? (
                     <>
                       <View style={[styles.deltaBadge, {
-                        backgroundColor: delta >= 0 ? '#10b98122' : '#ef444422',
+                        backgroundColor: delta >= 0 ? '#0FBA9A18' : '#ef444418',
+                        borderColor: delta >= 0 ? '#0FBA9A50' : '#ef444450',
                       }]}>
-                        <Text style={[styles.deltaText, { color: delta >= 0 ? '#10b981' : '#ef4444' }]}>
+                        <Text style={[styles.deltaText, { color: delta >= 0 ? '#0FBA9A' : '#ef4444' }]}>
                           {delta >= 0 ? '+' : ''}{delta}pts
                         </Text>
                       </View>
                       {cefrDelta !== 0 && (
-                        <Text style={[styles.cefrDeltaText, { color: cefrDelta > 0 ? '#10b981' : '#ef4444' }]}>
+                        <Text style={[styles.cefrDeltaText, { color: cefrDelta > 0 ? '#0FBA9A' : '#ef4444' }]}>
                           {cefrDelta > 0 ? `+${cefrDelta}` : cefrDelta} CEFR
                         </Text>
                       )}
@@ -592,14 +599,19 @@ export default function ProgressScreen() {
                   {currentScore !== null ? (
                     <>
                       <View style={[styles.baselineCircle, { borderColor: Colors.light.tint }]}>
-                        <Text style={[styles.baselineCircleNum, { color: Colors.light.tint }]}>
-                          {currentScore}
-                        </Text>
-                        <Text style={styles.baselineCircleMax}>/100</Text>
+                        <View style={styles.baselineCircleInner}>
+                          <Text style={[styles.baselineCircleNum, { color: Colors.light.tint }]}>
+                            {currentScore}
+                          </Text>
+                          <Text style={styles.baselineCircleMax}>/100</Text>
+                        </View>
                       </View>
                       {currentCefr && (
-                        <View style={[styles.cefrBadge, { backgroundColor: (CEFR_COLOR[currentCefr] ?? '#60a5fa') + '22' }]}>
-                          <Text style={[styles.cefrBadgeText, { color: CEFR_COLOR[currentCefr] ?? '#60a5fa' }]}>
+                        <View style={[styles.cefrBadge, {
+                          backgroundColor: (CEFR_COLOR[currentCefr] ?? '#8B5CF6') + '20',
+                          borderColor: (CEFR_COLOR[currentCefr] ?? '#8B5CF6') + '50',
+                        }]}>
+                          <Text style={[styles.cefrBadgeText, { color: CEFR_COLOR[currentCefr] ?? '#8B5CF6' }]}>
                             {currentCefr}
                           </Text>
                         </View>
@@ -616,24 +628,44 @@ export default function ProgressScreen() {
                 </View>
               </View>
 
-              {/* Exam score comparison */}
+              {/* Exam score comparison — circles */}
               {EXAM_MAP.some(e => e.baseRaw != null) && (
                 <View style={styles.baselineExamRow}>
-                  {EXAM_MAP.map(exam => {
+                  {EXAM_MAP.map((exam, idx) => {
                     if (exam.baseRaw == null) return null;
                     const baseNative = exam.toNative(exam.baseRaw);
                     const currNative = exam.current !== null ? exam.toNative((exam.current / 9) * 100) : null;
                     return (
-                      <View key={exam.key} style={styles.baselineExamBox}>
+                      <View key={exam.key} style={[
+                        styles.baselineExamBox,
+                        idx > 0 && { borderLeftWidth: 1, borderLeftColor: Colors.light.border },
+                      ]}>
                         <Text style={[styles.baselineExamLabel, { color: exam.color }]}>{exam.label}</Text>
                         <View style={styles.baselineExamCompare}>
-                          <Text style={styles.baselineExamBase}>{baseNative}</Text>
+                          {/* START circle */}
+                          <View style={styles.examMiniCircleWrap}>
+                            <View style={[styles.examMiniCircle, { borderColor: Colors.light.textLight }]}>
+                              <View style={styles.examMiniInner}>
+                                <Text style={[styles.examMiniNum, { color: Colors.light.textSecondary }]}>{baseNative}</Text>
+                                <Text style={styles.examMiniMax}>/{exam.max}</Text>
+                              </View>
+                            </View>
+                            <Text style={styles.examMiniCircleLabel}>START</Text>
+                          </View>
                           <Text style={styles.baselineExamArrow}>→</Text>
-                          <Text style={[styles.baselineExamCurrent, { color: exam.color }]}>
-                            {currNative ?? '—'}
-                          </Text>
+                          {/* NOW circle */}
+                          <View style={styles.examMiniCircleWrap}>
+                            <View style={[styles.examMiniCircle, { borderColor: currNative != null ? exam.color : Colors.light.border }]}>
+                              <View style={styles.examMiniInner}>
+                                <Text style={[styles.examMiniNum, { color: currNative != null ? exam.color : Colors.light.textLight }]}>
+                                  {currNative ?? '—'}
+                                </Text>
+                                {currNative != null && <Text style={styles.examMiniMax}>/{exam.max}</Text>}
+                              </View>
+                            </View>
+                            <Text style={styles.examMiniCircleLabel}>NOW</Text>
+                          </View>
                         </View>
-                        <Text style={styles.baselineExamMax}>/{exam.max}</Text>
                       </View>
                     );
                   })}
@@ -653,7 +685,8 @@ export default function ProgressScreen() {
                         <View style={styles.baselineIndBarBg}>
                           <View style={[styles.baselineIndBarFill, {
                             width: `${ind.normalized}%` as any,
-                            backgroundColor: '#64748B',
+                            backgroundColor: Colors.light.tint,
+                            opacity: 0.75,
                           }]} />
                         </View>
                         <Text style={styles.baselineIndPct}>{Math.round(ind.normalized)}%</Text>
@@ -679,7 +712,7 @@ export default function ProgressScreen() {
                 }}
                 activeOpacity={0.8}
               >
-                <Text style={styles.rerunBtnText}>🔄 Re-run Diagnostic</Text>
+                <Text style={styles.rerunBtnText}>Re-run Diagnostic →</Text>
               </TouchableOpacity>
               <Text style={styles.rerunHint}>
                 Alderson (2005): re-testing with the same diagnostic measures real improvement.
@@ -755,7 +788,7 @@ export default function ProgressScreen() {
                 {profile.learning_pace === 'fast'
                   ? 'Progressing quickly! 🚀'
                   : profile.learning_pace === 'normal'
-                    ? 'Steady progress. Keep practicing! 💪'
+                    ? 'Steady progress. Keep practicing!'
                     : 'Take your time. Practice makes perfect! 🌱'}
               </Text>
             </View>
@@ -764,7 +797,7 @@ export default function ProgressScreen() {
 
         {/* Tips */}
         <View style={styles.tipsCard}>
-          <Text style={styles.cardTitle}>💡 Improvement Tips</Text>
+          <Text style={styles.cardTitle}>Improvement Tips</Text>
           <View style={styles.tipItem}>
             <Text style={styles.tipNumber}>1</Text>
             <View style={styles.tipContent}>
@@ -903,9 +936,9 @@ export default function ProgressScreen() {
                 {/* Vocab CEFR level + WPS */}
                 <View style={styles.cafStatRow}>
                   <View style={[styles.cafStatChip, {
-                    backgroundColor: (CEFR_COLOR[latest.cefr] ?? '#60a5fa') + '20',
+                    backgroundColor: (CEFR_COLOR[latest.cefr] ?? '#8B5CF6') + '20',
                   }]}>
-                    <Text style={[styles.cafStatValue, { color: CEFR_COLOR[latest.cefr] ?? '#60a5fa' }]}>
+                    <Text style={[styles.cafStatValue, { color: CEFR_COLOR[latest.cefr] ?? '#8B5CF6' }]}>
                       {latest.cefr}
                     </Text>
                     <Text style={styles.cafStatLabel}>Vocab Level</Text>
@@ -974,10 +1007,10 @@ export default function ProgressScreen() {
             ) / 2;
 
             const CRITERIA = [
-              { key: 'fluency_coherence' as const, label: 'Fluency', color: '#FF7A59' },
-              { key: 'lexical_resource' as const,  label: 'Lexical', color: '#7C6FFF' },
-              { key: 'grammatical_accuracy' as const, label: 'Grammar', color: '#1EE8B5' },
-              { key: 'pronunciation' as const,     label: 'Pronunciation', color: '#f59e0b' },
+              { key: 'fluency_coherence' as const, label: 'Fluency', color: '#8B5CF6' },
+              { key: 'lexical_resource' as const,  label: 'Lexical', color: '#8B5CF6' },
+              { key: 'grammatical_accuracy' as const, label: 'Grammar', color: '#0FBA9A' },
+              { key: 'pronunciation' as const,     label: 'Pronunciation', color: '#8B5CF6' },
             ];
 
             return (
@@ -985,17 +1018,19 @@ export default function ProgressScreen() {
                 {/* Overall band + Cambridge level */}
                 <View style={styles.examOverallRow}>
                   <View style={styles.examBandCircle}>
-                    <Text style={styles.examBandNum}>{avgBand}</Text>
-                    <Text style={styles.examBandSlash}>/9</Text>
+                    <View style={styles.examBandInner}>
+                      <Text style={styles.examBandNum}>{avgBand}</Text>
+                      <Text style={styles.examBandSlash}>/9</Text>
+                    </View>
                   </View>
                   <View style={styles.examOverallInfo}>
                     <Text style={styles.examBandLabel}>{latest.ielts.band_label}</Text>
                     <Text style={styles.examBandSub}>Avg last 5 sessions · IELTS Speaking</Text>
                     <View style={[styles.examCambridge, {
-                      backgroundColor: (CEFR_COLOR[latest.cambridge_level] ?? '#60a5fa') + '22',
+                      backgroundColor: (CEFR_COLOR[latest.cambridge_level] ?? '#8B5CF6') + '22',
                     }]}>
                       <Text style={[styles.examCambridgeLevel, {
-                        color: CEFR_COLOR[latest.cambridge_level] ?? '#60a5fa',
+                        color: CEFR_COLOR[latest.cambridge_level] ?? '#8B5CF6',
                       }]}>{latest.cambridge_level}</Text>
                       <Text style={styles.examCambridgeExam}>{latest.cambridge_exam}</Text>
                     </View>
@@ -1017,10 +1052,10 @@ export default function ProgressScreen() {
 
                 {/* CEFR Can-Do statement */}
                 <View style={[styles.examCanDoCard, {
-                  borderLeftColor: CEFR_COLOR[latest.cambridge_level] ?? '#60a5fa',
-                  backgroundColor: (CEFR_COLOR[latest.cambridge_level] ?? '#60a5fa') + '0D',
+                  borderLeftColor: CEFR_COLOR[latest.cambridge_level] ?? '#8B5CF6',
+                  backgroundColor: (CEFR_COLOR[latest.cambridge_level] ?? '#8B5CF6') + '0D',
                 }]}>
-                  <Text style={[styles.examCanDoLevel, { color: CEFR_COLOR[latest.cambridge_level] ?? '#60a5fa' }]}>
+                  <Text style={[styles.examCanDoLevel, { color: CEFR_COLOR[latest.cambridge_level] ?? '#8B5CF6' }]}>
                     {latest.cambridge_level} — what you can do:
                   </Text>
                   <Text style={styles.examCanDoText}>
@@ -1205,8 +1240,8 @@ export default function ProgressScreen() {
                     <Text style={[styles.srsStatNum, { color: Colors.light.tint }]}>{learning_count}</Text>
                     <Text style={styles.srsStatLabel}>In{'\n'}Learning</Text>
                   </View>
-                  <View style={[styles.srsStatChip, { backgroundColor: '#10b98120' }]}>
-                    <Text style={[styles.srsStatNum, { color: '#10b981' }]}>{mastered_count}</Text>
+                  <View style={[styles.srsStatChip, { backgroundColor: '#0FBA9A20' }]}>
+                    <Text style={[styles.srsStatNum, { color: '#0FBA9A' }]}>{mastered_count}</Text>
                     <Text style={styles.srsStatLabel}>Mastered{'\n'}(21+ days)</Text>
                   </View>
                   <View style={[styles.srsStatChip, { backgroundColor: '#64748B20' }]}>
@@ -1219,7 +1254,7 @@ export default function ProgressScreen() {
                 <View style={styles.srsStackBarBg}>
                   <View style={[styles.srsStackSegment, {
                     width: `${masteredPct}%` as any,
-                    backgroundColor: '#10b981',
+                    backgroundColor: '#0FBA9A',
                   }]} />
                   <View style={[styles.srsStackSegment, {
                     width: `${learningPct}%` as any,
@@ -1232,7 +1267,7 @@ export default function ProgressScreen() {
                 </View>
                 <View style={styles.chartLegend}>
                   {[
-                    { color: '#10b981', label: 'Mastered' },
+                    { color: '#0FBA9A', label: 'Mastered' },
                     { color: Colors.light.tint, label: 'Learning' },
                     { color: '#ef4444', label: 'Due' },
                     { color: Colors.light.border, label: 'Not started' },
@@ -1274,13 +1309,13 @@ export default function ProgressScreen() {
             </Text>
           ) : (() => {
             const GENRE_COLOR: Record<string, string> = {
-              SPOK: '#10B981', FIC: '#7C6FFF', MAG: '#f59e0b',
-              NEWS: '#FF7A59', ACAD: '#1EE8B5',
-              Web: '#60a5fa', Blog: '#e879f9', Mov: '#fb7185', TV: '#a78bfa',
+              SPOK: '#0FBA9A', FIC: '#8B5CF6', MAG: '#8B5CF6',
+              NEWS: '#8B5CF6', ACAD: '#0FBA9A',
+              Web: '#8B5CF6', Blog: '#8B5CF6', Mov: '#EF4444', TV: '#8B5CF6',
             };
-            const GENRE_ICON: Record<string, string> = {
-              SPOK: '🗣️', FIC: '📖', MAG: '📰', NEWS: '🗞️', ACAD: '🎓',
-              Web: '🌐', Blog: '✍️', Mov: '🎬', TV: '📺',
+            const GENRE_ICON: Record<string, React.ComponentProps<typeof Feather>['name']> = {
+              SPOK: 'mic', FIC: 'book-open', MAG: 'file-text', NEWS: 'rss',
+              ACAD: 'award', Web: 'globe', Blog: 'edit-3', Mov: 'film', TV: 'monitor',
             };
             const GENRE_LABEL: Record<string, string> = {
               SPOK: 'Spoken', FIC: 'Fiction', MAG: 'Magazine',
@@ -1315,18 +1350,18 @@ export default function ProgressScreen() {
                       borderLeftColor: GENRE_COLOR[best.g],
                     }]}>
                       <Text style={styles.domainSummaryLabel}>STRONGEST</Text>
-                      <Text style={[styles.domainSummaryGenre, { color: GENRE_COLOR[best.g] }]}>
-                        {GENRE_ICON[best.g]} {GENRE_LABEL[best.g]}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Feather name={GENRE_ICON[best.g]} size={13} color={GENRE_COLOR[best.g]} />
+                        <Text style={[styles.domainSummaryGenre, { color: GENRE_COLOR[best.g] }]}>{GENRE_LABEL[best.g]}</Text>
+                      </View>
                       <Text style={styles.domainSummaryScore}>{best.avg}/100</Text>
                     </View>
-                    <View style={[styles.domainSummaryBox, {
-                      borderLeftColor: GENRE_COLOR[weakest.g],
-                    }]}>
+                    <View style={[styles.domainSummaryBox, { borderLeftColor: GENRE_COLOR[weakest.g] }]}>
                       <Text style={styles.domainSummaryLabel}>WEAKEST</Text>
-                      <Text style={[styles.domainSummaryGenre, { color: GENRE_COLOR[weakest.g] }]}>
-                        {GENRE_ICON[weakest.g]} {GENRE_LABEL[weakest.g]}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Feather name={GENRE_ICON[weakest.g]} size={13} color={GENRE_COLOR[weakest.g]} />
+                        <Text style={[styles.domainSummaryGenre, { color: GENRE_COLOR[weakest.g] }]}>{GENRE_LABEL[weakest.g]}</Text>
+                      </View>
                       <Text style={styles.domainSummaryScore}>{weakest.avg}/100</Text>
                     </View>
                   </View>
@@ -1338,14 +1373,12 @@ export default function ProgressScreen() {
                   if (!data) {
                     return (
                       <View key={g} style={styles.domainBarRow}>
-                        <Text style={styles.domainBarLabel}>
-                          {GENRE_ICON[g]} {GENRE_LABEL[g]}
-                        </Text>
+                        <View style={styles.domainBarLabelRow}>
+                          <Feather name={GENRE_ICON[g]} size={12} color={Colors.light.textSecondary} />
+                          <Text style={styles.domainBarLabel}>{GENRE_LABEL[g]}</Text>
+                        </View>
                         <View style={styles.cafBarBg}>
-                          <View style={[styles.cafBarFill, {
-                            width: '0%' as any,
-                            backgroundColor: Colors.light.border,
-                          }]} />
+                          <View style={[styles.cafBarFill, { width: '0%' as any, backgroundColor: Colors.light.border }]} />
                         </View>
                         <Text style={styles.domainBarPct}>—</Text>
                       </View>
@@ -1354,18 +1387,14 @@ export default function ProgressScreen() {
                   const avg = Math.round(data.totalScore / data.count);
                   return (
                     <View key={g} style={styles.domainBarRow}>
-                      <Text style={styles.domainBarLabel}>
-                        {GENRE_ICON[g]} {GENRE_LABEL[g]}
-                      </Text>
-                      <View style={styles.cafBarBg}>
-                        <View style={[styles.cafBarFill, {
-                          width: `${avg}%` as any,
-                          backgroundColor: GENRE_COLOR[g],
-                        }]} />
+                      <View style={styles.domainBarLabelRow}>
+                        <Feather name={GENRE_ICON[g]} size={12} color={GENRE_COLOR[g]} />
+                        <Text style={styles.domainBarLabel}>{GENRE_LABEL[g]}</Text>
                       </View>
-                      <Text style={[styles.domainBarPct, { color: GENRE_COLOR[g] }]}>
-                        {avg}
-                      </Text>
+                      <View style={styles.cafBarBg}>
+                        <View style={[styles.cafBarFill, { width: `${avg}%` as any, backgroundColor: GENRE_COLOR[g] }]} />
+                      </View>
+                      <Text style={[styles.domainBarPct, { color: GENRE_COLOR[g] }]}>{avg}</Text>
                     </View>
                   );
                 })}
@@ -1392,7 +1421,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   rtCard: {
-    backgroundColor: Colors.light.surface ?? '#F8F8F8',
+    backgroundColor: Colors.light.surface ?? '#0F1B2D',
     borderRadius: 12,
     padding: 20,
     marginBottom: 24,
@@ -1514,7 +1543,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1.5,
     borderColor: '#0FBA9A',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
   },
   backText: {
     color: '#0FBA9A',
@@ -1665,7 +1694,7 @@ const styles = StyleSheet.create({
   },
 
   phonemeLabel: {
-    color: '#0F172A',
+    color: Colors.light.text,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -1676,17 +1705,17 @@ const styles = StyleSheet.create({
   },
 
   phonemeDetails: {
-    color: '#64748B',
+    color: Colors.light.textSecondary,
     fontSize: 12,
     marginBottom: 8,
   },
 
   tipsCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.surface,
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: Colors.light.border,
   },
 
   tipItem: {
@@ -1698,8 +1727,8 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: '#a855f7' + '30',
-    color: '#a855f7',
+    backgroundColor: '#8B5CF6' + '30',
+    color: '#8B5CF6',
     fontSize: 16,
     fontWeight: '700',
     textAlign: 'center',
@@ -1712,14 +1741,14 @@ const styles = StyleSheet.create({
   },
 
   tipTitle: {
-    color: '#0F172A',
+    color: Colors.light.text,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
   },
 
   tipText: {
-    color: '#64748B',
+    color: Colors.light.textSecondary,
     fontSize: 12,
     lineHeight: 18,
   },
@@ -1760,7 +1789,7 @@ const styles = StyleSheet.create({
 
   // ── Exam Readiness Card ────────────────────────────────────────────────────
   examCard: {
-    backgroundColor: Colors.light.surface ?? '#F8F8F8',
+    backgroundColor: Colors.light.surface ?? '#0F1B2D',
     borderRadius: 12, padding: 20, marginBottom: 24,
     borderWidth: 1, borderColor: Colors.light.tint + '40', gap: 14,
   },
@@ -1768,12 +1797,14 @@ const styles = StyleSheet.create({
   examBandCircle: {
     width: 68, height: 68, borderRadius: 34,
     backgroundColor: Colors.light.tint + '18',
-    justifyContent: 'center',
-    flexDirection: 'row', alignItems: 'flex-end' as any,
-    paddingBottom: 6,
+    borderWidth: 2, borderColor: Colors.light.tint + '50',
+    justifyContent: 'center', alignItems: 'center',
   },
-  examBandNum: { fontSize: 30, fontWeight: '800', color: Colors.light.tint },
-  examBandSlash: { fontSize: 13, fontWeight: '600', color: Colors.light.textLight, marginBottom: 2 },
+  examBandInner: {
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center',
+  },
+  examBandNum: { fontSize: 28, fontWeight: '900', color: Colors.light.tint },
+  examBandSlash: { fontSize: 12, fontWeight: '600', color: Colors.light.textLight, marginBottom: 2 },
   examOverallInfo: { flex: 1, gap: 4 },
   examBandLabel: { fontSize: 15, fontWeight: '700', color: Colors.light.text },
   examBandSub: { fontSize: 11, color: Colors.light.textSecondary },
@@ -1804,70 +1835,141 @@ const styles = StyleSheet.create({
   // ── Baseline vs. Now Card ────────────────────────────────────────────────────
   baselineCard: {
     backgroundColor: Colors.light.surface,
-    borderRadius: 12, padding: 20, marginBottom: 24,
-    borderWidth: 1.5, borderColor: Colors.light.tint + '50', gap: 16,
+    borderRadius: 16, overflow: 'hidden',
+    marginBottom: 24,
+    borderWidth: 1, borderColor: Colors.light.tint + '35',
   },
-  baselineSubtitle: { fontSize: 11, color: '#AAA', fontStyle: 'italic', marginTop: -10 },
-  baselineCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  rerunBadge: { backgroundColor: Colors.light.tint + '20', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 3 },
+  baselineCardHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 18, paddingBottom: 4,
+  },
+  baselineSubtitle: {
+    fontSize: 11, color: Colors.light.textLight, fontStyle: 'italic',
+    paddingHorizontal: 20, paddingBottom: 16,
+  },
+  rerunBadge: {
+    backgroundColor: Colors.light.tint + '18', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: Colors.light.tint + '40',
+  },
   rerunBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.light.tint },
 
-  baselineScoreRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  baselineScoreBox: { alignItems: 'center', gap: 8, flex: 1 },
-  baselineScoreLabel: { fontSize: 10, fontWeight: '800', color: Colors.light.textSecondary, letterSpacing: 1.5 },
-  baselineCircle: {
-    width: 72, height: 72, borderRadius: 36,
-    borderWidth: 3, justifyContent: 'center', alignItems: 'center',
-    flexDirection: 'row', alignItems: 'flex-end' as any, paddingBottom: 6,
+  // ── Score row ──
+  baselineScoreRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 20, paddingVertical: 20,
+    borderTopWidth: 1, borderBottomWidth: 1,
+    borderColor: Colors.light.border,
     backgroundColor: Colors.light.background,
   },
-  baselineCircleNum: { fontSize: 26, fontWeight: '800', lineHeight: 30 },
-  baselineCircleMax: { fontSize: 11, color: Colors.light.textLight, marginBottom: 2 },
+  baselineScoreBox: { flex: 1, alignItems: 'center', gap: 10 },
+  baselineScoreLabel: {
+    fontSize: 10, fontWeight: '900', letterSpacing: 2,
+    color: Colors.light.textSecondary,
+  },
+  baselineCircle: {
+    width: 84, height: 84, borderRadius: 42,
+    borderWidth: 3,
+    justifyContent: 'center', alignItems: 'center',
+    backgroundColor: Colors.light.surface,
+  },
+  baselineCircleInner: {
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center',
+  },
+  baselineCircleNum: { fontSize: 30, fontWeight: '900', lineHeight: 34 },
+  baselineCircleMax: { fontSize: 12, color: Colors.light.textLight, marginBottom: 3 },
   baselineCircleEmpty: { fontSize: 28, fontWeight: '800', color: Colors.light.border },
 
-  cefrBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
-  cefrBadgeText: { fontSize: 15, fontWeight: '800' },
+  cefrBadge: {
+    paddingHorizontal: 16, paddingVertical: 5, borderRadius: 8,
+    borderWidth: 1, borderColor: 'transparent',
+  },
+  cefrBadgeText: { fontSize: 16, fontWeight: '900' },
 
-  baselineDeltaCol: { alignItems: 'center', gap: 6, paddingHorizontal: 4 },
-  deltaBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
-  deltaText: { fontSize: 13, fontWeight: '800' },
+  // ── Delta centre column ──
+  baselineDeltaCol: { alignItems: 'center', gap: 6, paddingHorizontal: 8 },
+  deltaBadge: {
+    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
+    borderWidth: 1,
+  },
+  deltaText: { fontSize: 14, fontWeight: '900' },
   cefrDeltaText: { fontSize: 11, fontWeight: '700' },
-  baselineArrow: { fontSize: 22, color: Colors.light.textLight, fontWeight: '700' },
-
+  baselineArrow: { fontSize: 20, color: Colors.light.textLight },
   baselineNoData: { fontSize: 10, color: Colors.light.textLight, textAlign: 'center' },
 
-  baselineExamRow: { flexDirection: 'row', gap: 12 },
+  // ── Exam comparison row ──
+  baselineExamRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: Colors.light.border },
   baselineExamBox: {
-    flex: 1, alignItems: 'center', gap: 4,
-    backgroundColor: Colors.light.border + '30',
-    borderRadius: 10, paddingVertical: 12,
+    flex: 1, alignItems: 'center', paddingVertical: 18, gap: 10,
   },
-  baselineExamLabel: { fontSize: 11, fontWeight: '700' },
-  baselineExamCompare: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  baselineExamBase: { fontSize: 16, fontWeight: '700', color: '#64748B' },
-  baselineExamArrow: { fontSize: 13, color: Colors.light.textLight },
-  baselineExamCurrent: { fontSize: 16, fontWeight: '800' },
+  baselineExamLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.8 },
+  baselineExamCompare: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  baselineExamBase: { fontSize: 18, fontWeight: '700', color: Colors.light.textSecondary },
+  baselineExamArrow: { fontSize: 14, color: Colors.light.textLight, fontWeight: '600' },
+  baselineExamCurrent: { fontSize: 22, fontWeight: '900' },
   baselineExamMax: { fontSize: 10, color: Colors.light.textLight },
 
-  baselineIndicatorsSection: { gap: 8 },
-  baselineIndicatorsTitle: { fontSize: 11, fontWeight: '700', color: Colors.light.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
-  baselineIndRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  baselineIndLabel: { fontSize: 11, color: Colors.light.textSecondary, width: 110 },
-  baselineIndBarBg: { flex: 1, height: 6, backgroundColor: Colors.light.border, borderRadius: 3, overflow: 'hidden' },
-  baselineIndBarFill: { height: '100%', borderRadius: 3 },
-  baselineIndPct: { fontSize: 11, fontWeight: '700', color: '#64748B', width: 32, textAlign: 'right' },
-  baselineIndHint: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', marginTop: 2, paddingLeft: 2 },
+  examMiniCircleWrap: { alignItems: 'center', gap: 4 },
+  examMiniCircle: {
+    width: 58, height: 58, borderRadius: 29,
+    borderWidth: 2.5,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.light.background,
+  },
+  examMiniInner: {
+    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center',
+  },
+  examMiniNum: { fontSize: 18, fontWeight: '900', lineHeight: 22 },
+  examMiniMax: { fontSize: 9, color: Colors.light.textLight, marginBottom: 2 },
+  examMiniCircleLabel: {
+    fontSize: 9, fontWeight: '800', letterSpacing: 1.2,
+    color: Colors.light.textLight,
+  },
 
-  baselineHint: { fontSize: 12, color: Colors.light.textSecondary, textAlign: 'center', fontStyle: 'italic' },
+  // ── Indicator bars ──
+  baselineIndicatorsSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6, gap: 10 },
+  baselineIndicatorsTitle: {
+    fontSize: 10, fontWeight: '800', letterSpacing: 1.4,
+    color: Colors.light.textSecondary, textTransform: 'uppercase',
+    marginBottom: 2,
+  },
+  baselineIndRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  baselineIndLabel: { fontSize: 12, color: Colors.light.textSecondary, width: 130 },
+  baselineIndBarBg: {
+    flex: 1, height: 7, backgroundColor: Colors.light.border,
+    borderRadius: 4, overflow: 'hidden',
+  },
+  baselineIndBarFill: { height: '100%', borderRadius: 4 },
+  baselineIndPct: {
+    fontSize: 12, fontWeight: '800', color: Colors.light.textSecondary,
+    width: 36, textAlign: 'right',
+  },
+  baselineIndHint: {
+    fontSize: 10, color: Colors.light.textLight,
+    fontStyle: 'italic', paddingLeft: 140,
+  },
 
+  baselineHint: {
+    fontSize: 12, color: Colors.light.textSecondary,
+    textAlign: 'center', fontStyle: 'italic',
+    paddingHorizontal: 20,
+  },
+
+  // ── Re-run button ──
   rerunBtn: {
-    backgroundColor: Colors.light.tint + '15',
-    borderWidth: 1.5, borderColor: Colors.light.tint,
-    borderRadius: 12, paddingVertical: 12,
-    alignItems: 'center',
+    marginHorizontal: 20, marginTop: 16, marginBottom: 4,
+    backgroundColor: Colors.light.tint + '12',
+    borderWidth: 1, borderColor: Colors.light.tint + '60',
+    borderRadius: 12, paddingVertical: 13,
+    alignItems: 'center', flexDirection: 'row',
+    justifyContent: 'center', gap: 8,
   },
   rerunBtnText: { fontSize: 14, fontWeight: '700', color: Colors.light.tint },
-  rerunHint: { fontSize: 10, color: Colors.light.textLight, textAlign: 'center', fontStyle: 'italic' },
+  rerunHint: {
+    fontSize: 10, color: Colors.light.textLight,
+    textAlign: 'center', fontStyle: 'italic',
+    paddingHorizontal: 20, paddingBottom: 16,
+  },
 
   // ── Grammar Trend Card ───────────────────────────────────────────────────────
   grammarTrendCard: {
@@ -1905,7 +2007,8 @@ const styles = StyleSheet.create({
   domainSummaryScore: { fontSize: 13, fontWeight: '700', color: Colors.light.text },
 
   domainBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  domainBarLabel: { fontSize: 12, fontWeight: '700', color: Colors.light.text, width: 100 },
+  domainBarLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, width: 100 },
+  domainBarLabel: { fontSize: 12, fontWeight: '700', color: Colors.light.text },
   domainBarPct: { fontSize: 13, fontWeight: '800', width: 32, textAlign: 'right' },
 
   domainHint: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', textAlign: 'center', lineHeight: 14 },
@@ -1914,7 +2017,7 @@ const styles = StyleSheet.create({
   srsCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 12, padding: 20, marginBottom: 24,
-    borderWidth: 1, borderColor: '#10b981' + '40', gap: 12,
+    borderWidth: 1, borderColor: '#0FBA9A' + '40', gap: 12,
   },
   srsStatRow: { flexDirection: 'row', gap: 8 },
   srsStatChip: {

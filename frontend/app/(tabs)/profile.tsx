@@ -68,25 +68,25 @@ type AssessmentRecord = {
 
 // ─── Palette ──────────────────────────────────────────────────────────────────
 
-const BG     = '#F8FAFC';
-const CARD   = '#FFFFFF';
-const BORDER = '#E8ECF0';
+const BG     = '#060D1A';
+const CARD   = '#0F1B2D';
+const BORDER = 'rgba(255,255,255,0.08)';
 const TEAL   = '#0FBA9A';
-const CORAL  = '#FF6B47';
-const PURPLE = '#7C6FFF';
+const CORAL  = '#8B5CF6';
+const PURPLE = '#8B5CF6';
 const NAVY   = '#0A1628';
-const TEXT   = '#1E293B';
-const TEXT2  = '#64748B';
+const TEXT   = '#F0F6FF';
+const TEXT2  = '#94A3B8';
 const TEXT3  = '#94A3B8';
 
 const CEFR_COLORS: Record<string, string> = {
-  A1: '#94A3B8', A2: '#64748B', B1: '#3B82F6',
-  B2: '#8B5CF6', C1: '#F59E0B', C2: '#1EE8B5',
-  'C1-C2': '#F59E0B',   // RF model groups C1 and C2 together
+  A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6',
+  B2: '#8B5CF6', C1: '#8B5CF6', C2: '#0FBA9A',
+  'C1-C2': '#8B5CF6',   // RF model groups C1 and C2 together
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical: '#EF4444', moderate: '#F59E0B', acceptable: '#0FBA9A', strong: '#7C6FFF',
+  critical: '#EF4444', moderate: '#8B5CF6', acceptable: '#0FBA9A', strong: '#8B5CF6',
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -273,7 +273,7 @@ function VoiceProfileCard({
               style={[
                 S.voiceWaveBar,
                 {
-                  backgroundColor: playing ? PURPLE : '#CBD5E1',
+                  backgroundColor: playing ? PURPLE : 'rgba(255,255,255,0.06)',
                   transform: [{ scaleY: v }],
                 },
               ]}
@@ -572,13 +572,13 @@ export default function ProfileScreen() {
                 </View>
 
                 {/* Agree / differ note */}
-                <View style={[S.rfNotePill, { backgroundColor: agree ? TEAL + '10' : '#F59E0B10' }]}>
+                <View style={[S.rfNotePill, { backgroundColor: agree ? TEAL + '10' : '#8B5CF610' }]}>
                   <Feather
                     name={agree ? 'check-circle' : 'info'}
                     size={14}
-                    color={agree ? TEAL : '#D97706'}
+                    color={agree ? TEAL : '#8B5CF6'}
                   />
-                  <Text style={[S.rfNoteText, { color: agree ? TEAL : '#92400E' }]}>
+                  <Text style={[S.rfNoteText, { color: agree ? TEAL : '#8B5CF6' }]}>
                     {agree
                       ? `Both analyses agree — you're at ${diagnosis.predicted_cefr}`
                       : `One analysis says ${diagnosis.predicted_cefr}, another says ${diagnosis.rf_predicted_cefr} — your level is somewhere between these`}
@@ -666,8 +666,8 @@ export default function ProfileScreen() {
               {diagnosis.critical_areas.length > 0 && (
                 <View style={[S.miniCard, S.alertMini]}>
                   <View style={S.miniHeader}>
-                    <Feather name="alert-triangle" size={12} color="#FF4D6D" />
-                    <Text style={[S.miniTitle, { color: '#FF4D6D' }]}>Focus</Text>
+                    <Feather name="alert-triangle" size={12} color="#EF4444" />
+                    <Text style={[S.miniTitle, { color: '#EF4444' }]}>Focus</Text>
                   </View>
                   {diagnosis.critical_areas.slice(0, 3).map((a, i) => (
                     <Text key={i} style={S.miniBullet} numberOfLines={2}>· {a}</Text>
@@ -789,7 +789,7 @@ const S = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 12, gap: 10,
   },
-  indBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  indBorder: { borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.08)' },
   indDot:    { width: 8, height: 8, borderRadius: 4 },
   indName:   { flex: 1, fontSize: 13, color: TEXT, fontWeight: '500' },
   indScore:  { fontSize: 15, fontWeight: '800', minWidth: 28, textAlign: 'right' },
@@ -828,7 +828,7 @@ const S = StyleSheet.create({
   rfBadgeDesc:  { fontSize: 9, fontWeight: '700', marginTop: 2, textAlign: 'center' },
   rfConfRow:    { gap: 6, marginBottom: 12 },
   rfConfHint:   { fontSize: 12, color: TEXT2 },
-  rfConfTrack:  { height: 8, backgroundColor: '#F1F5F9', borderRadius: 4, overflow: 'hidden' },
+  rfConfTrack:  { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 4, overflow: 'hidden' },
   rfConfFill:   { height: 8, borderRadius: 4 },
   rfNotePill: {
     flexDirection: 'row', alignItems: 'flex-start', gap: 8,
@@ -912,7 +912,7 @@ const S = StyleSheet.create({
   },
   voiceMetric: {
     flex: 1, alignItems: 'center', gap: 2,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 8,
     paddingVertical: 8, paddingHorizontal: 4,
     borderWidth: 1, borderColor: BORDER,
@@ -935,7 +935,7 @@ const S = StyleSheet.create({
     flex: 1, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'space-evenly',
     height: 30,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 14,
     paddingHorizontal: 8,
   },

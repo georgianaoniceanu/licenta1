@@ -42,13 +42,13 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#060D1A',
   },
   headerBar: {
     height: 70,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#060D1A',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
     justifyContent: 'flex-end',
     paddingLeft: 16,
     paddingBottom: 12,
@@ -61,10 +61,11 @@ const styles = StyleSheet.create({
   },
   hamburgerIcon: {
     fontSize: 24,
-    color: '#0F172A',
+    color: '#F0F6FF',
   },
   contentContainer: {
     flex: 1,
+    backgroundColor: '#060D1A',
   },
   overlay: {
     position: 'absolute',

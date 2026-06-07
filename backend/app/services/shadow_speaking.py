@@ -60,6 +60,20 @@ _WPM_NORMS = {
     "academic":  (115, 135),   # Lectures, formal presentations: slower
     "_default":  (120, 180),   # General fallback (Foster & Tavakoli 2009)
 }
+
+# Map COCA dominant_group codes → _WPM_NORMS keys
+# classify_text_genre returns uppercase COCA codes (SPOK, FIC, ACAD, …)
+_COCA_TO_NORM: dict[str, str] = {
+    "SPOK": "spoken",
+    "FIC":  "fiction",
+    "MAG":  "magazine",
+    "NEWS": "newspaper",
+    "ACAD": "academic",
+    "Web":  "web",
+    "Blog": "blog",
+    "Mov":  "movies",
+    "TV":   "tv",
+}
 _WPM_TOO_SLOW_MARGIN = 20   # subtract from norm low → "too slow" threshold
 _WPM_TOO_FAST_MARGIN = 30   # add to norm high → "too fast" threshold
 
@@ -326,7 +340,8 @@ def _assess_wpm(wpm: int, genre: str = "_default") -> dict:
       Foster & Tavakoli (2009). Language Learning 59(4).  — general fluency norms.
       Pallotti (2009). Applied Linguistics 30(4). — CAF / utterance fluency.
     """
-    low, high = _WPM_NORMS.get(genre, _WPM_NORMS["_default"])
+    norm_key  = _COCA_TO_NORM.get(genre, genre.lower() if genre else "_default")
+    low, high = _WPM_NORMS.get(norm_key, _WPM_NORMS["_default"])
     too_slow = low  - _WPM_TOO_SLOW_MARGIN
     too_fast = high + _WPM_TOO_FAST_MARGIN
     target   = f"{low}–{high} WPM"
@@ -417,7 +432,8 @@ def analyze_fluency(transcribed: str, original: str,
                     wpm: int = 0, phoneme_score: int | None = None,
                     segments: list | None = None,
                     duration_s: float = 0.0,
-                    genre: str = "_default") -> dict:
+                    genre: str = "_default",
+                    prosody_result: dict | None = None) -> dict:
     """
     Fluency analysis combining:
       - word_accuracy    (difflib + near-miss, deterministic)
@@ -440,9 +456,24 @@ def analyze_fluency(transcribed: str, original: str,
     wpm_info     = _assess_wpm(wpm, genre)
     pause_data   = _analyze_pauses(segments or [], duration_s)
 
-    # Combined overall score:
-    # If phoneme available: 55% word accuracy + 35% phoneme + 10% pause fluency
-    # If phoneme absent:    70% word accuracy + 30% pause fluency
+    # Articulation rate (WPM excluding pause time) — standard CAF metric
+    # Pallotti (2009): articulation rate = syllables/words per minute of SPEECH time
+    # Distinct from overall WPM which includes silent pauses.
+    speech_time_s = sum(
+        (s["end"] - s["start"]) for s in (segments or [])
+    )
+    n_words = len(transcribed.split()) if transcribed.strip() else 0
+    articulation_rate = (
+        round(n_words / speech_time_s * 60) if speech_time_s > 0 else 0
+    )
+
+    # Combined overall score — weights follow Pallotti (2009) CAF framework:
+    # Accuracy (word + phoneme) + Fluency (prosody + pause) dimensions.
+    #
+    # With prosody + phoneme:  40% word + 25% phoneme + 25% prosody + 10% pause
+    # With prosody only:       50% word + 30% prosody + 20% pause
+    # With phoneme only:       50% word + 35% phoneme + 15% pause
+    # Baseline:                70% word + 30% pause
     pause_fluency_score = {
         "fluent":          100,
         "some_hesitation":  75,
@@ -451,18 +482,47 @@ def analyze_fluency(transcribed: str, original: str,
         "unknown":          None,
     }.get(pause_data["fluency_label"])
 
-    if phoneme_score is not None and pause_fluency_score is not None:
-        overall = round(0.55 * word_score + 0.35 * phoneme_score + 0.10 * pause_fluency_score)
-        score_method = "55% word accuracy + 35% phoneme (wav2vec2) + 10% pause fluency"
-    elif phoneme_score is not None:
+    prosody_score = prosody_result.get("prosody_score") if prosody_result else None
+
+    has_ph  = phoneme_score is not None
+    has_pr  = prosody_score is not None
+    has_pau = pause_fluency_score is not None
+
+    if has_ph and has_pr and has_pau:
+        overall = round(0.40 * word_score + 0.25 * phoneme_score
+                        + 0.25 * prosody_score + 0.10 * pause_fluency_score)
+        score_method = "40% word + 25% phoneme (wav2vec2) + 25% prosody (Praat/DTW) + 10% pause"
+    elif has_ph and has_pr:
+        overall = round(0.45 * word_score + 0.30 * phoneme_score + 0.25 * prosody_score)
+        score_method = "45% word + 30% phoneme + 25% prosody (Praat/DTW)"
+    elif has_pr and has_pau:
+        overall = round(0.50 * word_score + 0.30 * prosody_score + 0.20 * pause_fluency_score)
+        score_method = "50% word + 30% prosody (Praat/DTW) + 20% pause"
+    elif has_ph and has_pau:
+        overall = round(0.50 * word_score + 0.35 * phoneme_score + 0.15 * pause_fluency_score)
+        score_method = "50% word + 35% phoneme (wav2vec2) + 15% pause"
+    elif has_ph:
         overall = round(0.60 * word_score + 0.40 * phoneme_score)
-        score_method = "60% word accuracy + 40% phoneme (wav2vec2)"
-    elif pause_fluency_score is not None:
+        score_method = "60% word + 40% phoneme (wav2vec2)"
+    elif has_pr:
+        overall = round(0.60 * word_score + 0.40 * prosody_score)
+        score_method = "60% word + 40% prosody (Praat/DTW)"
+    elif has_pau:
         overall = round(0.70 * word_score + 0.30 * pause_fluency_score)
-        score_method = "70% word accuracy (difflib) + 30% pause fluency"
+        score_method = "70% word + 30% pause fluency"
     else:
         overall = word_score
-        score_method = "word accuracy (difflib) — phoneme server unavailable"
+        score_method = "word accuracy (difflib) — all acoustic modules unavailable"
+
+    # WPM penalty: extremely slow speech (letter-by-letter, heavy pausing)
+    # cannot score well regardless of word accuracy.
+    # Below 40 WPM = clearly unnatural delivery → cap at 55.
+    # Below 60 WPM = very hesitant → cap at 70.
+    if wpm > 0:
+        if wpm < 40:
+            overall = min(overall, 55)
+        elif wpm < 60:
+            overall = min(overall, 70)
 
     # Qualitative feedback from LLM, constrained to real scores
     fluency_feedback      = ""
@@ -532,7 +592,9 @@ Respond ONLY with valid JSON (no markdown):
         "accuracy_score":        overall,
         "word_accuracy":         word_score,
         "phoneme_score":         phoneme_score,
-        "wpm":                   wpm,
+        "prosody":               prosody_result,    # pitch + rhythm + energy breakdown
+        "wpm":                   wpm,               # overall rate (incl. pauses)
+        "articulation_rate":     articulation_rate, # rate excl. pauses (CAF standard)
         "wpm_assessment":        wpm_info,
         # Pause analysis
         "pause_analysis":        pause_data,
@@ -550,6 +612,9 @@ Respond ONLY with valid JSON (no markdown):
             "pause_detection":        "De Jong & Wempe (2009) Behavior Research Methods 41(2); Tavakoli & Skehan (2005) in Ellis (Ed.) Planning and Task Performance",
             "pronunciation_feedback": "Saito & Lyster (2012) Language Learning 62(2) — form-focused instruction + corrective feedback",
             "phoneme_patterns":       "Măchiță (2021) — Romanian phonological transfer (University of Bucharest)",
-            "phonetic_analysis":      "Boersma & van Heuven (2001) Speak and unSpeak with PRAAT, Glot International 5",
+            "phonetic_analysis":      "Boersma & Weenink (2001) Speak and unSpeak with PRAAT, Glot International 5(9/10), 341-347",
+            "prosody_pitch":          "Sakoe & Chiba (1978) DTW, IEEE Trans ASSP 26(1); Xu (2005) semitone normalisation, Speech Prosody",
+            "prosody_rhythm":         "Ramus et al. (1999) rhythm metrics, Cognition 73(3), 265-292",
+            "score_weights":          "Pallotti (2009) CAF — Accuracy + Fluency weighting",
         },
     }

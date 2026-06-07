@@ -22,7 +22,6 @@ from app.services.vocabulary_coach import (
     seed_vocabulary_bank,
     generate_context_aware_sentence,
     transcribe_audio_with_confidence,
-    analyze_pronunciation_with_emotion,
     generate_phonetic_breakdown,
     generate_word_family,
     get_personalized_exercise,
@@ -447,56 +446,6 @@ async def generate_context_sentence(
             "error": str(e),
         }
 
-
-@router.post("/analyze-pronunciation-with-emotion")
-async def analyze_pronunciation(
-    payload: PronunciationAnalysisPayload,
-    authorization: str = Header(None)
-):
-    """
-    FEATURE 25 — Analyze pronunciation with emotion & confidence detection.
-    
-    Extended pronunciation analysis that includes:
-    - Pronunciation score (0-100)
-    - Emotion detection (confident, hesitant, enthusiastic, nervous)
-    - Confidence level (low/medium/high)
-    - Speech quality metrics (pace, clarity, rhythm, accent)
-    - Personalized suggestions based on emotional state
-    
-    Example Response:
-    {
-        "pronunciation_score": 85,
-        "corrections": "Detailed pronunciation feedback",
-        "emotion_analysis": {
-            "detected_emotion": "confident",
-            "confidence_level": "high",
-            "indicators": ["clear articulation", "steady pace"]
-        },
-        "speech_quality": {
-            "pace": "good",
-            "clarity": "excellent",
-            "rhythm": "natural",
-            "accent_strength": "light"
-        },
-        "suggestions": "Practice recommendations..."
-    }
-    """
-    user_id = get_user_id_from_token(authorization)
-    
-    try:
-        result = analyze_pronunciation_with_emotion(
-            target_text=payload.target_text,
-            transcribed_text=payload.transcribed_text
-        )
-        return {
-            "success": True,
-            "data": result,
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-        }
 
 
 @router.post("/phonetic-breakdown")

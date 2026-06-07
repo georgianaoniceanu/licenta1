@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
+import { Feather } from '@expo/vector-icons';
 import { API_URL } from '../../constants/api';
 import { Colors, Animations } from '../../constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -115,6 +116,27 @@ const FRAGMENTS = [
   },
 ];
 
+type ProsodyResult = {
+  prosody_score?: number;
+  pitch_score?: number;
+  rhythm_score?: number;
+  energy_score?: number;
+};
+
+type WpmAssessment = {
+  label: 'too_slow' | 'ideal' | 'slightly_fast' | 'too_fast';
+  message: string;
+  target?: string;
+};
+
+type WordBreakdown = {
+  word: string;
+  ok: boolean;
+  correct: number;
+  total: number;
+  phonemes: { p: string; ok: boolean }[];
+};
+
 type Feedback = {
   accuracy_score: number;
   transcribed_text: string;
@@ -122,6 +144,11 @@ type Feedback = {
   extra_words: string[];
   fluency_feedback: string;
   connected_speech_tips: string;
+  phoneme_score?: number;
+  prosody?: ProsodyResult;
+  wpm?: number;
+  wpm_assessment?: WpmAssessment;
+  word_breakdown?: WordBreakdown[];
 };
 
 type SessionEntry = { category: string; score: number };
@@ -135,9 +162,9 @@ type ShadowStorageEntry = {
 };
 
 const DIFF_COLORS: Record<string, string> = {
-  B1: '#22c55e',
-  B2: '#f59e0b',
-  C1: '#f87171',
+  B1: '#0FBA9A',
+  B2: '#8B5CF6',
+  C1: '#EF4444',
 };
 const SPEED_OPTIONS = [0.75, 1.0, 1.25] as const;
 type Speed = typeof SPEED_OPTIONS[number];
@@ -434,9 +461,9 @@ export default function ShadowSpeakingScreen() {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return '#22c55e';
-    if (score >= 60) return '#f59e0b';
-    return '#f87171';
+    if (score >= 80) return '#0FBA9A';
+    if (score >= 60) return '#8B5CF6';
+    return '#EF4444';
   };
 
   const getWordDiff = (original: string, transcribed: string) => {
@@ -458,7 +485,7 @@ export default function ShadowSpeakingScreen() {
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
             <Text style={styles.backText}>← Back</Text>
           </TouchableOpacity>
-          <Text style={styles.headerBadge}>🎙 Shadow Speaking</Text>
+          <Text style={styles.headerBadge}>Shadow Speaking</Text>
         </View>
 
         <Text style={styles.pageTitle}>Shadow Speaking</Text>
@@ -483,8 +510,8 @@ export default function ShadowSpeakingScreen() {
               <Text style={styles.savedDetailLabel}>Word match</Text>
               <View style={styles.wordDiffRow}>
                 {getWordDiff(s.target_text, s.transcribed).map((item, i) => (
-                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#22c55e20' : '#f8717120', borderColor: item.hit ? '#22c55e40' : '#f8717140' }]}>
-                    <Text style={[styles.wordDiffText, { color: item.hit ? '#22c55e' : '#f87171' }]}>{item.word}</Text>
+                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#0FBA9A20' : '#EF444420', borderColor: item.hit ? '#0FBA9A40' : '#EF444440' }]}>
+                    <Text style={[styles.wordDiffText, { color: item.hit ? '#0FBA9A' : '#EF4444' }]}>{item.word}</Text>
                   </View>
                 ))}
               </View>
@@ -508,7 +535,10 @@ export default function ShadowSpeakingScreen() {
         {/* Recommended fragments (Option 2) */}
         {recommendedFragments.length > 0 && (
           <View style={styles.recommendedSection}>
-            <Text style={styles.recommendedLabel}>🎯 Recommended for you</Text>
+            <View style={styles.cardHeader}>
+              <Feather name="star" size={13} color={Colors.light.tint} />
+              <Text style={styles.recommendedLabel}>Recommended for you</Text>
+            </View>
             <Text style={styles.recommendedSublabel}>Based on your weak phonemes from Accent DNA</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recommendedScroll}>
               {recommendedFragments.map(f => {
@@ -583,14 +613,17 @@ export default function ShadowSpeakingScreen() {
         {/* Fragment card */}
         <View style={styles.fragmentCard}>
           <View style={styles.fragmentCardTop}>
-            <Text style={styles.focusLabel}>🎯 {selectedFragment.focus}</Text>
+            <View style={styles.cardHeader}>
+              <Feather name="target" size={12} color={Colors.light.tint} />
+              <Text style={styles.focusLabel}>{selectedFragment.focus}</Text>
+            </View>
             <View style={[styles.diffBadgeLg, { backgroundColor: DIFF_COLORS[selectedFragment.difficulty] + '20', borderColor: DIFF_COLORS[selectedFragment.difficulty] }]}>
               <Text style={[styles.diffTextLg, { color: DIFF_COLORS[selectedFragment.difficulty] }]}>{selectedFragment.difficulty}</Text>
             </View>
           </View>
           <Text style={styles.fragmentText}>"{selectedFragment.text}"</Text>
           <View style={styles.fragmentTipRow}>
-            <Text style={styles.fragmentTipIcon}>💡</Text>
+            <Feather name="info" size={13} color={Colors.light.textSecondary} style={{ marginTop: 1 }} />
             <Text style={styles.fragmentTip}>{selectedFragment.tips}</Text>
           </View>
         </View>
@@ -764,7 +797,7 @@ export default function ShadowSpeakingScreen() {
           <Animated.View
             style={[styles.feedbackSection, { opacity: feedbackOpacity, transform: [{ scale: feedbackScale }] }]}
           >
-            <Text style={styles.stepTitle}>✅ Step 3: Your Results</Text>
+            <Text style={styles.stepTitle}>Step 3: Your Results</Text>
 
             {/* Score ring */}
             <View style={styles.scoreCard}>
@@ -772,12 +805,27 @@ export default function ShadowSpeakingScreen() {
                 <Text style={[styles.scoreValue, { color: getScoreColor(feedback.accuracy_score) }]}>
                   {feedback.accuracy_score}%
                 </Text>
-                <Text style={styles.scoreRingLabel}>Fluency</Text>
+                <Text style={styles.scoreRingLabel}>Overall</Text>
               </View>
               <View style={styles.scoreMeta}>
-                <Text style={styles.scoreGradeLabel}>
-                  {feedback.accuracy_score >= 80 ? '🌟 Excellent!' : feedback.accuracy_score >= 60 ? '👍 Good' : '💪 Keep Practicing'}
-                </Text>
+                <View style={styles.cardHeader}>
+                  <Feather
+                    name={feedback.accuracy_score >= 80 ? 'award' : feedback.accuracy_score >= 60 ? 'thumbs-up' : 'trending-up'}
+                    size={14}
+                    color={getScoreColor(feedback.accuracy_score)}
+                  />
+                  <Text style={[styles.scoreGradeLabel, { color: getScoreColor(feedback.accuracy_score) }]}>
+                    {feedback.accuracy_score >= 80 ? 'Excellent' : feedback.accuracy_score >= 60 ? 'Good' : 'Keep Practicing'}
+                  </Text>
+                </View>
+                {feedback.phoneme_score != null && (
+                  <View style={styles.cardHeader}>
+                    <Feather name="mic" size={12} color={getScoreColor(feedback.phoneme_score)} />
+                    <Text style={[styles.phonemeScoreLabel, { color: getScoreColor(feedback.phoneme_score) }]}>
+                      Pronunciation: {feedback.phoneme_score}/100
+                    </Text>
+                  </View>
+                )}
                 <Text style={styles.transcribedLabel}>
                   You said:{' '}
                   <Text style={styles.transcribedText}>"{feedback.transcribed_text}"</Text>
@@ -787,11 +835,14 @@ export default function ShadowSpeakingScreen() {
 
             {/* Word-by-word comparison */}
             <View style={styles.wordDiffCard}>
-              <Text style={styles.feedbackCardTitle}>📝 Word Match</Text>
+              <View style={styles.cardHeader}>
+                <Feather name="align-left" size={14} color={Colors.light.tint} />
+                <Text style={styles.feedbackCardTitle}>Word Match</Text>
+              </View>
               <View style={styles.wordDiffRow}>
                 {getWordDiff(selectedFragment.text, feedback.transcribed_text).map((item, i) => (
-                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#22c55e20' : '#f8717120', borderColor: item.hit ? '#22c55e40' : '#f8717140' }]}>
-                    <Text style={[styles.wordDiffText, { color: item.hit ? '#22c55e' : '#f87171' }]}>{item.word}</Text>
+                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#0FBA9A20' : '#EF444420', borderColor: item.hit ? '#0FBA9A40' : '#EF444440' }]}>
+                    <Text style={[styles.wordDiffText, { color: item.hit ? '#0FBA9A' : '#EF4444' }]}>{item.word}</Text>
                   </View>
                 ))}
               </View>
@@ -799,26 +850,111 @@ export default function ShadowSpeakingScreen() {
 
             {/* Fluency feedback */}
             <View style={styles.feedbackCard}>
-              <Text style={styles.feedbackCardTitle}>💬 Fluency Feedback</Text>
+              <View style={styles.cardHeader}>
+                <Feather name="message-square" size={14} color={Colors.light.tint} />
+                <Text style={styles.feedbackCardTitle}>Fluency Feedback</Text>
+              </View>
               <Text style={styles.feedbackCardText}>{feedback.fluency_feedback}</Text>
             </View>
 
             {/* Connected speech tip */}
             <View style={styles.tipCard}>
-              <Text style={styles.feedbackCardTitle}>🔗 Connected Speech Tip</Text>
+              <View style={styles.cardHeader}>
+                <Feather name="link-2" size={14} color={Colors.light.tint} />
+                <Text style={styles.feedbackCardTitle}>Connected Speech</Text>
+              </View>
               <Text style={styles.feedbackCardText}>{feedback.connected_speech_tips}</Text>
             </View>
 
             {/* Fragment pronunciation tip */}
             <View style={styles.pronunciationTipCard}>
-              <Text style={styles.feedbackCardTitle}>🔊 Pronunciation Note</Text>
+              <View style={styles.cardHeader}>
+                <Feather name="volume-2" size={14} color={Colors.light.tint} />
+                <Text style={styles.feedbackCardTitle}>Pronunciation Note</Text>
+              </View>
               <Text style={styles.feedbackCardText}>{selectedFragment.tips}</Text>
             </View>
+
+            {/* WPM card */}
+            {feedback.wpm != null && feedback.wpm > 0 && (
+              <View style={styles.feedbackCard}>
+                <View style={styles.cardHeader}>
+                  <Feather name="clock" size={14} color={Colors.light.tint} />
+                  <Text style={styles.feedbackCardTitle}>Speaking Rate</Text>
+                </View>
+                <Text style={[styles.wpmValue, {
+                  color: feedback.wpm_assessment?.label === 'ideal' ? '#0FBA9A'
+                    : feedback.wpm_assessment?.label === 'too_slow' ? '#F59E0B'
+                    : '#EF4444',
+                }]}>
+                  {feedback.wpm} WPM
+                </Text>
+                {feedback.wpm_assessment?.message && (
+                  <Text style={styles.feedbackCardText}>{feedback.wpm_assessment.message}</Text>
+                )}
+              </View>
+            )}
+
+            {/* Prosody card */}
+            {feedback.prosody && (
+              <View style={styles.feedbackCard}>
+                <View style={styles.cardHeader}>
+                  <Feather name="activity" size={14} color={Colors.light.tint} />
+                  <Text style={styles.feedbackCardTitle}>Prosody</Text>
+                </View>
+                {([
+                  { label: 'Pitch', value: feedback.prosody.pitch_score },
+                  { label: 'Rhythm', value: feedback.prosody.rhythm_score },
+                  { label: 'Energy', value: feedback.prosody.energy_score },
+                ] as { label: string; value?: number }[]).map(({ label, value }) =>
+                  value != null ? (
+                    <View key={label} style={styles.prosodyRow}>
+                      <Text style={styles.prosodyLabel}>{label}</Text>
+                      <View style={styles.prosodyBarBg}>
+                        <View style={[styles.prosodyBarFill, {
+                          width: `${value}%` as any,
+                          backgroundColor: value >= 70 ? '#0FBA9A' : value >= 45 ? '#F59E0B' : '#EF4444',
+                        }]} />
+                      </View>
+                      <Text style={styles.prosodyScore}>{value}</Text>
+                    </View>
+                  ) : null
+                )}
+              </View>
+            )}
+
+            {/* Phoneme word breakdown */}
+            {feedback.word_breakdown && feedback.word_breakdown.length > 0 && (
+              <View style={styles.feedbackCard}>
+                <View style={styles.cardHeader}>
+                  <Feather name="mic" size={14} color={Colors.light.tint} />
+                  <Text style={styles.feedbackCardTitle}>Phoneme Accuracy</Text>
+                </View>
+                <View style={styles.wordBreakdownRow}>
+                  {feedback.word_breakdown.map((wb, i) => (
+                    <View key={i} style={[styles.wbChip, {
+                      backgroundColor: wb.ok ? '#0FBA9A20' : '#EF444420',
+                      borderColor: wb.ok ? '#0FBA9A40' : '#EF444440',
+                    }]}>
+                      <Text style={[styles.wbWord, { color: wb.ok ? '#0FBA9A' : '#EF4444' }]}>
+                        {wb.word}
+                      </Text>
+                      {!wb.ok && wb.total > 0 && (
+                        <Text style={styles.wbScore}>{wb.correct}/{wb.total}</Text>
+                      )}
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
 
             {/* Missing words */}
             {feedback.missing_words?.length > 0 && (
               <View style={styles.wordsCard}>
-                <Text style={styles.feedbackCardTitle}>⚠️ Missed Words</Text>
+                <View style={styles.cardHeader}>
+                  <Feather name="alert-triangle" size={14} color={Colors.light.warning} />
+                  <Text style={styles.feedbackCardTitle}>Missed Words</Text>
+                </View>
                 <View style={styles.wordsRow}>
                   {feedback.missing_words.map((w, i) => (
                     <View key={i} style={styles.missingWordChip}>
@@ -832,7 +968,10 @@ export default function ShadowSpeakingScreen() {
             {/* Extra words */}
             {feedback.extra_words?.length > 0 && (
               <View style={[styles.wordsCard, styles.extraWordsCard]}>
-                <Text style={styles.feedbackCardTitle}>➕ Extra Words Said</Text>
+                <View style={styles.cardHeader}>
+                  <Feather name="plus-circle" size={14} color={Colors.light.textSecondary} />
+                  <Text style={styles.feedbackCardTitle}>Extra Words</Text>
+                </View>
                 <View style={styles.wordsRow}>
                   {feedback.extra_words.map((w, i) => (
                     <View key={i} style={styles.extraWordChip}>
@@ -845,7 +984,8 @@ export default function ShadowSpeakingScreen() {
 
             <View style={styles.actionRow}>
               <TouchableOpacity style={styles.tryAgainBtn} onPress={reset}>
-                <Text style={styles.tryAgainText}>🔁 Try Again</Text>
+                <Feather name="refresh-cw" size={14} color={Colors.light.tint} />
+                <Text style={styles.tryAgainText}>Try Again</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.newFragmentBtn}
@@ -855,7 +995,8 @@ export default function ShadowSpeakingScreen() {
                   reset();
                 }}
               >
-                <Text style={styles.newFragmentText}>Next Fragment →</Text>
+                <Text style={styles.newFragmentText}>Next Fragment</Text>
+                <Feather name="arrow-right" size={14} color="#fff" />
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -896,6 +1037,19 @@ const styles = StyleSheet.create({
   },
   sessionChipScore: { fontSize: 13, fontWeight: '800' },
   sessionChipCat: { fontSize: 9, color: Colors.light.textSecondary, fontWeight: '600' },
+
+  wpmValue: { fontSize: 28, fontWeight: '800', marginBottom: 4 },
+
+  prosodyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  prosodyLabel: { width: 52, fontSize: 12, fontWeight: '600', color: Colors.light.textSecondary },
+  prosodyBarBg: { flex: 1, height: 8, backgroundColor: Colors.light.border, borderRadius: 4, overflow: 'hidden' },
+  prosodyBarFill: { height: '100%', borderRadius: 4 },
+  prosodyScore: { width: 28, fontSize: 12, fontWeight: '700', color: Colors.light.text, textAlign: 'right' },
+
+  wordBreakdownRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  wbChip: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, borderWidth: 1, alignItems: 'center' },
+  wbWord: { fontSize: 13, fontWeight: '600' },
+  wbScore: { fontSize: 10, color: Colors.light.textSecondary, marginTop: 1 },
 
   filterRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
   filterChip: {
@@ -956,7 +1110,6 @@ const styles = StyleSheet.create({
   diffTextLg: { fontSize: 11, fontWeight: '700' },
   fragmentText: { color: Colors.light.text, fontSize: 16, lineHeight: 24, fontWeight: '500', padding: 18 },
   fragmentTipRow: { flexDirection: 'row', gap: 8, paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4 },
-  fragmentTipIcon: { fontSize: 14 },
   fragmentTip: { flex: 1, color: Colors.light.textSecondary, fontSize: 12, lineHeight: 17, fontStyle: 'italic' },
 
   stepsRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 24, marginBottom: 24 },
@@ -1100,6 +1253,7 @@ const styles = StyleSheet.create({
   scoreRingLabel: { fontSize: 10, color: Colors.light.textSecondary, fontWeight: '600' },
   scoreMeta: { flex: 1, gap: 6 },
   scoreGradeLabel: { fontSize: 16, fontWeight: '700', color: Colors.light.text },
+  phonemeScoreLabel: { fontSize: 13, fontWeight: '600' },
   transcribedLabel: { color: Colors.light.textSecondary, fontSize: 12 },
   transcribedText: { color: Colors.light.text, fontWeight: '600' },
 
@@ -1107,6 +1261,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.surface,
     borderRadius: 14, padding: 16, borderWidth: 1, borderColor: Colors.light.border, gap: 10,
   },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
   wordDiffRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   wordDiffChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1 },
   wordDiffText: { fontSize: 13, fontWeight: '600' },
@@ -1154,12 +1309,14 @@ const styles = StyleSheet.create({
 
   actionRow: { flexDirection: 'row', gap: 12 },
   tryAgainBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 14,
     borderRadius: 14, borderWidth: 2, borderColor: Colors.light.tint,
   },
   tryAgainText: { color: Colors.light.tint, fontSize: 14, fontWeight: '700' },
   newFragmentBtn: {
-    flex: 1, alignItems: 'center', paddingVertical: 14,
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 6, paddingVertical: 14,
     borderRadius: 14, backgroundColor: Colors.light.tint,
   },
   newFragmentText: { color: '#fff', fontSize: 14, fontWeight: '700' },
@@ -1192,10 +1349,10 @@ const styles = StyleSheet.create({
   recommendedChipCategory: { color: Colors.light.text, fontSize: 13, fontWeight: '700' },
   recommendedTags: { flexDirection: 'row', gap: 4, flexWrap: 'wrap' },
   recommendedPhonemeTag: {
-    backgroundColor: '#f59e0b20',
+    backgroundColor: '#8B5CF620',
     borderRadius: 6,
     paddingHorizontal: 6,
     paddingVertical: 2,
   },
-  recommendedPhonemeText: { color: '#b45309', fontSize: 10, fontWeight: '700' },
+  recommendedPhonemeText: { color: '#8B5CF6', fontSize: 10, fontWeight: '700' },
 });

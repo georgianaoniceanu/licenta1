@@ -144,7 +144,7 @@ ROMANIAN_PRONUNCIATION_PATTERNS = {
             }
         },
         "vot_analysis": {
-            "target_vot_ms": 30-40,  # Voice Onset Time
+            "target_vot_ms": "30-40",  # Voice Onset Time (ms)
             "romanian_learner_vot": 75,  # Over-aspirated
             "description": "Aspiration duration too long"
         },
@@ -163,7 +163,7 @@ ROMANIAN_PRONUNCIATION_PATTERNS = {
             }
         },
         "vot_analysis": {
-            "target_vot_ms": 30-40,
+            "target_vot_ms": "30-40",  # Voice Onset Time (ms)
             "romanian_learner_vot": 14,  # Under-aspirated
             "description": "Not enough puff of air after /t/"
         },
@@ -246,32 +246,49 @@ def transcribe_audio(audio_file_path: str) -> str:
     print(f"[transcribe_audio] Whisper text: {repr(text)[:200]}")
     return text
 
+_VOICED_TH_WORDS = {
+    'the', 'this', 'that', 'these', 'those', 'they', 'them', 'their', 'there',
+    'then', 'than', 'though', 'thus', 'with', 'bathe', 'breathe', 'father',
+    'mother', 'brother', 'other', 'either', 'weather', 'feather', 'together',
+    'whether', 'smooth', 'soothe', 'bother', 'lathe', 'teethe', 'tithe',
+}
+_VOICELESS_TH_WORDS = {
+    'think', 'three', 'through', 'thank', 'thanks', 'thought', 'thousand',
+    'thread', 'threat', 'throw', 'throat', 'thick', 'thin', 'thing', 'third',
+    'thirst', 'thirty', 'tooth', 'teeth', 'truth', 'birth', 'earth', 'worth',
+    'health', 'wealth', 'both', 'month', 'death', 'breath', 'bath', 'math',
+    'path', 'cloth', 'north', 'south', 'thunder', 'Thursday', 'author',
+}
+
 def get_phoneme_patterns(target_text: str) -> dict:
-    """Identify which Romanian-problematic phonemes appear in target text"""
-    problematic = {}
-    
-    # Check for interdental fricatives
-    if any(x in target_text.lower() for x in ['th', 'this', 'that', 'think', 'three', 'tooth', 'father']):
-        if target_text.lower().startswith('th') or 'th' in target_text.lower()[:3]:
-            problematic['/θ/'] = ROMANIAN_PRONUNCIATION_PATTERNS['/θ/ (voiceless interdental)']
-        else:
-            problematic['/ð/'] = ROMANIAN_PRONUNCIATION_PATTERNS['/ð/ (voiced interdental)']
-    
-    # Check for velar nasal
-    if any(x in target_text.lower() for x in ['ng', 'ding', 'king', 'ring', 'doing']):
+    """Identify which Romanian-problematic phonemes appear in target text."""
+    problematic: dict = {}
+    words = set(re.sub(r"[^\w\s']", "", target_text.lower()).split())
+    text_lower = target_text.lower()
+
+    # /θ/ — voiceless TH (think, three, tooth …)
+    if words & _VOICELESS_TH_WORDS:
+        problematic['/θ/'] = ROMANIAN_PRONUNCIATION_PATTERNS['/θ/ (voiceless interdental)']
+
+    # /ð/ — voiced TH (the, this, father …)
+    if words & _VOICED_TH_WORDS:
+        problematic['/ð/'] = ROMANIAN_PRONUNCIATION_PATTERNS['/ð/ (voiced interdental)']
+
+    # /ŋ/ — velar nasal (ring, doing, sing …)
+    if re.search(r'n[gk]|ing\b', text_lower):
         problematic['/ŋ/'] = ROMANIAN_PRONUNCIATION_PATTERNS['/ŋ/ (velar nasal)']
-    
-    # Check for L variants
-    if target_text.lower().endswith(('l', 'lk', 'ld', 'lf', 'lt')):
+
+    # [ɫ] dark L — present when l is word-final or before a consonant
+    if re.search(r'l[bcdfghjklmnpqrstvwxyz]|l\b', text_lower):
         problematic['[ɫ]'] = ROMANIAN_PRONUNCIATION_PATTERNS['[ɫ] (dark L)']
-    
-    # Check for aspiration
-    if target_text.lower().startswith(('k', 't')):
-        if target_text.lower().startswith('k'):
+
+    # [kʰ] / [tʰ] — aspirated stops at stressed syllable onset
+    for word in words:
+        if word.startswith('k') or word.startswith('c') and len(word) > 1 and word[1] in 'aeiou':
             problematic['[kh]'] = ROMANIAN_PRONUNCIATION_PATTERNS['[kh] (aspirated K)']
-        else:
+        if word.startswith('t') and (len(word) == 1 or word[1] not in ('h',)):
             problematic['[th]'] = ROMANIAN_PRONUNCIATION_PATTERNS['[th] (aspirated T)']
-    
+
     return problematic
 
 def _norm_words(s: str):

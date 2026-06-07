@@ -14,6 +14,7 @@ import {
   Animated,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { getAuth } from 'firebase/auth';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -31,12 +32,6 @@ interface SuggestionCard {
   original_word: string;
   better_alternative: string;
   explanation: string;
-}
-
-interface EmotionAnalysis {
-  detected_emotion: 'confident' | 'hesitant' | 'enthusiastic' | 'nervous' | 'neutral';
-  confidence_level: 'low' | 'medium' | 'high';
-  indicators: string[];
 }
 
 interface SpeechQuality {
@@ -198,9 +193,7 @@ interface AnalysisResult {
   suggestions: SuggestionCard[];
   pronunciation_score?: number;
   corrections?: string;
-  emotion_analysis?: EmotionAnalysis;
   speech_quality?: SpeechQuality;
-  detected_emotion?: string;
   phonetic_breakdown?: PhoneticBreakdown;
   word_family?: WordFamily;
   personalized_exercise?: PersonalizedExercise;
@@ -213,33 +206,26 @@ interface AnalysisResult {
 
 type ResultTab = 'words' | 'pronunciation' | 'phonetics' | 'exercise' | 'grammar' | 'exam';
 
-const SPEAKING_PROMPTS = [
-  { id: 1, icon: '🎨', title: 'Hobby & Interests', prompt: 'Talk about your favorite hobby and why you enjoy it. (60–90 seconds)' },
-  { id: 2, icon: '✈️', title: 'Travel Experience', prompt: 'Describe a memorable travel experience or dream destination. (60–90 seconds)' },
-  { id: 3, icon: '💼', title: 'Career Goals', prompt: 'What career goals do you have and how do you plan to achieve them? (60–90 seconds)' },
-  { id: 4, icon: '🌅', title: 'Daily Routine', prompt: 'Describe your typical day and what makes it meaningful. (60–90 seconds)' },
-  { id: 5, icon: '🧠', title: 'Learning a Skill', prompt: 'What skill would you like to learn and why? (60–90 seconds)' },
-  { id: 6, icon: '🏆', title: 'Personal Achievement', prompt: 'Share an achievement you are proud of and what you learned. (60–90 seconds)' },
-  { id: 7, icon: '🌍', title: 'Global Issue', prompt: 'Describe a global issue you care about and how it affects people. (60–90 seconds)' },
-  { id: 8, icon: '📱', title: 'Technology Impact', prompt: 'How has technology changed your life or work? What are the benefits and drawbacks? (60–90 seconds)' },
-  { id: 9, icon: '🤝', title: 'An Important Relationship', prompt: 'Talk about someone who has influenced you significantly and why. (60–90 seconds)' },
-  { id: 10, icon: '🌱', title: 'Future Plans', prompt: 'Where do you see yourself in five years? What steps are you taking to get there? (60–90 seconds)' },
+type FeatherName = React.ComponentProps<typeof Feather>['name'];
+const SPEAKING_PROMPTS: { id: number; icon: FeatherName; title: string; prompt: string }[] = [
+  { id: 1,  icon: 'heart',       title: 'Hobby & Interests',       prompt: 'Talk about your favorite hobby and why you enjoy it. (60–90 seconds)' },
+  { id: 2,  icon: 'compass',     title: 'Travel Experience',        prompt: 'Describe a memorable travel experience or dream destination. (60–90 seconds)' },
+  { id: 3,  icon: 'briefcase',   title: 'Career Goals',             prompt: 'What career goals do you have and how do you plan to achieve them? (60–90 seconds)' },
+  { id: 4,  icon: 'sun',         title: 'Daily Routine',            prompt: 'Describe your typical day and what makes it meaningful. (60–90 seconds)' },
+  { id: 5,  icon: 'book-open',   title: 'Learning a Skill',         prompt: 'What skill would you like to learn and why? (60–90 seconds)' },
+  { id: 6,  icon: 'award',       title: 'Personal Achievement',     prompt: 'Share an achievement you are proud of and what you learned. (60–90 seconds)' },
+  { id: 7,  icon: 'globe',       title: 'Global Issue',             prompt: 'Describe a global issue you care about and how it affects people. (60–90 seconds)' },
+  { id: 8,  icon: 'smartphone',  title: 'Technology Impact',        prompt: 'How has technology changed your life or work? What are the benefits and drawbacks? (60–90 seconds)' },
+  { id: 9,  icon: 'users',       title: 'An Important Relationship', prompt: 'Talk about someone who has influenced you significantly and why. (60–90 seconds)' },
+  { id: 10, icon: 'trending-up', title: 'Future Plans',             prompt: 'Where do you see yourself in five years? What steps are you taking to get there? (60–90 seconds)' },
 ];
 
-const EMOTION_EMOJI: Record<string, string> = {
-  confident: '😌',
-  hesitant: '🤔',
-  enthusiastic: '😊',
-  nervous: '😰',
-  neutral: '😐',
-};
-
 const CEFR_COLOR: Record<string, string> = {
-  A1: '#22c55e', A2: '#4ade80', B1: '#60a5fa', B2: '#f59e0b', C1: '#f87171', C2: '#e879f9',
+  A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6', B2: '#8B5CF6', C1: '#8B5CF6', C2: '#0FBA9A',
 };
 
 const MODE_LABEL: Record<'record' | 'type' | 'upload', string> = {
-  record: '🎙 Speaking', type: '⌨️ Typed', upload: '📁 Uploaded audio',
+  record: 'Speaking', type: 'Typed', upload: 'Uploaded audio',
 };
 
 // IELTS Speaking Band Descriptors — British Council / Cambridge ESOL (2024)
@@ -275,49 +261,49 @@ const EXAM_FOCUS: Record<ExamKey, {
   tip: string;
 }> = {
   ielts_academic: {
-    label: 'IELTS Academic', color: '#10B981', icon: '📝',
+    label: 'IELTS Academic', color: '#0FBA9A', icon: 'file-text' as FeatherName,
     priority: ['fluency_coherence', 'lexical_resource', 'grammatical_accuracy', 'pronunciation'],
     weights: { fluency_coherence: 25, lexical_resource: 25, grammatical_accuracy: 25, pronunciation: 25 },
     tip: 'All 4 criteria carry equal weight (25%). Fluency & Coherence is hardest to improve quickly — prioritise it.',
   },
   ielts_general: {
-    label: 'IELTS General', color: '#10B981', icon: '📝',
+    label: 'IELTS General', color: '#0FBA9A', icon: 'file-text' as FeatherName,
     priority: ['fluency_coherence', 'lexical_resource', 'grammatical_accuracy', 'pronunciation'],
     weights: { fluency_coherence: 25, lexical_resource: 25, grammatical_accuracy: 25, pronunciation: 25 },
     tip: 'Same criteria as IELTS Academic Speaking. Aim for Band 6+ for visa and migration purposes.',
   },
   cambridge_fce: {
-    label: 'Cambridge B2 First (FCE)', color: '#7C6FFF', icon: '🏅',
+    label: 'Cambridge B2 First (FCE)', color: '#8B5CF6', icon: 'award' as FeatherName,
     priority: ['grammatical_accuracy', 'lexical_resource', 'fluency_coherence', 'pronunciation'],
     weights: { grammatical_accuracy: 35, lexical_resource: 30, fluency_coherence: 20, pronunciation: 15 },
     tip: 'FCE prioritises Grammar (35%) and Vocabulary (30%). Improve B2-level word use and complex sentence structures.',
   },
   cambridge_cae: {
-    label: 'Cambridge C1 Advanced (CAE)', color: '#7C6FFF', icon: '🥇',
+    label: 'Cambridge C1 Advanced (CAE)', color: '#8B5CF6', icon: 'award' as FeatherName,
     priority: ['grammatical_accuracy', 'lexical_resource', 'fluency_coherence', 'pronunciation'],
     weights: { grammatical_accuracy: 35, lexical_resource: 35, fluency_coherence: 20, pronunciation: 10 },
     tip: 'CAE demands C1-level vocabulary (high MTLD) and complex grammatical structures. Pronunciation is less weighted.',
   },
   cambridge_cpe: {
-    label: 'Cambridge C2 Proficiency (CPE)', color: '#e879f9', icon: '🏆',
+    label: 'Cambridge C2 Proficiency (CPE)', color: '#8B5CF6', icon: 'star' as FeatherName,
     priority: ['lexical_resource', 'grammatical_accuracy', 'fluency_coherence', 'pronunciation'],
     weights: { lexical_resource: 40, grammatical_accuracy: 35, fluency_coherence: 15, pronunciation: 10 },
     tip: 'CPE requires near-native lexical precision. MTLD and B2+ vocabulary % are the critical indicators.',
   },
   toefl_ibt: {
-    label: 'TOEFL iBT', color: '#F59E0B', icon: '🏫',
+    label: 'TOEFL iBT', color: '#8B5CF6', icon: 'book' as FeatherName,
     priority: ['fluency_coherence', 'grammatical_accuracy', 'lexical_resource', 'pronunciation'],
     weights: { fluency_coherence: 35, grammatical_accuracy: 25, lexical_resource: 25, pronunciation: 15 },
     tip: 'TOEFL rates Delivery (fluency) and Language Use most. Reduce fillers and improve Words/sec.',
   },
   pte_core: {
-    label: 'PTE Core', color: '#60a5fa', icon: '🌏',
+    label: 'PTE Core', color: '#8B5CF6', icon: 'globe' as FeatherName,
     priority: ['fluency_coherence', 'pronunciation', 'lexical_resource', 'grammatical_accuracy'],
     weights: { fluency_coherence: 30, pronunciation: 25, lexical_resource: 25, grammatical_accuracy: 20 },
     tip: 'PTE is AI-scored. Natural pacing (WPS) and Pronunciation clarity are most critical.',
   },
   general: {
-    label: 'General English', color: '#64748B', icon: '🌐',
+    label: 'General English', color: '#64748B', icon: 'layers' as FeatherName,
     priority: ['fluency_coherence', 'lexical_resource', 'grammatical_accuracy', 'pronunciation'],
     weights: { fluency_coherence: 30, lexical_resource: 30, grammatical_accuracy: 25, pronunciation: 15 },
     tip: 'Focus on vocabulary range and fluency for all-round improvement.',
@@ -687,13 +673,7 @@ export default function VocabularyScreen() {
       const round1 = await Promise.allSettled([
         // 0: Vocabulary suggestions (always required — first result expected)
         post(VOCABULARY_ENDPOINTS.ANALYZE, { text: textToAnalyze }),
-        // 1: Pronunciation + emotion (audio modes + prompt only)
-        (inputMode !== 'type' && transcribedText && currentPrompt)
-          ? post(VOCABULARY_ENDPOINTS.ANALYZE_PRONUNCIATION_WITH_EMOTION, {
-              target_text: currentPrompt.prompt, transcribed_text: transcribedText,
-            })
-          : Promise.resolve(null),
-        // 2: Phonetic IPA breakdown (audio modes + prompt only)
+        // 1: Phonetic IPA breakdown (audio modes + prompt only)
         (inputMode !== 'type' && transcribedText && currentPrompt)
           ? post(VOCABULARY_ENDPOINTS.PHONETIC_BREAKDOWN, {
               target_text: currentPrompt.prompt, transcribed_text: transcribedText,
@@ -721,13 +701,12 @@ export default function VocabularyScreen() {
 
       const settled = (i: number) => round1[i].status === 'fulfilled' ? (round1[i] as any).value : null;
       const analyzeData = settled(0);
-      const emotionData = settled(1);
-      const phoneticData = settled(2);
-      const wordFamilyData = settled(3);
-      const exerciseData = settled(4);
-      const cefrData = settled(5);
-      const genreData = settled(6);
-      const errorsData = settled(7);
+      const phoneticData = settled(1);
+      const wordFamilyData = settled(2);
+      const exerciseData = settled(3);
+      const cefrData = settled(4);
+      const genreData = settled(5);
+      const errorsData = settled(6);
 
       // Hard-fail if the primary vocabulary analyzer failed (this is the only required call)
       if (!analyzeData) {
@@ -735,15 +714,10 @@ export default function VocabularyScreen() {
         return;
       }
 
-      // Compose initial result from analyzeData + emotion overlay (preserve suggestions)
       let finalResult: AnalysisResult = {
         ...(analyzeData.data || {}),
         suggestions: analyzeData.data?.suggestions || [],
       };
-      if (emotionData?.data) {
-        const prevSuggestions = finalResult.suggestions;
-        finalResult = { ...finalResult, ...emotionData.data, suggestions: prevSuggestions };
-      }
       if (phoneticData?.data) finalResult.phonetic_breakdown = phoneticData.data;
       if (wordFamilyData?.data) finalResult.word_family = wordFamilyData.data;
       if (exerciseData?.data) finalResult.personalized_exercise = exerciseData.data;
@@ -985,7 +959,7 @@ export default function VocabularyScreen() {
   if (!selectedPrompt) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="light-content" />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Speaking Practice</Text>
           <Text style={styles.headerSubtitle}>Choose a topic and speak freely for 60–90 seconds</Text>
@@ -995,7 +969,7 @@ export default function VocabularyScreen() {
           {/* Previously practised answers — tap to open the full results */}
           <SavedSessions<VocabSession>
             storageKey="vf_vocab_sessions"
-            title="📚 Practised answers"
+            title="Practised answers"
             accent={Colors.light.tint}
             getLabel={(s) => s.text}
             getScore={(s) => s.score}
@@ -1020,7 +994,7 @@ export default function VocabularyScreen() {
               onPress={() => setSelectedPrompt(p.id)}
             >
               <View style={styles.promptIconWrap}>
-                <Text style={styles.promptIcon}>{p.icon}</Text>
+                <Feather name={p.icon} size={20} color={Colors.light.tint} />
               </View>
               <View style={styles.promptTextWrap}>
                 <Text style={styles.promptTitle}>{p.title}</Text>
@@ -1038,7 +1012,7 @@ export default function VocabularyScreen() {
   if (!analysisResult) {
     return (
       <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
+        <StatusBar barStyle="light-content" />
 
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => setSelectedPrompt(null)} style={styles.backBtn} activeOpacity={0.7}>
@@ -1051,7 +1025,7 @@ export default function VocabularyScreen() {
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Prompt Display */}
           <View style={styles.promptDisplay}>
-            <Text style={styles.promptDisplayIcon}>{currentPrompt?.icon}</Text>
+            {currentPrompt && <Feather name={currentPrompt.icon} size={28} color={Colors.light.tint} style={{ marginBottom: 10 }} />}
             <Text style={styles.promptDisplayText}>{currentPrompt?.prompt}</Text>
           </View>
 
@@ -1073,9 +1047,16 @@ export default function VocabularyScreen() {
                 style={[styles.modeTab, inputMode === mode && styles.modeTabActive]}
                 onPress={() => setInputMode(mode)}
               >
-                <Text style={[styles.modeTabText, inputMode === mode && styles.modeTabTextActive]}>
-                  {mode === 'record' ? '🎤 Mic' : mode === 'upload' ? '📁 Upload' : '⌨️ Type'}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Feather
+                    name={mode === 'record' ? 'mic' : mode === 'upload' ? 'upload' : 'edit-3'}
+                    size={13}
+                    color={inputMode === mode ? Colors.light.tint : Colors.light.textSecondary}
+                  />
+                  <Text style={[styles.modeTabText, inputMode === mode && styles.modeTabTextActive]}>
+                    {mode === 'record' ? 'Mic' : mode === 'upload' ? 'Upload' : 'Type'}
+                  </Text>
+                </View>
               </TouchableOpacity>
             ))}
           </View>
@@ -1138,7 +1119,7 @@ export default function VocabularyScreen() {
 
               {transcribedText && !isRecording && !transcribing && (
                 <View style={styles.transcriptionBox}>
-                  <Text style={styles.transcriptionLabel}>✅ TRANSCRIBED</Text>
+                  <Text style={styles.transcriptionLabel}>TRANSCRIBED</Text>
                   <Text style={styles.transcriptionText}>{transcribedText}</Text>
                   {audioUri && isWeb && (
                     <View style={styles.audioPlayerRow}>
@@ -1196,7 +1177,7 @@ export default function VocabularyScreen() {
               )}
 
               <View style={styles.uploadCard}>
-                <Text style={styles.uploadIcon}>📁</Text>
+                <Feather name="upload" size={32} color={Colors.light.tint} style={{ marginBottom: 8 }} />
                 <Text style={styles.uploadTitle}>Upload an audio recording</Text>
                 <Text style={styles.uploadDesc}>
                   MP3, WAV, M4A, OGG or WebM · max 15 MB.{'\n'}We&apos;ll transcribe and analyse it just like a live recording.
@@ -1235,7 +1216,7 @@ export default function VocabularyScreen() {
 
               {transcribedText && !transcribing && (
                 <View style={styles.transcriptionBox}>
-                  <Text style={styles.transcriptionLabel}>✅ TRANSCRIBED</Text>
+                  <Text style={styles.transcriptionLabel}>TRANSCRIBED</Text>
                   <Text style={styles.transcriptionText}>{transcribedText}</Text>
                   {audioUri && isWeb && (
                     <View style={styles.audioPlayerRow}>
@@ -1313,13 +1294,13 @@ export default function VocabularyScreen() {
 
   const grammarErrorCount = analysisResult?.romanian_errors?.error_count;
 
-  const TABS: { key: ResultTab; label: string; count?: number }[] = [
-    { key: 'words', label: '📝 Words', count: suggestionCount > 0 ? suggestionCount : undefined },
-    { key: 'pronunciation', label: '🎤 Speaking' },
-    { key: 'phonetics', label: '🔬 Phonetics' },
-    { key: 'exercise', label: '💪 Exercise' },
-    { key: 'grammar', label: '⚠️ Grammar', count: grammarErrorCount && grammarErrorCount > 0 ? grammarErrorCount : undefined },
-    { key: 'exam', label: '🎓 Exam' },
+  const TABS: { key: ResultTab; label: string; icon: FeatherName; count?: number }[] = [
+    { key: 'words',        label: 'Words',     icon: 'file-text',      count: suggestionCount > 0 ? suggestionCount : undefined },
+    { key: 'pronunciation',label: 'Speaking',  icon: 'mic'             },
+    { key: 'phonetics',    label: 'Phonetics', icon: 'activity'        },
+    { key: 'exercise',     label: 'Exercise',  icon: 'zap'             },
+    { key: 'grammar',      label: 'Grammar',   icon: 'alert-triangle',  count: grammarErrorCount && grammarErrorCount > 0 ? grammarErrorCount : undefined },
+    { key: 'exam',         label: 'Exam',      icon: 'award'           },
   ];
 
   return (
@@ -1351,15 +1332,6 @@ export default function VocabularyScreen() {
             {suggestionCount}
           </Text>
           <Text style={styles.scoreSummaryLabel}>Suggestions</Text>
-        </View>
-        <View style={styles.scoreDivider} />
-        <View style={styles.scoreSummaryItem}>
-          <Text style={styles.scoreSummaryValue}>
-            {analysisResult?.emotion_analysis
-              ? EMOTION_EMOJI[analysisResult.emotion_analysis.detected_emotion] ?? '😐'
-              : '—'}
-          </Text>
-          <Text style={styles.scoreSummaryLabel}>Emotion</Text>
         </View>
       </View>
 
@@ -1430,10 +1402,16 @@ export default function VocabularyScreen() {
             style={[styles.tabBtn, activeTab === tab.key && styles.tabBtnActive]}
             onPress={() => setActiveTab(tab.key)}
           >
-            <Text style={[styles.tabBtnText, activeTab === tab.key && styles.tabBtnTextActive]}>
-              {tab.label}
-              {tab.count !== undefined ? ` (${tab.count})` : ''}
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+              <Feather
+                name={tab.icon}
+                size={13}
+                color={activeTab === tab.key ? Colors.light.tint : Colors.light.textSecondary}
+              />
+              <Text style={[styles.tabBtnText, activeTab === tab.key && styles.tabBtnTextActive]}>
+                {tab.label}{tab.count !== undefined ? ` (${tab.count})` : ''}
+              </Text>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -1449,7 +1427,7 @@ export default function VocabularyScreen() {
             {/* CEFR Vocabulary Distribution — EVP / new-GSL / AWL / NAWL */}
             {analysisResult?.cefr_data && (
               <View style={styles.cefrCard}>
-                <Text style={styles.sectionTitle}>📊 Vocabulary Level Distribution</Text>
+                <Text style={styles.sectionTitle}>Vocabulary Level Distribution</Text>
 
                 {/* Stacked bar */}
                 <View style={styles.cefrBar}>
@@ -1481,7 +1459,7 @@ export default function VocabularyScreen() {
                 {/* Advanced words */}
                 {analysisResult.cefr_data.highest_level_words.length > 0 && (
                   <View style={styles.advancedWordsBlock}>
-                    <Text style={styles.advancedWordsLabel}>✨ Advanced words you used</Text>
+                    <Text style={styles.advancedWordsLabel}>Advanced words you used</Text>
                     <View style={styles.wordChipsRow}>
                       {analysisResult.cefr_data.highest_level_words.map((w, i) => (
                         <View key={i} style={styles.wordChip}>
@@ -1495,7 +1473,7 @@ export default function VocabularyScreen() {
                 {/* Tagged transcript preview */}
                 {analysisResult.cefr_data.word_tags.length > 0 && (
                   <View style={styles.taggedTranscript}>
-                    <Text style={styles.advancedWordsLabel}>🏷 Your words — coloured by CEFR level</Text>
+                    <Text style={styles.advancedWordsLabel}>Your words — coloured by CEFR level</Text>
                     <View style={styles.taggedRow}>
                       {analysisResult.cefr_data.word_tags.map((t, i) => (
                         <View key={i} style={[styles.taggedWord, {
@@ -1572,35 +1550,7 @@ export default function VocabularyScreen() {
                   </View>
                 </View>
 
-                {/* Emotion */}
-                {analysisResult?.emotion_analysis && (
-                  <View style={styles.emotionCard}>
-                    <Text style={styles.sectionTitle}>Detected Emotion</Text>
-                    <View style={styles.emotionRow}>
-                      <Text style={styles.emotionEmoji}>
-                        {EMOTION_EMOJI[analysisResult.emotion_analysis.detected_emotion] ?? '😐'}
-                      </Text>
-                      <View style={styles.emotionInfo}>
-                        <Text style={styles.emotionName}>
-                          {analysisResult.emotion_analysis.detected_emotion?.charAt(0).toUpperCase() +
-                           analysisResult.emotion_analysis.detected_emotion?.slice(1)}
-                        </Text>
-                        <Text style={styles.confidenceLevel}>
-                          Confidence: {analysisResult.emotion_analysis.confidence_level?.toUpperCase()}
-                        </Text>
-                      </View>
-                    </View>
 
-                    {(analysisResult.emotion_analysis.indicators?.length ?? 0) > 0 && (
-                      <View style={styles.indicatorsList}>
-                        <Text style={styles.indicatorsLabel}>SPEECH PATTERNS DETECTED</Text>
-                        {analysisResult.emotion_analysis.indicators.map((ind, i) => (
-                          <Text key={i} style={styles.indicatorItem}>✓ {ind}</Text>
-                        ))}
-                      </View>
-                    )}
-                  </View>
-                )}
 
                 {/* Speech Quality */}
                 {analysisResult?.speech_quality && (
@@ -1662,7 +1612,7 @@ export default function VocabularyScreen() {
                     <Text style={styles.phoneticArrow}>→</Text>
                     <View style={styles.phoneticItem}>
                       <Text style={styles.phoneticLabel}>🎤 You said</Text>
-                      <Text style={[styles.phoneticIPA, { color: (analysisResult.phonetic_breakdown.phoneme_errors?.length ?? 0) > 0 ? '#F59E0B' : Colors.light.tint }]}>
+                      <Text style={[styles.phoneticIPA, { color: (analysisResult.phonetic_breakdown.phoneme_errors?.length ?? 0) > 0 ? '#8B5CF6' : Colors.light.tint }]}>
                         {analysisResult.phonetic_breakdown.user_ipa}
                       </Text>
                     </View>
@@ -1798,7 +1748,7 @@ export default function VocabularyScreen() {
           <View style={styles.tabSection}>
             {analysisResult?.romanian_errors ? (() => {
               const re = analysisResult.romanian_errors!;
-              const SEVERITY_COLOR: Record<number, string> = { 1: '#22c55e', 2: '#f59e0b', 3: '#ef4444' };
+              const SEVERITY_COLOR: Record<number, string> = { 1: '#0FBA9A', 2: '#8B5CF6', 3: '#ef4444' };
               const SEVERITY_LABEL: Record<number, string> = { 1: 'Minor', 2: 'Moderate', 3: 'Severe' };
               const CATEGORY_LABEL: Record<string, string> = {
                 articles: 'Articles',
@@ -1809,8 +1759,8 @@ export default function VocabularyScreen() {
                 tense: 'Tense / Aspect',
                 collocations: 'Collocations',
               };
-              const scoreColor = re.severity_score >= 80 ? '#22c55e'
-                : re.severity_score >= 55 ? '#f59e0b' : '#ef4444';
+              const scoreColor = re.severity_score >= 80 ? '#0FBA9A'
+                : re.severity_score >= 55 ? '#8B5CF6' : '#ef4444';
               return (
                 <>
                   {/* Overview card */}
@@ -1973,23 +1923,23 @@ export default function VocabularyScreen() {
               const focus = EXAM_FOCUS[targetExam] ?? EXAM_FOCUS.general;
 
               const CRITERIA_META: Record<CriteriaKey, { label: string; color: string }> = {
-                fluency_coherence:    { label: isWritingMode ? 'Coherence & Cohesion' : 'Fluency & Coherence', color: '#FF7A59' },
-                lexical_resource:     { label: 'Lexical Resource',  color: '#7C6FFF' },
-                grammatical_accuracy: { label: 'Grammatical Range', color: '#1EE8B5' },
-                pronunciation:        { label: 'Pronunciation',     color: '#f59e0b' },
+                fluency_coherence:    { label: isWritingMode ? 'Coherence & Cohesion' : 'Fluency & Coherence', color: '#8B5CF6' },
+                lexical_resource:     { label: 'Lexical Resource',  color: '#8B5CF6' },
+                grammatical_accuracy: { label: 'Grammatical Range', color: '#0FBA9A' },
+                pronunciation:        { label: 'Pronunciation',     color: '#8B5CF6' },
               };
               const CRIT_META: Record<string, { label: string; color: string; icon: string }> = {
-                pronunciation_fluency: { label: 'Pronunciation & Fluency', color: '#FF7A59', icon: '🗣️' },
-                language_resource:     { label: 'Language Resource',       color: '#7C6FFF', icon: '📚' },
-                discourse_management:  { label: 'Discourse Management',    color: '#1EE8B5', icon: '🧩' },
+                pronunciation_fluency: { label: 'Pronunciation & Fluency', color: '#8B5CF6', icon: '🗣️' },
+                language_resource:     { label: 'Language Resource',       color: '#8B5CF6', icon: '📚' },
+                discourse_management:  { label: 'Discourse Management',    color: '#0FBA9A', icon: '🧩' },
               };
               const IELTS_CRITERIA = focus.priority
                 .filter(key => !(isWritingMode && key === 'pronunciation'))
                 .map(key => ({ key, ...CRITERIA_META[key], weight: focus.weights[key] }));
 
               const GENRE_COLOR: Record<CocaGroup, string> = {
-                SPOK: '#10B981', FIC: '#7C6FFF', MAG: '#f59e0b', NEWS: '#FF7A59', ACAD: '#1EE8B5',
-                Web: '#60a5fa', Blog: '#e879f9', Mov: '#fb7185', TV: '#a78bfa',
+                SPOK: '#0FBA9A', FIC: '#8B5CF6', MAG: '#8B5CF6', NEWS: '#8B5CF6', ACAD: '#0FBA9A',
+                Web: '#8B5CF6', Blog: '#8B5CF6', Mov: '#EF4444', TV: '#8B5CF6',
               };
               const GENRE_ICON: Record<CocaGroup, string> = {
                 SPOK: '🗣️', FIC: '📖', MAG: '📰', NEWS: '🗞️', ACAD: '🎓',
@@ -2096,7 +2046,7 @@ export default function VocabularyScreen() {
                           <View style={styles.examInlineBarTrack}>
                             <View style={[styles.examInlineBarFill, {
                               width: `${(ep.pte_core.speaking_score / 90) * 100}%` as any,
-                              backgroundColor: '#3B82F6',
+                              backgroundColor: '#8B5CF6',
                             }]} />
                           </View>
                         </View>
@@ -2294,7 +2244,7 @@ const styles = StyleSheet.create({
     borderRadius: 11,
     borderWidth: 1.5,
     borderColor: Colors.light.tint,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: Colors.light.card,
   },
   backBtnText: {
     fontSize: 14,
@@ -2316,8 +2266,8 @@ const styles = StyleSheet.create({
   playRecText: { fontSize: 14, fontWeight: '700', color: Colors.light.text },
   playRecSub: { fontSize: 11, color: Colors.light.textSecondary, marginTop: 1 },
   playRecBadge: {
-    fontSize: 10, fontWeight: '800', color: '#dc2626',
-    backgroundColor: '#fee2e2', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
+    fontSize: 10, fontWeight: '800', color: '#EF4444',
+    backgroundColor: 'rgba(239,68,68,0.08)', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3,
     overflow: 'hidden',
   },
 
@@ -2473,8 +2423,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: 22,
     borderWidth: 1.5,
-    borderColor: '#94A3B8',                // clearly visible gray border
-    backgroundColor: '#E2E8F0',            // light slate fill — pops on F8FAFC bg
+    borderColor: 'rgba(255,255,255,0.15)',  // clearly visible border on dark bg
+    backgroundColor: 'rgba(255,255,255,0.08)', // subtle fill on dark bg
     minHeight: 38,
     justifyContent: 'center',
   },
@@ -2487,7 +2437,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 3 },
     elevation: 3,
   },
-  tabBtnText: { fontSize: 13, fontWeight: '700', color: '#1E293B' },
+  tabBtnText: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
   tabBtnTextActive: { color: '#fff', fontWeight: '800' },
 
   resultsContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
@@ -2542,14 +2492,6 @@ const styles = StyleSheet.create({
   scoreBarBg: { height: 10, backgroundColor: Colors.light.border, borderRadius: 5, overflow: 'hidden' },
   scoreBarFill: { height: '100%', borderRadius: 5 },
 
-  emotionCard: {
-    backgroundColor: Colors.light.surface,
-    borderRadius: 14, padding: 16, borderWidth: 1, borderColor: Colors.light.border, gap: 12,
-  },
-  emotionRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  emotionEmoji: { fontSize: 40 },
-  emotionInfo: { flex: 1 },
-  emotionName: { fontSize: 16, fontWeight: '700', color: Colors.light.text, marginBottom: 2 },
   confidenceLevel: { fontSize: 12, color: Colors.light.textLight, fontWeight: '500' },
   indicatorsList: {
     borderTopWidth: 1, borderTopColor: Colors.light.border, paddingTop: 12, gap: 4,
@@ -2596,9 +2538,9 @@ const styles = StyleSheet.create({
   phoneticArrow: { fontSize: 20, color: Colors.light.tint, marginHorizontal: 8 },
   // IPA enhanced
   perfectRow: {
-    backgroundColor: '#ECFDF5', borderRadius: 8, padding: 10, marginTop: 4,
+    backgroundColor: 'rgba(15,186,154,0.12)', borderRadius: 8, padding: 10, marginTop: 4,
   },
-  perfectText: { fontSize: 13, color: '#059669', fontWeight: '600', textAlign: 'center' },
+  perfectText: { fontSize: 13, color: '#0FBA9A', fontWeight: '600', textAlign: 'center' },
   errorsHeading: {
     fontSize: 13, fontWeight: '700', color: Colors.light.textSecondary,
     marginTop: 8, marginBottom: 6, letterSpacing: 0.3,
@@ -2613,10 +2555,10 @@ const styles = StyleSheet.create({
   correctionPositionText: { fontSize: 11, color: Colors.light.textSecondary, fontWeight: '600' },
   correctionPhonemes: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   phonemeChipWrong: {
-    backgroundColor: '#FEE2E2', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: 'rgba(239,68,68,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
   },
   phonemeChipRight: {
-    backgroundColor: '#ECFDF5', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: 'rgba(15,186,154,0.15)', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4,
   },
   phonemeChipText: { fontSize: 16, fontWeight: '800', color: '#EF4444', fontFamily: 'monospace' },
   correctionArrow: { fontSize: 16, color: Colors.light.textSecondary },
@@ -2625,10 +2567,10 @@ const styles = StyleSheet.create({
   },
   correctionExplanation: { fontSize: 13, color: Colors.light.text, lineHeight: 19 },
   correctionHowBox: {
-    backgroundColor: '#F0FDF4', borderRadius: 10, padding: 10, gap: 4,
+    backgroundColor: 'rgba(15,186,154,0.10)', borderRadius: 10, padding: 10, gap: 4,
   },
-  correctionHowLabel: { fontSize: 9, fontWeight: '800', color: '#059669', letterSpacing: 1 },
-  correctionHowText: { fontSize: 13, color: '#065F46', lineHeight: 20 },
+  correctionHowLabel: { fontSize: 9, fontWeight: '800', color: '#0FBA9A', letterSpacing: 1 },
+  correctionHowText: { fontSize: 13, color: '#94A3B8', lineHeight: 20 },
 
   phonemeErrorsList: { gap: 8 },
   phonemeErrorsTitle: { fontSize: 13, fontWeight: '600', color: Colors.light.text, marginBottom: 4 },
@@ -2719,10 +2661,10 @@ const styles = StyleSheet.create({
   advancedWordsLabel: { fontSize: 12, fontWeight: '700', color: Colors.light.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
   wordChipsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   wordChip: {
-    backgroundColor: '#e879f920', borderWidth: 1, borderColor: '#e879f940',
+    backgroundColor: '#8B5CF620', borderWidth: 1, borderColor: '#8B5CF640',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
-  wordChipText: { fontSize: 13, fontWeight: '700', color: '#c026d3' },
+  wordChipText: { fontSize: 13, fontWeight: '700', color: '#8B5CF6' },
 
   // ── Tagged Transcript ───────────────────────────────────────────────────────
   taggedTranscript: { gap: 8, paddingTop: 4 },
@@ -2806,7 +2748,7 @@ const styles = StyleSheet.create({
   cambridgeAssessCard: {
     backgroundColor: Colors.light.surface, borderRadius: 14,
     padding: 16, marginBottom: 12,
-    borderWidth: 1.5, borderColor: '#7C6FFF40', gap: 10,
+    borderWidth: 1.5, borderColor: '#8B5CF640', gap: 10,
   },
   cambridgeAssessHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   cambridgeAssessTitle: { fontSize: 15, fontWeight: '800', color: Colors.light.text, flex: 1 },
@@ -2814,11 +2756,11 @@ const styles = StyleSheet.create({
   cambridgeAssessBadgeText: { fontSize: 18, fontWeight: '900' },
   cambridgeAssessSubtitle: { fontSize: 11, color: Colors.light.textLight, fontStyle: 'italic', marginTop: -6 },
   cambridgeRecBox: {
-    backgroundColor: '#7C6FFF15', borderRadius: 10, padding: 12,
-    borderLeftWidth: 3, borderLeftColor: '#7C6FFF',
+    backgroundColor: '#8B5CF615', borderRadius: 10, padding: 12,
+    borderLeftWidth: 3, borderLeftColor: '#8B5CF6',
     gap: 2,
   },
-  cambridgeRecLabel: { fontSize: 10, fontWeight: '800', color: '#7C6FFF', letterSpacing: 0.6 },
+  cambridgeRecLabel: { fontSize: 10, fontWeight: '800', color: '#8B5CF6', letterSpacing: 0.6 },
   cambridgeRecExam: { fontSize: 14, fontWeight: '800', color: Colors.light.text },
   cambridgeRecAdvice: { fontSize: 12, color: Colors.light.textSecondary, fontStyle: 'italic' },
 
@@ -2977,7 +2919,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center',
     paddingVertical: 6, paddingHorizontal: 4,
     borderRadius: 10,
-    backgroundColor: '#FAFBFC',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderWidth: 1, borderColor: Colors.light.border,
   },
   grammarInlineOk: {
@@ -3026,15 +2968,15 @@ const styles = StyleSheet.create({
   },
   examInlineBarFill: { height: '100%' as any, borderRadius: 4 },
   examInlinePteCard: {
-    backgroundColor: '#EFF6FF', borderRadius: 10, padding: 12,
-    borderWidth: 1, borderColor: '#BFDBFE', marginTop: 2,
+    backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)', marginTop: 2,
   },
   examInlinePteTitle: {
-    fontSize: 11, fontWeight: '800', color: '#1E40AF',
+    fontSize: 11, fontWeight: '800', color: '#8B5CF6',
     letterSpacing: 0.4, marginBottom: 8, textTransform: 'uppercase' as any,
   },
   examInlinePteRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  examInlinePteScore: { fontSize: 28, fontWeight: '900', color: '#3B82F6' },
+  examInlinePteScore: { fontSize: 28, fontWeight: '900', color: '#8B5CF6' },
   examInlinePteRange: { fontSize: 11, color: Colors.light.textSecondary, marginBottom: 6 },
   examInlinePteSource: {
     fontSize: 10, color: Colors.light.textSecondary,
@@ -3064,9 +3006,9 @@ const styles = StyleSheet.create({
   // Demo Mode banner
   demoBanner: {
     marginHorizontal: 20, marginTop: 16,
-    backgroundColor: '#EFF6FF', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#BFDBFE',
+    backgroundColor: 'rgba(139,92,246,0.10)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.25)',
   },
-  demoBannerTitle: { fontSize: 13, fontWeight: '800', color: '#1E40AF', marginBottom: 6 },
-  demoBannerText: { fontSize: 12, color: '#1D4ED8', lineHeight: 18 },
+  demoBannerTitle: { fontSize: 13, fontWeight: '800', color: '#8B5CF6', marginBottom: 6 },
+  demoBannerText: { fontSize: 12, color: '#8B5CF6', lineHeight: 18 },
 });

@@ -44,6 +44,7 @@ const t = {
   coverageMap:    { en: 'Coverage Map',   ro: 'Hartă acoperire' },
   settings:       { en: 'Settings',       ro: 'Setări' },
   about:          { en: 'About',          ro: 'Despre' },
+  appShowcase:    { en: 'App Showcase',   ro: 'Prezentare' },
   aiLanguageCoach:{ en: 'AI Language Coach', ro: 'Coach AI de limbă' },
 
   // ── Home Dashboard ────────────────────────────────────────────────────────

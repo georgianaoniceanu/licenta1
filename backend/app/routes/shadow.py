@@ -3,7 +3,8 @@ from fastapi.responses import StreamingResponse, JSONResponse
 from pydantic import BaseModel
 from app.services.shadow_speaking import transcribe_audio_with_timestamps, analyze_fluency
 from app.services.phoneme_remote import assess_pronunciation
-from app.services.tts import text_to_speech
+from app.services.prosody_remote import assess_prosody
+from app.services.tts import text_to_speech, text_to_speech_wav
 from app.services.firestore import save_shadow_session, get_shadow_sessions
 from app.services.coca_genre_classifier import classify_text_genre
 from app.services.auth import verify_token
@@ -111,12 +112,40 @@ async def analyze_shadow(
         #    assess_pronunciation() never returns None — guaranteed by Tier 1.
         try:
             phoneme_result = assess_pronunciation(tmp_path, original_text, transcribed)
-            phoneme_score  = int(phoneme_result.get("accuracy_score", 0))
+            # Only use phoneme_score when it comes from real acoustic analysis (wav2vec2).
+            # The local CMU-dict fallback compares transcribed text, not audio — it gives
+            # inflated scores whenever Whisper transcribes correctly regardless of pronunciation.
+            if phoneme_result.get("_tier") == "colab-wav2vec2":
+                phoneme_score = int(phoneme_result.get("accuracy_score", 0))
+            else:
+                phoneme_score = None
         except Exception as _ph_err:
             logger.warning("Phoneme scoring failed unexpectedly: %s", _ph_err)
             phoneme_score = None
 
-        # 4) Full fluency analysis: word accuracy + WPM + pause detection + phoneme
+        # 4) Prosody analysis — pitch contour, rhythm, energy envelope.
+        #    Generates native TTS audio to compare against learner recording.
+        #    Runs when COLAB_PROSODY_URL is set (Tier 1: parselmouth + DTW)
+        #    or always via local librosa fallback (Tier 2).
+        prosody_result = None
+        native_wav_path = None
+        try:
+            # Use PCM format directly from ElevenLabs → save as WAV → no ffmpeg needed
+            native_wav_bytes = text_to_speech_wav(original_text)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as ntmp:
+                ntmp.write(native_wav_bytes)
+                native_wav_path = ntmp.name
+            prosody_result = assess_prosody(tmp_path, native_wav_path)
+        except Exception as _pros_err:
+            logger.warning("Prosody analysis failed: %s", _pros_err, exc_info=True)
+        finally:
+            if native_wav_path:
+                try:
+                    os.unlink(native_wav_path)
+                except Exception:
+                    pass
+
+        # 5) Full fluency analysis: word accuracy + WPM + pause detection + phoneme + prosody
         result = analyze_fluency(
             transcribed=transcribed,
             original=original_text,
@@ -125,9 +154,12 @@ async def analyze_shadow(
             segments=ts_result.get("segments", []),
             duration_s=ts_result["duration_s"],
             genre=genre,
+            prosody_result=prosody_result,
         )
         result["transcribed_text"] = transcribed
         result["duration_s"]       = ts_result["duration_s"]
+        if phoneme_result:
+            result["word_breakdown"] = phoneme_result.get("word_breakdown", [])
 
         if authorization and authorization.startswith("Bearer "):
             try:

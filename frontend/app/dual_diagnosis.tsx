@@ -282,11 +282,20 @@ export default function DualDiagnosisScreen() {
     try {
       const demoPreset = await AsyncStorage.getItem('active_demo_preset');
 
-      if (demoPreset && DEMO_RESULTS[demoPreset]) {
-        setResult(DEMO_RESULTS[demoPreset]);
-        Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
-        setLoading(false);
-        return;
+      if (demoPreset) {
+        // Job presets (ana/mihai/elena/radu/sorin/diana) map to their proficiency tier
+        const JOB_TIER_MAP: Record<string, keyof typeof DEMO_RESULTS> = {
+          ana: 'weak', sorin: 'weak',
+          mihai: 'medium', diana: 'medium',
+          elena: 'strong', radu: 'strong',
+        };
+        const effectivePreset = DEMO_RESULTS[demoPreset] ? demoPreset : JOB_TIER_MAP[demoPreset];
+        if (effectivePreset && DEMO_RESULTS[effectivePreset]) {
+          setResult(DEMO_RESULTS[effectivePreset]);
+          Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }).start();
+          setLoading(false);
+          return;
+        }
       }
 
       // Live mode: need rawIndicators + API
@@ -384,9 +393,19 @@ export default function DualDiagnosisScreen() {
             <View style={S.errorCard}>
               <Feather name="alert-circle" size={24} color={Colors.light.error} />
               <Text style={S.errorText}>{error}</Text>
-              <TouchableOpacity style={S.retryBtn} onPress={run} activeOpacity={0.8}>
-                <Text style={S.retryText}>Retry</Text>
-              </TouchableOpacity>
+              {error.includes('diagnostic') ? (
+                <TouchableOpacity
+                  style={S.retryBtn}
+                  onPress={() => router.replace('/initial_diagnostic')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={S.retryText}>Start Diagnostic →</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={S.retryBtn} onPress={run} activeOpacity={0.8}>
+                  <Text style={S.retryText}>Retry</Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 

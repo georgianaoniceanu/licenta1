@@ -44,12 +44,12 @@ type UnifiedSession =
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const TEAL   = '#0FBA9A';
-const PURPLE = '#7C6FFF';
-const CORAL  = '#FF7A59';
-const AMBER  = '#F59E0B';
+const PURPLE = '#8B5CF6';
+const CORAL  = '#8B5CF6';
+const AMBER  = '#8B5CF6';
 
 const CEFR_COLOR: Record<string, string> = {
-  A1: '#22c55e', A2: '#4ade80', B1: '#60a5fa', B2: '#f59e0b', C1: '#f87171', C2: '#e879f9',
+  A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6', B2: '#8B5CF6', C1: '#8B5CF6', C2: '#0FBA9A',
 };
 
 function formatDate(ts: number) {
@@ -61,7 +61,7 @@ function formatDate(ts: number) {
 
 // ── Session cards ─────────────────────────────────────────────────────────────
 function ExamCard({ data }: { data: ExamSession }) {
-  const levelColor = CEFR_COLOR[data.cambridge_level] ?? '#60a5fa';
+  const levelColor = CEFR_COLOR[data.cambridge_level] ?? '#8B5CF6';
   return (
     <View style={[S.card, { borderTopColor: TEAL }]}>
       <View style={S.cardRow}>
@@ -103,7 +103,7 @@ function ExamCard({ data }: { data: ExamSession }) {
 }
 
 function CAFCard({ data }: { data: CAFEntry }) {
-  const cefrColor = CEFR_COLOR[data.cefr] ?? '#60a5fa';
+  const cefrColor = CEFR_COLOR[data.cefr] ?? '#8B5CF6';
   return (
     <View style={[S.card, { borderTopColor: PURPLE }]}>
       <View style={S.cardRow}>
@@ -181,8 +181,8 @@ function GrammarCard({ data }: { data: GrammarSession }) {
 
 function GenreCard({ data }: { data: GenreSession }) {
   const GENRE_COLOR: Record<string, string> = {
-    SPOK: '#10B981', FIC: '#7C6FFF', MAG: '#f59e0b', NEWS: '#FF7A59', ACAD: '#1EE8B5',
-    Web: '#60a5fa', Blog: '#e879f9', Mov: '#fb7185', TV: '#a78bfa',
+    SPOK: '#0FBA9A', FIC: '#8B5CF6', MAG: '#8B5CF6', NEWS: '#8B5CF6', ACAD: '#0FBA9A',
+    Web: '#8B5CF6', Blog: '#8B5CF6', Mov: '#EF4444', TV: '#8B5CF6',
   };
   const GENRE_LABEL: Record<string, string> = {
     SPOK: 'Spoken', FIC: 'Fiction', MAG: 'Magazine', NEWS: 'News', ACAD: 'Academic',
@@ -192,14 +192,14 @@ function GenreCard({ data }: { data: GenreSession }) {
     SPOK: '🗣️', FIC: '📖', MAG: '📰', NEWS: '🗞️', ACAD: '🎓',
     Web: '🌐', Blog: '✍️', Mov: '🎬', TV: '📺',
   };
-  const genreColor = data.dominant_genre ? GENRE_COLOR[data.dominant_genre] ?? '#60a5fa' : '#60a5fa';
-  const cefrColor  = CEFR_COLOR[data.cefr_level] ?? '#60a5fa';
+  const genreColor = data.dominant_genre ? GENRE_COLOR[data.dominant_genre] ?? '#8B5CF6' : '#8B5CF6';
+  const cefrColor  = CEFR_COLOR[data.cefr_level] ?? '#8B5CF6';
 
   return (
-    <View style={[S.card, { borderTopColor: '#10B981' }]}>
+    <View style={[S.card, { borderTopColor: '#0FBA9A' }]}>
       <View style={S.cardRow}>
-        <View style={[S.badge, { backgroundColor: '#10B98120' }]}>
-          <Text style={[S.badgeText, { color: '#10B981' }]}>🌐 Domain</Text>
+        <View style={[S.badge, { backgroundColor: '#0FBA9A20' }]}>
+          <Text style={[S.badgeText, { color: '#0FBA9A' }]}>🌐 Domain</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
@@ -225,10 +225,10 @@ function GenreCard({ data }: { data: GenreSession }) {
 }
 
 const SKY = '#0EA5E9';
-const DIFF_COLORS: Record<string, string> = { B1: '#22c55e', B2: '#f59e0b', C1: '#f87171' };
+const DIFF_COLORS: Record<string, string> = { B1: '#0FBA9A', B2: '#8B5CF6', C1: '#EF4444' };
 
 function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDemoPreset: string | null }) {
-  const scoreColor = data.score >= 80 ? '#22c55e' : data.score >= 60 ? '#f59e0b' : '#f87171';
+  const scoreColor = data.score >= 80 ? '#0FBA9A' : data.score >= 60 ? '#8B5CF6' : '#EF4444';
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const audioModule = getDemoAudio(data.audio_id);
@@ -289,8 +289,8 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
         <View style={{ flex: 1, gap: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <Text style={[S.badgeText, { color: Colors.light.text, fontSize: 14 }]}>{data.category}</Text>
-            <View style={[S.badge, { backgroundColor: (DIFF_COLORS[data.difficulty] ?? '#60a5fa') + '25', paddingVertical: 2 }]}>
-              <Text style={[S.badgeText, { color: DIFF_COLORS[data.difficulty] ?? '#60a5fa' }]}>{data.difficulty}</Text>
+            <View style={[S.badge, { backgroundColor: (DIFF_COLORS[data.difficulty] ?? '#8B5CF6') + '25', paddingVertical: 2 }]}>
+              <Text style={[S.badgeText, { color: DIFF_COLORS[data.difficulty] ?? '#8B5CF6' }]}>{data.difficulty}</Text>
             </View>
           </View>
           <Text style={[S.dateText, { fontSize: 12 }]} numberOfLines={2}>"{data.target_text}"</Text>
@@ -316,7 +316,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
               style={[
                 S.waveBar,
                 {
-                  backgroundColor: playing ? SKY : '#CBD5E1',
+                  backgroundColor: playing ? SKY : 'rgba(255,255,255,0.06)',
                   transform: [{ scaleY: v }],
                 },
               ]}
@@ -588,7 +588,7 @@ const S = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-evenly',
     height: 28,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 14,
     paddingHorizontal: 12,
   },
@@ -613,7 +613,7 @@ const S = StyleSheet.create({
   transcriptBox: {
     marginHorizontal: 14, marginBottom: 12,
     padding: 12,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderRadius: 10,
     borderWidth: 1, borderColor: Colors.light.border,
   },
@@ -627,7 +627,7 @@ const S = StyleSheet.create({
     lineHeight: 17, fontStyle: 'italic',
   },
   transcriptRecorded: {
-    fontSize: 12, color: '#0F172A',
+    fontSize: 12, color: Colors.light.text,
     lineHeight: 17, fontWeight: '600',
   },
 });

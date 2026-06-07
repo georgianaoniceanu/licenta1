@@ -60,13 +60,13 @@ const DEFAULT_SETTINGS: Settings = {
 
 function makeTheme(dark: boolean) {
   return {
-    bg:       dark ? '#0A1628' : '#F8FAFC',
-    card:     dark ? '#0F1F3A' : '#FFFFFF',
-    border:   dark ? 'rgba(255,255,255,0.10)' : '#E5E7EB',
+    bg:       dark ? '#0A1628' : '#060D1A',
+    card:     dark ? '#060D1A' : '#0F1B2D',
+    border:   dark ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.08)',
     text:     dark ? '#F0F6FF' : '#0F172A',
     text2:    dark ? '#8BA0B8' : '#64748B',
-    active:   '#a855f7',
-    activeBg: dark ? 'rgba(168,85,247,0.18)' : 'rgba(168,85,247,0.08)',
+    active:   '#8B5CF6',
+    activeBg: dark ? 'rgba(139,92,246,0.18)' : 'rgba(139,92,246,0.08)',
   };
 }
 
@@ -205,7 +205,7 @@ export default function SettingsScreen() {
     return (
       <SafeAreaView style={styles.root}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator color="#a855f7" size="large" />
+          <ActivityIndicator color="#8B5CF6" size="large" />
         </View>
       </SafeAreaView>
     );
@@ -317,7 +317,7 @@ export default function SettingsScreen() {
                 <Switch
                   value={settings.soundEnabled}
                   onValueChange={() => saveSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
-                  trackColor={{ false: '#445566', true: '#a855f7' }}
+                  trackColor={{ false: '#445566', true: '#8B5CF6' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -335,7 +335,7 @@ export default function SettingsScreen() {
                 <Switch
                   value={isDark}
                   onValueChange={toggleDarkMode}
-                  trackColor={{ false: '#445566', true: '#a855f7' }}
+                  trackColor={{ false: '#445566', true: '#8B5CF6' }}
                   thumbColor="#fff"
                 />
               </View>
@@ -435,7 +435,7 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.notifications.dailyReminder}
                 onValueChange={() => handleNotificationToggle('dailyReminder')}
-                trackColor={{ false: '#445566', true: '#a855f7' }}
+                trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
               />
             </View>
@@ -450,7 +450,7 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.notifications.achievementAlerts}
                 onValueChange={() => handleNotificationToggle('achievementAlerts')}
-                trackColor={{ false: '#445566', true: '#a855f7' }}
+                trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
               />
             </View>
@@ -465,7 +465,7 @@ export default function SettingsScreen() {
               <Switch
                 value={settings.notifications.reviewReminders}
                 onValueChange={() => handleNotificationToggle('reviewReminders')}
-                trackColor={{ false: '#445566', true: '#a855f7' }}
+                trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
               />
             </View>
@@ -505,10 +505,10 @@ export default function SettingsScreen() {
                 <View style={styles.healthCard}>
                   <View style={styles.healthHeaderRow}>
                     <View style={[styles.healthDot, {
-                      backgroundColor: health.ok ? '#10B981' : '#EF4444',
+                      backgroundColor: health.ok ? '#0FBA9A' : '#EF4444',
                     }]} />
                     <Text style={[styles.healthHeader, {
-                      color: health.ok ? '#10B981' : '#EF4444',
+                      color: health.ok ? '#0FBA9A' : '#EF4444',
                     }]}>
                       {health.ok ? tr('allSystemsOk', lang) : tr('issuesDetected', lang)}
                     </Text>
@@ -522,7 +522,7 @@ export default function SettingsScreen() {
                     return (
                       <View key={svc} style={styles.healthRow}>
                         <View style={[styles.healthDot, {
-                          backgroundColor: c.ok ? '#10B981' : '#EF4444',
+                          backgroundColor: c.ok ? '#0FBA9A' : '#EF4444',
                         }]} />
                         <View style={{ flex: 1 }}>
                           <Text style={styles.healthSvc}>{label}</Text>
@@ -556,8 +556,8 @@ export default function SettingsScreen() {
               {(
                 [
                   { preset: 'weak'   as DemoPreset, emoji: '📉', color: '#EF4444', label: tr('demoWeakLabel', lang),   range: tr('demoWeakRange', lang)   },
-                  { preset: 'medium' as DemoPreset, emoji: '📈', color: '#a855f7', label: tr('demoMedLabel', lang),    range: tr('demoMedRange', lang)    },
-                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#F59E0B', label: tr('demoStrongLabel', lang), range: tr('demoStrongRange', lang) },
+                  { preset: 'medium' as DemoPreset, emoji: '📈', color: '#8B5CF6', label: tr('demoMedLabel', lang),    range: tr('demoMedRange', lang)    },
+                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#8B5CF6', label: tr('demoStrongLabel', lang), range: tr('demoStrongRange', lang) },
                 ] as const
               ).map(({ preset, emoji, color, label, range }) => {
                 const busy = demoLoading === preset;
@@ -654,7 +654,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8FAFC' },
+  root: { flex: 1, backgroundColor: '#060D1A' },
 
   header: {
     flexDirection: 'row',
@@ -663,35 +663,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
   },
   backBtn: { paddingVertical: 6, paddingRight: 12 },
-  backText: { color: '#a855f7', fontSize: 15, fontWeight: '600' },
-  headerTitle: { color: '#0F172A', fontSize: 18, fontWeight: '700' },
+  backText: { color: '#8B5CF6', fontSize: 15, fontWeight: '600' },
+  headerTitle: { color: '#F0F6FF', fontSize: 18, fontWeight: '700' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 
   tabsContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    borderBottomColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 20,
   },
   tab:      { flex: 1, paddingVertical: 12, alignItems: 'center', gap: 4, borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  tabActive:{ borderBottomColor: '#a855f7' },
+  tabActive:{ borderBottomColor: '#8B5CF6' },
   tabText:  { fontSize: 18 },
   tabLabel: { fontSize: 10, fontWeight: '600' },
 
   contentContainer: { paddingHorizontal: 20, paddingTop: 20 },
 
   section: { marginBottom: 28 },
-  sectionTitle: { color: '#0F172A', fontSize: 16, fontWeight: '700', marginBottom: 14 },
+  sectionTitle: { color: '#F0F6FF', fontSize: 16, fontWeight: '700', marginBottom: 14 },
 
   optionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 10,
@@ -705,10 +705,10 @@ const styles = StyleSheet.create({
   radioInner: { width: 10, height: 10, borderRadius: 5 },
 
   settingRow: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     paddingHorizontal: 16,
     paddingVertical: 14,
     flexDirection: 'row',
@@ -716,8 +716,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 14,
   },
-  settingLabel: { color: '#0F172A', fontSize: 14, fontWeight: '600' },
-  settingDescription: { color: '#64748B', fontSize: 12, marginTop: 2 },
+  settingLabel: { color: '#F0F6FF', fontSize: 14, fontWeight: '600' },
+  settingDescription: { color: '#94A3B8', fontSize: 12, marginTop: 2 },
 
   sliderContainer: { flexDirection: 'row', gap: 10 },
   sliderOption: {
@@ -725,38 +725,38 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: 'rgba(255,255,255,0.08)',
     alignItems: 'center',
   },
-  sliderOptionActive: { backgroundColor: '#a855f7', borderColor: '#a855f7' },
-  sliderOptionText: { color: '#6688aa', fontSize: 13, fontWeight: '600' },
-  sliderOptionTextActive: { color: '#0F172A' },
+  sliderOptionActive: { backgroundColor: '#8B5CF6', borderColor: '#8B5CF6' },
+  sliderOptionText: { color: '#94A3B8', fontSize: 13, fontWeight: '600' },
+  sliderOptionTextActive: { color: '#fff' },
 
-  accountInfo: { backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16 },
-  accountLabel: { color: '#64748B', fontSize: 12, fontWeight: '600', marginBottom: 6 },
-  accountEmail: { color: '#8899aa', fontSize: 14 },
+  accountInfo: { backgroundColor: '#0F1B2D', borderRadius: 12, padding: 16 },
+  accountLabel: { color: '#94A3B8', fontSize: 12, fontWeight: '600', marginBottom: 6 },
+  accountEmail: { color: '#94A3B8', fontSize: 14 },
 
   dangerCard: {
-    backgroundColor: '#7f1d1d',
+    backgroundColor: 'rgba(127,29,29,0.5)',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#dc262660',
+    borderColor: '#EF444460',
     paddingHorizontal: 16,
     paddingVertical: 14,
     marginBottom: 14,
   },
-  dangerTitle: { color: '#fca5a5', fontSize: 14, fontWeight: '600' },
-  dangerDescription: { color: '#f87171', fontSize: 12, marginTop: 4 },
+  dangerTitle: { color: 'rgba(239,68,68,0.25)', fontSize: 14, fontWeight: '600' },
+  dangerDescription: { color: '#EF4444', fontSize: 12, marginTop: 4 },
 
   demoCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: '#0FBA9A',
     padding: 14,
   },
   demoTitle:       { color: '#0FBA9A', fontSize: 14, fontWeight: '800' },
-  demoDescription: { color: '#64748B', fontSize: 12, marginTop: 4, lineHeight: 16 },
+  demoDescription: { color: '#94A3B8', fontSize: 12, marginTop: 4, lineHeight: 16 },
   demoProfileCard: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     borderRadius: 12, borderWidth: 1.5,
@@ -775,27 +775,27 @@ const styles = StyleSheet.create({
   },
   healthBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
   healthCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: '#0F1B2D', borderRadius: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
     padding: 14, marginTop: 12,
   },
   healthHeaderRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
   healthHeader: { fontSize: 13, fontWeight: '800' },
   healthRow: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
-    paddingVertical: 8, borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    paddingVertical: 8, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },
   healthDot: { width: 10, height: 10, borderRadius: 5 },
-  healthSvc: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
-  healthDetail: { fontSize: 11, color: '#64748B', marginTop: 2 },
+  healthSvc: { fontSize: 13, fontWeight: '700', color: '#F0F6FF' },
+  healthDetail: { fontSize: 11, color: '#94A3B8', marginTop: 2 },
   healthCacheInfo: {
     fontSize: 10, color: '#94A3B8', fontStyle: 'italic',
     textAlign: 'center', marginTop: 10, paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)',
   },
 
   signOutBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'rgba(239,68,68,0.10)',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#ef4444',
@@ -806,6 +806,6 @@ const styles = StyleSheet.create({
   signOutText: { color: '#ef4444', fontSize: 14, fontWeight: '700' },
 
   footerText: { alignItems: 'center', gap: 4, marginTop: 20 },
-  versionText: { color: '#64748B', fontSize: 12 },
-  copyrightText: { color: '#2d3a47', fontSize: 11 },
+  versionText: { color: '#94A3B8', fontSize: 12 },
+  copyrightText: { color: '#475569', fontSize: 11 },
 });

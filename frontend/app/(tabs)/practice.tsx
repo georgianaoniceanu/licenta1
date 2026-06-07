@@ -334,8 +334,8 @@ function AdaptiveBlock() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>AWL {card.sublist}</Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: '#F1F5F9' }]}>
-                <Text style={[styles.badgeText, { color: '#475569' }]}>{card.difficulty}</Text>
+              <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+                <Text style={[styles.badgeText, { color: '#94A3B8' }]}>{card.difficulty}</Text>
               </View>
             </View>
           </View>
@@ -372,7 +372,7 @@ function AdaptiveBlock() {
               {result ? (
                 <>
                   <Text style={[styles.feedbackMain,
-                    { color: result.is_correct ? '#10B981' : '#EF4444' }]}>
+                    { color: result.is_correct ? '#0FBA9A' : '#EF4444' }]}>
                     {result.is_correct ? 'Correct' : 'Incorrect'}
                     {result.is_correct && result.grade === 5 ? ' — automatized recall' : ''}
                   </Text>
@@ -480,11 +480,11 @@ function RetentionBlock() {
               <Text style={styles.retentionLbl}>Due now</Text>
             </View>
             <View style={styles.retentionStat}>
-              <Text style={[styles.retentionNum, { color: '#F59E0B' }]}>{state.learning_count}</Text>
+              <Text style={[styles.retentionNum, { color: '#8B5CF6' }]}>{state.learning_count}</Text>
               <Text style={styles.retentionLbl}>Learning</Text>
             </View>
             <View style={styles.retentionStat}>
-              <Text style={[styles.retentionNum, { color: '#10B981' }]}>{state.mastered_count}</Text>
+              <Text style={[styles.retentionNum, { color: '#0FBA9A' }]}>{state.mastered_count}</Text>
               <Text style={styles.retentionLbl}>Mastered</Text>
             </View>
             <View style={styles.retentionStat}>
@@ -505,10 +505,10 @@ function RetentionBlock() {
           <SRSSection title="Due now" color="#EF4444" items={state.due}
             meta={w => w.next_review ? `due ${w.next_review}` : 'overdue'}
             emptyMsg="No cards due — great job staying current." />
-          <SRSSection title="Learning" color="#F59E0B" items={state.learning}
+          <SRSSection title="Learning" color="#8B5CF6" items={state.learning}
             meta={w => `${w.interval}d interval`}
             emptyMsg="Practice some words in the Adaptive tab to start learning." />
-          <SRSSection title="Mastered (≥21d)" color="#10B981" items={state.mastered}
+          <SRSSection title="Mastered (≥21d)" color="#0FBA9A" items={state.mastered}
             meta={w => `${w.interval}d interval`}
             emptyMsg="Words with interval ≥ 21 days will appear here." />
         </>
@@ -656,7 +656,7 @@ function ReadingBlock() {
             <View style={styles.scoreCard}>
               <Text style={styles.scoreLabel}>Score</Text>
               <Text style={[styles.scoreNum, {
-                color: correctCount >= 4 ? '#10B981' : correctCount >= 2 ? '#F59E0B' : '#EF4444',
+                color: correctCount >= 4 ? '#0FBA9A' : correctCount >= 2 ? '#8B5CF6' : '#EF4444',
               }]}>{correctCount} / {data.questions.length}</Text>
               <Text style={styles.scoreSub}>
                 {correctCount >= 4 ? 'Excellent comprehension'
@@ -726,8 +726,8 @@ function GrammarBlock() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>{GRAMMAR_CATEGORY_LABEL[item.category]}</Text>
               </View>
-              <View style={[styles.badge, { backgroundColor: '#F1F5F9' }]}>
-                <Text style={[styles.badgeText, { color: '#475569' }]}>{item.cefr}</Text>
+              <View style={[styles.badge, { backgroundColor: 'rgba(255,255,255,0.08)' }]}>
+                <Text style={[styles.badgeText, { color: '#94A3B8' }]}>{item.cefr}</Text>
               </View>
             </View>
           </View>
@@ -759,7 +759,7 @@ function GrammarBlock() {
 
           {submitted && (
             <View style={styles.feedbackBox}>
-              <Text style={[styles.feedbackMain, { color: isCorrect ? '#10B981' : '#EF4444' }]}>
+              <Text style={[styles.feedbackMain, { color: isCorrect ? '#0FBA9A' : '#EF4444' }]}>
                 {isCorrect ? 'Correct' : 'Incorrect'}
               </Text>
               <Text style={styles.exampleSentence}>
@@ -1100,26 +1100,26 @@ function TargetedBlock() {
 
 // ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: '#F8FAFC' },
+  root: { flex: 1, backgroundColor: '#060D1A' },
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8,
   },
   backBtn: {
     paddingHorizontal: 14, paddingVertical: 9, borderRadius: 11,
-    borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#FFFFFF',
+    borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#0F1B2D',
   },
   backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
-  title: { fontSize: 24, fontWeight: '800', color: '#0F172A', letterSpacing: -0.4 },
+  title: { fontSize: 24, fontWeight: '800', color: '#F0F6FF', letterSpacing: -0.4 },
 
-  tabBarOuter: { backgroundColor: '#F8FAFC' },
+  tabBarOuter: { backgroundColor: '#060D1A' },
   tabBar: {
     flexDirection: 'row', gap: 6,
     paddingHorizontal: 20, paddingVertical: 10,
   },
   tab: {
     minWidth: 86, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12,
-    backgroundColor: '#E2E8F0', borderWidth: 1.5, borderColor: '#94A3B8',
+    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center',
   },
   tabActive: {
@@ -1127,13 +1127,13 @@ const styles = StyleSheet.create({
     shadowColor: '#0FBA9A', shadowOpacity: 0.3, shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 }, elevation: 3,
   },
-  tabText: { fontSize: 12, fontWeight: '700', color: '#1E293B' },
+  tabText: { fontSize: 12, fontWeight: '700', color: '#94A3B8' },
   tabTextActive: { color: '#fff', fontWeight: '800' },
 
   scroll: { paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 60 },
 
-  modeIntro: { fontSize: 13, color: '#475569', lineHeight: 19, marginBottom: 14 },
-  bold: { fontWeight: '800', color: '#0F172A' },
+  modeIntro: { fontSize: 13, color: '#94A3B8', lineHeight: 19, marginBottom: 14 },
+  bold: { fontWeight: '800', color: '#F0F6FF' },
 
   primaryBtn: {
     backgroundColor: '#0FBA9A',
@@ -1145,7 +1145,7 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: '#fff', fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
 
   secondaryBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F1B2D',
     paddingVertical: 11, borderRadius: 12, alignItems: 'center',
     borderWidth: 1.5, borderColor: '#0FBA9A',
     marginBottom: 12,
@@ -1154,71 +1154,71 @@ const styles = StyleSheet.create({
 
   // Adaptive — SM-2 exercise runner
   srsInfo: {
-    backgroundColor: '#ECFDF5', borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 14,
+    backgroundColor: 'rgba(15,186,154,0.12)', borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: 'rgba(15,186,154,0.25)', marginBottom: 14,
   },
-  srsInfoText: { fontSize: 12, color: '#065F46', lineHeight: 18 },
+  srsInfoText: { fontSize: 12, color: '#0FBA9A', lineHeight: 18 },
   sessionCounter: {
     fontSize: 13, fontWeight: '800', color: '#0FBA9A', marginTop: 6,
   },
 
   exerciseCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: '#E5E7EB',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8,
+    backgroundColor: '#0F1B2D', borderRadius: 14, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   wordHeader: {
     flexDirection: 'row', alignItems: 'flex-start',
     justifyContent: 'space-between', marginBottom: 14,
   },
-  wordText: { fontSize: 26, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
-  defText:  { fontSize: 15, fontWeight: '600', color: '#0F172A', lineHeight: 22 },
-  wordPron: { fontSize: 13, color: '#64748B', marginTop: 2, fontStyle: 'italic' },
+  wordText: { fontSize: 26, fontWeight: '900', color: '#F0F6FF', letterSpacing: -0.5 },
+  defText:  { fontSize: 15, fontWeight: '600', color: '#F0F6FF', lineHeight: 22 },
+  wordPron: { fontSize: 13, color: '#94A3B8', marginTop: 2, fontStyle: 'italic' },
   badgeRow: { flexDirection: 'row', gap: 6, flexShrink: 0 },
   badge: {
     backgroundColor: '#0FBA9A', borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 4,
   },
   badgeText: { fontSize: 10, fontWeight: '800', color: '#fff', letterSpacing: 0.4 },
-  exerciseInstruction: { fontSize: 13, color: '#64748B', marginBottom: 10, lineHeight: 18 },
+  exerciseInstruction: { fontSize: 13, color: '#94A3B8', marginBottom: 10, lineHeight: 18 },
 
   feedbackBox: {
-    marginTop: 14, padding: 12, backgroundColor: '#F8FAFC',
-    borderRadius: 10, borderWidth: 1, borderColor: '#E2E8F0',
+    marginTop: 14, padding: 12, backgroundColor: 'rgba(255,255,255,0.04)',
+    borderRadius: 10, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   feedbackMain: { fontSize: 15, fontWeight: '800', marginBottom: 2 },
-  feedbackSub: { fontSize: 12, color: '#64748B', marginBottom: 6 },
-  exampleSentence: { fontSize: 13, color: '#0F172A', fontStyle: 'italic', lineHeight: 19, marginTop: 4 },
+  feedbackSub: { fontSize: 12, color: '#94A3B8', marginBottom: 6 },
+  exampleSentence: { fontSize: 13, color: '#F0F6FF', fontStyle: 'italic', lineHeight: 19, marginTop: 4 },
   synonyms: { fontSize: 11, color: '#94A3B8', marginTop: 6 },
 
   // Grammar feedback
-  grammarRule: { fontSize: 13, color: '#0F766E', fontWeight: '600', lineHeight: 19, marginTop: 8 },
+  grammarRule: { fontSize: 13, color: '#0FBA9A', fontWeight: '600', lineHeight: 19, marginTop: 8 },
   l1NoteBox: {
     marginTop: 10, padding: 10, borderRadius: 8,
-    backgroundColor: '#FEF3C7', borderWidth: 1, borderColor: '#FCD34D',
+    backgroundColor: 'rgba(139,92,246,0.12)', borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
   },
-  l1NoteLabel: { fontSize: 9, fontWeight: '900', color: '#B45309', letterSpacing: 0.6, marginBottom: 3 },
-  l1NoteText: { fontSize: 12, color: '#92400E', lineHeight: 17 },
+  l1NoteLabel: { fontSize: 9, fontWeight: '900', color: '#8B5CF6', letterSpacing: 0.6, marginBottom: 3 },
+  l1NoteText: { fontSize: 12, color: '#8B5CF6', lineHeight: 17 },
 
   // Retention
   retentionSummary: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   retentionStat: {
     flex: 1, alignItems: 'center', padding: 12,
-    backgroundColor: '#FFFFFF', borderRadius: 12, borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: '#0F1B2D', borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   retentionNum: { fontSize: 26, fontWeight: '800' },
-  retentionLbl: { fontSize: 10, color: '#64748B', textAlign: 'center', marginTop: 2, fontWeight: '600' },
+  retentionLbl: { fontSize: 10, color: '#94A3B8', textAlign: 'center', marginTop: 2, fontWeight: '600' },
   retentionRateRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: '#E5E7EB', marginBottom: 14,
+    backgroundColor: '#0F1B2D', borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: 14,
   },
-  retentionRateLbl: { fontSize: 13, fontWeight: '700', color: '#0F172A' },
+  retentionRateLbl: { fontSize: 13, fontWeight: '700', color: '#F0F6FF' },
   retentionRateNum: { fontSize: 18, fontWeight: '800', color: '#0FBA9A' },
 
   progressTrack: {
-    height: 6, backgroundColor: '#E2E8F0', borderRadius: 3, marginBottom: 16,
+    height: 6, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3, marginBottom: 16,
   },
   progressFill: {
     height: 6, backgroundColor: '#0FBA9A', borderRadius: 3,
@@ -1230,124 +1230,124 @@ const styles = StyleSheet.create({
   chipsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   wordChip: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#FFFFFF', borderRadius: 999,
+    backgroundColor: '#0F1B2D', borderRadius: 999,
     paddingHorizontal: 10, paddingVertical: 6,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  wordChipText: { fontSize: 12, fontWeight: '700', color: '#0F172A' },
+  wordChipText: { fontSize: 12, fontWeight: '700', color: '#F0F6FF' },
   wordChipMeta: { fontSize: 10, color: '#94A3B8', fontWeight: '700' },
 
   // Reading
   passageCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 14,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: '#0F1B2D', borderRadius: 14, padding: 16, marginBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  passageTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A', marginBottom: 4 },
+  passageTitle: { fontSize: 16, fontWeight: '800', color: '#F0F6FF', marginBottom: 4 },
   passageMeta: { fontSize: 11, color: '#94A3B8', marginBottom: 10, fontStyle: 'italic' },
-  passageText: { fontSize: 14, color: '#0F172A', lineHeight: 22 },
+  passageText: { fontSize: 14, color: '#F0F6FF', lineHeight: 22 },
 
   questionCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14, marginBottom: 10,
-    borderWidth: 1, borderColor: '#E5E7EB',
+    backgroundColor: '#0F1B2D', borderRadius: 12, padding: 14, marginBottom: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   questionType: { fontSize: 10, fontWeight: '800', color: '#0FBA9A', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 },
-  questionText: { fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 10 },
+  questionText: { fontSize: 13, fontWeight: '700', color: '#F0F6FF', marginBottom: 10 },
   option: {
     flexDirection: 'row', gap: 8,
     paddingHorizontal: 12, paddingVertical: 10,
     borderRadius: 10, marginVertical: 3,
-    borderWidth: 1.5, borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.08)',
+    backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  optionSelected: { borderColor: '#0FBA9A', backgroundColor: '#ECFDF5' },
-  optionCorrect:  { borderColor: '#10B981', backgroundColor: '#D1FAE5' },
-  optionWrong:    { borderColor: '#EF4444', backgroundColor: '#FEE2E2' },
-  optionLetter: { fontSize: 13, fontWeight: '800', color: '#0F172A', width: 18 },
-  optionText: { flex: 1, fontSize: 13, color: '#0F172A', lineHeight: 18 },
+  optionSelected: { borderColor: '#0FBA9A', backgroundColor: 'rgba(15,186,154,0.12)' },
+  optionCorrect:  { borderColor: '#0FBA9A', backgroundColor: 'rgba(15,186,154,0.15)' },
+  optionWrong:    { borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.12)' },
+  optionLetter: { fontSize: 13, fontWeight: '800', color: '#F0F6FF', width: 18 },
+  optionText: { flex: 1, fontSize: 13, color: '#F0F6FF', lineHeight: 18 },
   questionExplanation: {
-    fontSize: 12, color: '#64748B', marginTop: 8,
+    fontSize: 12, color: '#94A3B8', marginTop: 8,
     fontStyle: 'italic', paddingTop: 8,
-    borderTopWidth: 1, borderTopColor: '#F1F5F9',
+    borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)',
   },
 
   scoreCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 16, marginVertical: 14,
+    backgroundColor: '#0F1B2D', borderRadius: 12, padding: 16, marginVertical: 14,
     borderWidth: 1.5, borderColor: '#0FBA9A', alignItems: 'center',
   },
-  scoreLabel: { fontSize: 11, fontWeight: '800', color: '#64748B', letterSpacing: 0.6, textTransform: 'uppercase' },
+  scoreLabel: { fontSize: 11, fontWeight: '800', color: '#94A3B8', letterSpacing: 0.6, textTransform: 'uppercase' },
   scoreNum: { fontSize: 36, fontWeight: '900', marginVertical: 6 },
-  scoreSub: { fontSize: 12, color: '#475569', textAlign: 'center' },
+  scoreSub: { fontSize: 12, color: '#94A3B8', textAlign: 'center' },
   scoreDetail: { fontSize: 11, marginTop: 8, fontWeight: '700' },
   targetLabel: { fontSize: 10, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.6, marginTop: 10 },
-  targetText: { fontSize: 13, color: '#0F172A', fontWeight: '600', marginTop: 4, textAlign: 'center' },
+  targetText: { fontSize: 13, color: '#F0F6FF', fontWeight: '600', marginTop: 4, textAlign: 'center' },
 
   // Demo notice
   demoNotice: {
-    backgroundColor: '#EFF6FF', borderRadius: 14, padding: 18,
-    borderWidth: 1, borderColor: '#BFDBFE', marginBottom: 12,
+    backgroundColor: 'rgba(59,130,246,0.10)', borderRadius: 14, padding: 18,
+    borderWidth: 1, borderColor: 'rgba(59,130,246,0.25)', marginBottom: 12,
   },
-  demoNoticeTitle: { fontSize: 15, fontWeight: '800', color: '#1E40AF', marginBottom: 8 },
-  demoNoticeText: { fontSize: 13, color: '#1D4ED8', lineHeight: 19 },
+  demoNoticeTitle: { fontSize: 15, fontWeight: '800', color: '#8B5CF6', marginBottom: 8 },
+  demoNoticeText: { fontSize: 13, color: '#8B5CF6', lineHeight: 19 },
 
   // Listening
   noAudioHint: { fontSize: 11, color: '#94A3B8', fontStyle: 'italic', textAlign: 'center', marginBottom: 8 },
-  field: { fontSize: 12, fontWeight: '700', color: '#475569', marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
+  field: { fontSize: 12, fontWeight: '700', color: '#94A3B8', marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.4 },
   input: {
-    backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
-    borderWidth: 1.5, borderColor: '#CBD5E1',
-    fontSize: 14, color: '#0F172A', marginBottom: 10,
+    backgroundColor: '#0F1B2D', borderRadius: 10, padding: 12,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
+    fontSize: 14, color: '#F0F6FF', marginBottom: 10,
     minHeight: 80, textAlignVertical: 'top',
   },
 
   // Targeted
   targetedNoDiag: {
-    backgroundColor: '#F1F5F9', borderRadius: 14, padding: 24, alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 24, alignItems: 'center',
   },
-  targetedNoDiagTitle: { fontSize: 17, fontWeight: '800', color: '#0F172A', marginBottom: 8 },
-  targetedNoDiagText: { fontSize: 13, color: '#64748B', lineHeight: 19, textAlign: 'center' },
+  targetedNoDiagTitle: { fontSize: 17, fontWeight: '800', color: '#F0F6FF', marginBottom: 8 },
+  targetedNoDiagText: { fontSize: 13, color: '#94A3B8', lineHeight: 19, textAlign: 'center' },
 
   targetedHeader: {
-    backgroundColor: '#ECFDF5', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: '#A7F3D0', marginBottom: 14, gap: 6,
+    backgroundColor: 'rgba(15,186,154,0.12)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(15,186,154,0.25)', marginBottom: 14, gap: 6,
   },
-  targetedHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
-  targetedHeaderSub: { fontSize: 12, color: '#475569', lineHeight: 17 },
+  targetedHeaderTitle: { fontSize: 16, fontWeight: '800', color: '#F0F6FF' },
+  targetedHeaderSub: { fontSize: 12, color: '#94A3B8', lineHeight: 17 },
   targetedTag: {
-    alignSelf: 'flex-start', backgroundColor: '#D1FAE5', borderRadius: 999,
+    alignSelf: 'flex-start', backgroundColor: 'rgba(15,186,154,0.15)', borderRadius: 999,
     paddingHorizontal: 10, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#6EE7B7',
+    borderWidth: 1, borderColor: 'rgba(15,186,154,0.35)',
   },
-  targetedTagCefr: { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' },
-  targetedTagText: { fontSize: 11, fontWeight: '700', color: '#065F46' },
+  targetedTagCefr: { backgroundColor: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)' },
+  targetedTagText: { fontSize: 11, fontWeight: '700', color: '#0FBA9A' },
 
   targetedLoadingBox: {
     flexDirection: 'row', gap: 12, alignItems: 'center',
-    backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginBottom: 12,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
-  targetedLoadingText: { fontSize: 13, color: '#64748B' },
+  targetedLoadingText: { fontSize: 13, color: '#94A3B8' },
 
   targetedDoneCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 22,
+    backgroundColor: '#0F1B2D', borderRadius: 14, padding: 22,
     alignItems: 'center', borderWidth: 1.5, borderColor: '#0FBA9A',
   },
   targetedDoneEmoji: { fontSize: 40, marginBottom: 8 },
-  targetedDoneTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 6 },
-  targetedDoneSub: { fontSize: 13, color: '#475569', textAlign: 'center', lineHeight: 19 },
+  targetedDoneTitle: { fontSize: 20, fontWeight: '900', color: '#F0F6FF', marginBottom: 6 },
+  targetedDoneSub: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 19 },
 
   targetedStepRow: {
     flexDirection: 'row', gap: 6, marginBottom: 12, justifyContent: 'center',
   },
   targetedStepDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#E2E8F0',
+    width: 10, height: 10, borderRadius: 5, backgroundColor: 'rgba(255,255,255,0.08)',
   },
-  targetedStepDotDone:   { backgroundColor: '#A7F3D0' },
+  targetedStepDotDone:   { backgroundColor: 'rgba(15,186,154,0.45)' },
   targetedStepDotActive: { backgroundColor: '#0FBA9A', width: 24, borderRadius: 5 },
 
   targetedExCard: {
-    backgroundColor: '#FFFFFF', borderRadius: 14, padding: 16, marginBottom: 12,
-    borderWidth: 1, borderColor: '#E5E7EB',
-    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 8,
+    backgroundColor: '#0F1B2D', borderRadius: 14, padding: 16, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 8,
     shadowOffset: { width: 0, height: 2 }, elevation: 2,
   },
   targetedTypeRow: {
@@ -1355,46 +1355,46 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between', marginBottom: 10,
   },
   targetedTypeTag: {
-    backgroundColor: '#F0FDF4', borderRadius: 8,
+    backgroundColor: 'rgba(15,186,154,0.12)', borderRadius: 8,
     paddingHorizontal: 8, paddingVertical: 4,
-    borderWidth: 1, borderColor: '#BBF7D0',
+    borderWidth: 1, borderColor: 'rgba(15,186,154,0.30)',
   },
   targetedTypeText: {
-    fontSize: 10, fontWeight: '800', color: '#15803D', letterSpacing: 0.5,
+    fontSize: 10, fontWeight: '800', color: '#0FBA9A', letterSpacing: 0.5,
   },
   targetedStepLabel: { fontSize: 11, color: '#94A3B8', fontWeight: '700' },
 
   targetedInstruction: {
-    fontSize: 13, color: '#64748B', marginBottom: 10, lineHeight: 18,
+    fontSize: 13, color: '#94A3B8', marginBottom: 10, lineHeight: 18,
   },
   targetedPrompt: {
-    fontSize: 15, fontWeight: '700', color: '#0F172A', lineHeight: 22, marginBottom: 12,
+    fontSize: 15, fontWeight: '700', color: '#F0F6FF', lineHeight: 22, marginBottom: 12,
     paddingVertical: 10, paddingHorizontal: 12,
-    backgroundColor: '#F8FAFC', borderRadius: 10,
-    borderWidth: 1, borderColor: '#E2E8F0',
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
   },
   targetedInput: {
-    backgroundColor: '#FFFFFF', borderRadius: 10, padding: 12,
-    borderWidth: 1.5, borderColor: '#CBD5E1',
-    fontSize: 14, color: '#0F172A', marginBottom: 10,
+    backgroundColor: '#0F1B2D', borderRadius: 10, padding: 12,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
+    fontSize: 14, color: '#F0F6FF', marginBottom: 10,
     minHeight: 70, textAlignVertical: 'top',
   },
   targetedRevealBtn: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#8B5CF6',
     paddingVertical: 11, borderRadius: 12, alignItems: 'center',
   },
   targetedRevealText: { color: '#fff', fontSize: 13, fontWeight: '800' },
 
   targetedAnswerBox: {
     marginTop: 12, padding: 12,
-    backgroundColor: '#F0FDF4', borderRadius: 10,
-    borderWidth: 1, borderColor: '#BBF7D0',
+    backgroundColor: 'rgba(15,186,154,0.10)', borderRadius: 10,
+    borderWidth: 1, borderColor: 'rgba(15,186,154,0.30)',
   },
   targetedAnswerLabel: {
-    fontSize: 9, fontWeight: '900', color: '#15803D', letterSpacing: 0.8, marginBottom: 4,
+    fontSize: 9, fontWeight: '900', color: '#0FBA9A', letterSpacing: 0.8, marginBottom: 4,
   },
   targetedAnswerText: {
-    fontSize: 14, fontWeight: '700', color: '#0F172A', lineHeight: 21,
+    fontSize: 14, fontWeight: '700', color: '#F0F6FF', lineHeight: 21,
   },
-  targetedExplanation: { fontSize: 12, color: '#064E3B', lineHeight: 18 },
+  targetedExplanation: { fontSize: 12, color: '#94A3B8', lineHeight: 18 },
 });
