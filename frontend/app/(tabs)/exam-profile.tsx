@@ -1,12 +1,15 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, StatusBar,
+  TextInput, ActivityIndicator, Alert, StatusBar, Platform,
 } from 'react-native';
-import { getAuth } from 'firebase/auth';
+import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
+import { auth } from '@/config/firebase';
+import { getFreshToken } from '@/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
-import { VOCABULARY_ENDPOINTS } from '@/constants/api';
+import { VOCABULARY_ENDPOINTS, API_URL } from '@/constants/api';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -174,7 +177,63 @@ export default function ExamProfileScreen() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const recordingTimeRef = useRef(0);
 
-  const auth = getAuth();
+  // ── Audio recording state ──────────────────────────────────────────────────
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcribeStatus, setTranscribeStatus] = useState('');
+  const recordingRef = useRef<Audio.Recording | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const startRecording = async () => {
+    try {
+      await Audio.requestPermissionsAsync();
+      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
+      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
+      recordingRef.current = recording;
+      setIsRecording(true);
+      setRecordingTime(0);
+      setTranscribeStatus('');
+      setText('');
+      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+    } catch {
+      Alert.alert('Error', 'Could not start recording. Check microphone permissions.');
+    }
+  };
+
+  const stopAndTranscribe = async () => {
+    if (!recordingRef.current) return;
+    if (timerRef.current) clearInterval(timerRef.current);
+    setIsRecording(false);
+    setTranscribing(true);
+    setTranscribeStatus('Transcribing...');
+    try {
+      await recordingRef.current.stopAndUnloadAsync();
+      const uri = recordingRef.current.getURI()!;
+      recordingRef.current = null;
+      const token = await getFreshToken();
+      const formData = new FormData();
+      formData.append('file', { uri, type: 'audio/m4a', name: 'exam_speech.m4a' } as any);
+      if (token) formData.append('authorization', `Bearer ${token}`);
+      const res = await fetch(VOCABULARY_ENDPOINTS.TRANSCRIBE, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success && data.data?.transcribed_text) {
+        setText(data.data.transcribed_text);
+        setTranscribeStatus('✓ Transcribed — tap Compute Profile');
+      } else {
+        setTranscribeStatus('⚠️ No speech detected. Try again.');
+      }
+    } catch {
+      setTranscribeStatus('⚠️ Transcription failed. Check connection.');
+    } finally {
+      setTranscribing(false);
+    }
+  };
+
 
   useEffect(() => {
     AsyncStorage.getItem('active_demo_preset').then(v => { if (v) setIsDemoMode(true); });
@@ -191,7 +250,7 @@ export default function ExamProfileScreen() {
       setLoading(true);
       setResult(null);
 
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getFreshToken();
       if (!token) { Alert.alert('Auth Error', 'Not authenticated'); return; }
 
       const post = async (url: string, body: any) => {
@@ -298,54 +357,79 @@ export default function ExamProfileScreen() {
         </View>
       )}
 
-      {/* Text input */}
-      <View style={styles.inputCard}>
-        <Text style={styles.inputLabel}>
-          {mode === 'speaking'
-            ? 'Paste or type transcribed speech (≥ 20 words)'
-            : 'Paste or type your written text (≥ 20 words)'}
-        </Text>
-        <TextInput
-          style={styles.textInput}
-          multiline
-          placeholder={
-            mode === 'speaking'
-              ? 'e.g. I think that the most important thing is to have good communication skills because…'
-              : 'e.g. In my opinion, the rapid development of technology has fundamentally changed the way…'
-          }
-          placeholderTextColor={Colors.light.textLight}
-          value={text}
-          onChangeText={setText}
-          textAlignVertical="top"
-        />
-        <View style={styles.wordCountRow}>
-          <Text style={styles.wordCount}>{text.trim() ? text.trim().split(/\s+/).length : 0} words</Text>
+      {/* Input area */}
+      {mode === 'speaking' ? (
+        <View style={styles.inputCard}>
+          <Text style={styles.inputLabel}>Record your spoken English (≥ 20 words)</Text>
+
+          {/* Record button */}
+          <TouchableOpacity
+            style={[styles.recordBtn, isRecording && styles.recordBtnActive]}
+            onPress={isRecording ? stopAndTranscribe : startRecording}
+            disabled={transcribing}
+          >
+            {transcribing
+              ? <ActivityIndicator color="#fff" />
+              : <Text style={styles.recordBtnText}>
+                  {isRecording
+                    ? `⏹  Stop  (${Math.floor(recordingTime/60)}:${String(recordingTime%60).padStart(2,'0')})`
+                    : '🎙  Start Recording'}
+                </Text>
+            }
+          </TouchableOpacity>
+
+          {transcribeStatus ? (
+            <Text style={styles.transcribeStatus}>{transcribeStatus}</Text>
+          ) : null}
+
+          {/* Show transcription result */}
           {text.length > 0 && (
-            <TouchableOpacity onPress={() => { setText(''); setResult(null); }}>
-              <Text style={styles.clearBtn}>Clear</Text>
-            </TouchableOpacity>
+            <View style={{ marginTop: 10 }}>
+              <Text style={[styles.inputLabel, { marginBottom: 4 }]}>Transcribed text:</Text>
+              <Text style={styles.transcribedPreview}>{text}</Text>
+              <View style={styles.wordCountRow}>
+                <Text style={styles.wordCount}>{text.trim().split(/\s+/).length} words</Text>
+                <TouchableOpacity onPress={() => { setText(''); setTranscribeStatus(''); setResult(null); }}>
+                  <Text style={styles.clearBtn}>Clear</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
         </View>
-      </View>
+      ) : (
+        <View style={styles.inputCard}>
+          <Text style={styles.inputLabel}>Paste or type your written text (≥ 20 words)</Text>
+          <TextInput
+            style={styles.textInput}
+            multiline
+            placeholder="e.g. In my opinion, the rapid development of technology has fundamentally changed the way…"
+            placeholderTextColor={Colors.light.textLight}
+            value={text}
+            onChangeText={setText}
+            textAlignVertical="top"
+          />
+          <View style={styles.wordCountRow}>
+            <Text style={styles.wordCount}>{text.trim() ? text.trim().split(/\s+/).length : 0} words</Text>
+            {text.length > 0 && (
+              <TouchableOpacity onPress={() => { setText(''); setResult(null); }}>
+                <Text style={styles.clearBtn}>Clear</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Analyze button */}
       <TouchableOpacity
-        style={[styles.analyzeBtn, loading && styles.analyzeBtnDisabled]}
+        style={[styles.analyzeBtn, (loading || transcribing || isRecording) && styles.analyzeBtnDisabled]}
         onPress={handleAnalyze}
-        disabled={loading}
+        disabled={loading || transcribing || isRecording}
       >
         {loading
           ? <ActivityIndicator color="#fff" />
           : <Text style={styles.analyzeBtnText}>Compute Profile</Text>
         }
       </TouchableOpacity>
-
-      {/* Note about pronunciation */}
-      {mode === 'speaking' && (
-        <Text style={styles.noteText}>
-          Note: Pronunciation band requires audio recording (available in the Vocabulary screen). Text-only mode estimates Fluency, Lexical Resource and Grammatical Range.
-        </Text>
-      )}
 
       {/* ─── Results ────────────────────────────────────────────────────────── */}
       {result && (
@@ -598,6 +682,18 @@ const styles = StyleSheet.create({
   analyzeBtnText: { fontSize: 15, fontWeight: '800', color: '#fff', letterSpacing: 0.2 },
 
   noteText: { fontSize: 11, color: SLATE, fontStyle: 'italic', marginBottom: 16, lineHeight: 16 },
+  recordBtn: {
+    backgroundColor: TEAL, borderRadius: 14, paddingVertical: 16,
+    alignItems: 'center', marginVertical: 8,
+  },
+  recordBtnActive: { backgroundColor: '#EF4444' },
+  recordBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  transcribeStatus: { color: SLATE, fontSize: 13, textAlign: 'center', marginTop: 8 },
+  transcribedPreview: {
+    color: NAVY, fontSize: 13, lineHeight: 20, fontStyle: 'italic',
+    backgroundColor: '#0F1B2D', borderRadius: 10, padding: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)',
+  },
 
   // Results container
   results: { gap: 12 },

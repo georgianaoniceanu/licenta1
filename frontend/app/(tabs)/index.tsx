@@ -36,7 +36,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -369,7 +370,6 @@ const MR = StyleSheet.create({
 
 export default function HomeScreen() {
   const router = useRouter();
-  const auth   = getAuth();
   const user   = auth.currentUser;
   const { lang } = useLanguage();
   const { loadProfile } = useLearnerProfile();

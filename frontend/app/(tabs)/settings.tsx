@@ -11,7 +11,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
 import { loadDemoProfile, clearDemoData, type DemoPreset } from '@/utils/demoMode';
@@ -72,7 +73,6 @@ function makeTheme(dark: boolean) {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const auth = getAuth();
   const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { lang, setLang } = useLanguage();
   const T = makeTheme(isDark);

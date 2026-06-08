@@ -1,13 +1,39 @@
-import { getAuth } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 /**
- * Always returns a fresh Firebase ID token (auto-refreshed, valid 1h).
- * Falls back to the cached AsyncStorage token only if no Firebase user is
- * currently signed in (e.g. during the brief window before onAuthStateChanged).
+ * Returns a fresh, valid Firebase ID token.
+ * - If currentUser is already available, gets a fresh token (auto-refreshed).
+ * - Otherwise, waits up to 5s for onAuthStateChanged to restore the session.
+ * - Last resort: returns the cached AsyncStorage token (may be expired).
  */
 export async function getFreshToken(): Promise<string | null> {
-  const user = getAuth().currentUser;
-  if (user) return user.getIdToken();
-  return AsyncStorage.getItem('authToken');
+  // Fast path: user already restored
+  if (auth.currentUser) {
+    return auth.currentUser.getIdToken(true);
+  }
+
+  // Wait for auth state restoration (async with AsyncStorage persistence)
+  return new Promise((resolve) => {
+    let settled = false;
+
+    const timeout = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      // Last resort: cached token
+      AsyncStorage.getItem('authToken').then(resolve);
+    }, 5000);
+
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      unsubscribe();
+      if (user) {
+        user.getIdToken(true).then(resolve).catch(() => resolve(null));
+      } else {
+        AsyncStorage.getItem('authToken').then(resolve);
+      }
+    });
+  });
 }

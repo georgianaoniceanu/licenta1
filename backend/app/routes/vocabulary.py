@@ -259,8 +259,8 @@ async def transcribe_speech(
         content = await file.read()
         print(f"[transcribe] filename={file.filename!r} content_type={file.content_type!r} suffix={suffix} size={len(content)} bytes")
 
-        if len(content) < 1000:
-            return {"success": False, "error": f"Audio too small ({len(content)} bytes) — microphone may not be capturing. Check browser mic permissions."}
+        if len(content) < 100:
+            return {"success": False, "error": "No audio captured. Check microphone permissions."}
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
             tmp_file.write(content)

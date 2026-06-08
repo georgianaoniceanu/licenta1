@@ -26,7 +26,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuth } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { Feather } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { API_URL } from '@/constants/api';
@@ -326,8 +326,7 @@ export default function DualDiagnosisScreen() {
         painPoints = ['vocabulary', 'grammar', 'pronunciation'];
       }
 
-      const auth   = getAuth();
-      const userId = auth.currentUser?.uid ?? 'anonymous';
+          const userId = auth.currentUser?.uid ?? 'anonymous';
 
       const payload = {
         user_id: userId,

@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
+import * as FileSystem from 'expo-file-system';
 import { Feather } from '@expo/vector-icons';
 import { API_URL } from '../../constants/api';
 import { Colors, Animations } from '../../constants/theme';
@@ -331,9 +332,30 @@ export default function ShadowSpeakingScreen() {
       } else {
         await recordingRef.current!.stopAndUnloadAsync();
         const uri = recordingRef.current!.getURI()!;
-        const res = await fetch(uri);
-        audioBlob = await res.blob();
         recordingRef.current = null;
+
+        // On native, send file directly via FormData without converting to Blob
+        try {
+          const formData = new FormData();
+          formData.append('audio', { uri, type: 'audio/m4a', name: 'recording.m4a' } as any);
+          formData.append('original_text', selectedFragment.text);
+          const response = await fetch(`${API_URL}/shadow/analyze`, { method: 'POST', body: formData });
+          const data = await response.json();
+          setFeedback(data);
+          setStep('feedback');
+          setSessionScores(prev => [...prev.slice(-4), { category: selectedFragment.category, score: data.accuracy_score }]);
+          try {
+            const entry: ShadowStorageEntry = { ts: Date.now(), category: selectedFragment.category, difficulty: selectedFragment.difficulty, score: data.accuracy_score, transcribed: data.transcribed_text, target_text: selectedFragment.text };
+            const raw = await AsyncStorage.getItem('vf_shadow_sessions');
+            const existing: ShadowStorageEntry[] = raw ? JSON.parse(raw) : [];
+            await AsyncStorage.setItem('vf_shadow_sessions', JSON.stringify([entry, ...existing].slice(0, 50)));
+          } catch {}
+        } catch {
+          setError('Could not analyze. Make sure the backend is running.');
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
 
       await analyzeBlob(audioBlob);
@@ -422,25 +444,50 @@ export default function ShadowSpeakingScreen() {
         });
         if (!response.ok) throw new Error('Failed to generate audio');
 
+        // On native, save audio to cache file and play from URI
         const audioBlob = await response.blob();
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const base64 = reader.result as string;
-          const audioUri = `data:audio/mpeg;base64,${base64.split(',')[1]}`;
-          if (audioRef.current) await audioRef.current.unloadAsync();
-          const { sound } = await Audio.Sound.createAsync({ uri: audioUri });
-          audioRef.current = sound;
-          await sound.setRateAsync(playbackSpeed, true);
-          setIsPlayingAudio(true);
-          await sound.playAsync();
-          sound.setOnPlaybackStatusUpdate((status) => {
-            if (status.isLoaded && !status.isPlaying && status.didJustFinish) {
-              setIsPlayingAudio(false);
-              setListenCount(c => c + 1);
-            }
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const chunks: number[] = [];
+          const reader = new Response(audioBlob).body!.getReader();
+          const readChunk = () =>
+            reader.read().then(({ done, value }) => {
+              if (done) {
+                const binary = String.fromCharCode(...chunks);
+                resolve(btoa(binary));
+              } else {
+                chunks.push(...Array.from(value));
+                readChunk();
+              }
+            }).catch(reject);
+          readChunk();
+        }).catch(async () => {
+          // Fallback: use FileSystem download directly
+          return null;
+        });
+
+        const fileUri = FileSystem.cacheDirectory + 'shadow_audio.mp3';
+        if (base64) {
+          await FileSystem.writeAsStringAsync(fileUri, base64, {
+            encoding: FileSystem.EncodingType.Base64,
           });
-        };
-        reader.readAsDataURL(audioBlob);
+        } else {
+          // Alternative: download from a temp endpoint if blob conversion fails
+          throw new Error('Could not process audio data');
+        }
+
+        if (audioRef.current) await audioRef.current.unloadAsync();
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
+        audioRef.current = sound;
+        await sound.setRateAsync(playbackSpeed, true);
+        setIsPlayingAudio(true);
+        await sound.playAsync();
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && !status.isPlaying && status.didJustFinish) {
+            setIsPlayingAudio(false);
+            setListenCount(c => c + 1);
+          }
+        });
       }
     } catch (e) {
       setError(`Audio error: ${e instanceof Error ? e.message : String(e)}`);

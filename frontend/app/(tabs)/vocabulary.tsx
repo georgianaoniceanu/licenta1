@@ -15,7 +15,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
+import { auth } from '@/config/firebase';
+import { getFreshToken } from '@/utils/auth';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Animations } from '@/constants/theme';
@@ -317,7 +318,6 @@ const FILLER_WORDS = new Set([
 
 export default function VocabularyScreen() {
   const router = useRouter();
-  const auth = getAuth();
 
   const [targetExam, setTargetExam] = useState<ExamKey>('general');
   const [selectedPrompt, setSelectedPrompt] = useState<number | null>(null);
@@ -528,7 +528,7 @@ export default function VocabularyScreen() {
   const sendAudioBlobToBackend = useCallback(async (blob: Blob) => {
     try {
       setTranscribing(true);
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getFreshToken();
       if (!token) {
         setTranscriptionStatus('❌ Not authenticated. Please sign in again.');
         setTranscribing(false);
@@ -587,7 +587,7 @@ export default function VocabularyScreen() {
   const sendAudioToBackend = useCallback(async (audioUri: string) => {
     try {
       setTranscribing(true);
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getFreshToken();
       if (!token) {
         setTranscriptionStatus('❌ Not authenticated. Please sign in again.');
         setTranscribing(false);
@@ -643,7 +643,7 @@ export default function VocabularyScreen() {
 
     try {
       setLoading(true);
-      const token = await auth.currentUser?.getIdToken();
+      const token = await getFreshToken();
       if (!token) { Alert.alert('Auth Error', 'Not authenticated'); return; }
 
       // ───────────────────────────────────────────────────────────────────────

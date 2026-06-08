@@ -866,9 +866,29 @@ export default function AccentDNAScreen() {
       } else {
         await recording!.stopAndUnloadAsync();
         const uri = recording!.getURI()!;
-        const res = await fetch(uri);
-        audioBlob = await res.blob();
         setRecording(null);
+
+        // On native, send file directly — fetch(localUri).blob() doesn't work in Expo Go
+        try {
+          const formData = new FormData();
+          formData.append('audio', { uri, type: 'audio/m4a', name: 'recording.m4a' } as any);
+          formData.append('target_text', targetText);
+          const response = await fetch(`${API_URL}/accent/analyze`, { method: 'POST', body: formData });
+          const data = await response.json();
+          setFeedback(data);
+          // persist session
+          try {
+            const session: any = { ts: Date.now(), target_text: targetText, accuracy_score: data.accuracy_score ?? 0, problematic_phonemes: Array.isArray(data.problematic_phonemes) ? data.problematic_phonemes : [], feedback: data };
+            const raw = await AsyncStorage.getItem('vf_accent_sessions');
+            const existing = raw ? JSON.parse(raw) : [];
+            await AsyncStorage.setItem('vf_accent_sessions', JSON.stringify([session, ...existing].slice(0, 50)));
+          } catch {}
+        } catch {
+          setError('Could not analyze. Make sure the backend is running.');
+        } finally {
+          setLoading(false);
+        }
+        return;
       }
 
       await analyzeBlob(audioBlob);

@@ -10,8 +10,8 @@ import {
   Animated, TextInput, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { API_URL } from '../constants/api';
@@ -36,17 +36,6 @@ const C = {
   greenL:  '#D1FAE5',
   navy:    '#0F1F3A',
 };
-
-// ── Firebase ──────────────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: 'AIzaSyAhbJqzeI0vYBVznahVRWavdcTb8yn5sCk',
-  authDomain: 'vocaflow-d1976.firebaseapp.com',
-  projectId: 'vocaflow-d1976',
-  storageBucket: 'vocaflow-d1976.firebasestorage.app',
-  appId: '1:708935286247:web:547497d14d1954145ad142',
-};
-const fbApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const auth  = getAuth(fbApp);
 
 // ── Deterministic waveform heights ───────────────────────────────────────────
 const WAVE_H = [10,32,50,22,58,16,44,28,54,14,40,26,48,18,36,24,46,34,12,42,20,38,56,16,28];

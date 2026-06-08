@@ -14,7 +14,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -304,7 +305,6 @@ function VoiceMetric({ label, value }: { label: string; value: string }) {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const auth   = getAuth();
   const user   = auth.currentUser;
 
   const [diagnosis,  setDiagnosis]  = useState<BaselineDiagnosis | null>(null);

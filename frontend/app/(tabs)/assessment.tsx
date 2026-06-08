@@ -39,7 +39,7 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getAuth } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 
@@ -184,7 +184,6 @@ const D = StyleSheet.create({
 
 // ── Main Screen ───────────────────────────────────────────────────────────────
 export default function AssessmentScreen() {
-  const auth = getAuth();
   const [phase,      setPhase]      = useState<Phase>('overview');
   const [baseline,   setBaseline]   = useState<Baseline | null>(null);
   const [domain,     setDomain]     = useState(DOMAINS[0]);

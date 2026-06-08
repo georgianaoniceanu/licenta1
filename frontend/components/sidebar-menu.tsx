@@ -10,18 +10,9 @@ import {
   Platform,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, signOut } from 'firebase/auth';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const _firebaseConfig = {
-  apiKey: 'AIzaSyAhbJqzeI0vYBVznahVRWavdcTb8yn5sCk',
-  authDomain: 'vocaflow-d1976.firebaseapp.com',
-  projectId: 'vocaflow-d1976',
-  storageBucket: 'vocaflow-d1976.firebasestorage.app',
-  appId: '1:708935286247:web:547497d14d1954145ad142',
-};
-const _fbApp = getApps().length ? getApps()[0] : initializeApp(_firebaseConfig);
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useLanguage } from '@/context/Language';
@@ -153,7 +144,6 @@ interface SidebarMenuProps {
 export default function SidebarMenu({ onClose }: SidebarMenuProps) {
   const pathname = usePathname();
   const router   = useRouter();
-  const auth     = getAuth(_fbApp);
   const { lang } = useLanguage();
 
   const doSignOut = async () => {
