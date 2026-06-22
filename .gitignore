@@ -1,52 +1,35 @@
-# Ignore everything by default
-*
-*.*
+# Ignore loose files at the repo ROOT only (scratch scripts, PDFs, exports).
+# Everything that matters lives under backend/ and frontend/, which are tracked
+# in full below. Their own .gitignore files handle secrets and caches.
+/*
+!/backend/
+!/frontend/
+!/.gitignore
+!/.github/
 
-# But keep backend and frontend directories
-!backend/
-!frontend/
+# Belt-and-suspenders: never track secrets or caches even inside tracked dirs.
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+**/.venv/
+**/venv/
+**/env/
+**/node_modules/
+**/.expo/
+**/dist/
+**/web-build/
 
-# Keep git files
-!.gitignore
-!.git/
-!.github/
+# Secrets / credentials
+**/.env
+**/.env.*
+**/*.env
+**/firebase_key.json
+**/serviceAccountKey.json
+**/*serviceAccount*.json
 
-# Restore directories so their contents can be tracked
-!*/
-
-# Python cache
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-env/
-venv/
-.venv/
-backend/.venv/
-backend/venv/
-frontend/node_modules/
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# OS / IDE
 .DS_Store
 Thumbs.db
-
-# Environment variables
-.env
-.env.*
-*.env
-.tmp
-
-# Node
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-*.log
-coverage/
+**/.vscode/
+**/.idea/
+*.swp

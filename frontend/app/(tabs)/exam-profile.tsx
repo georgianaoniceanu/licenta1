@@ -4,7 +4,6 @@ import {
   TextInput, ActivityIndicator, Alert, StatusBar, Platform,
 } from 'react-native';
 import { Audio } from 'expo-av';
-import * as FileSystem from 'expo-file-system';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';

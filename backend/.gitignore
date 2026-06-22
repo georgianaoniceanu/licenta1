@@ -28,3 +28,16 @@ env/
 # Logs / temp
 *.log
 *.tmp
+
+# Thesis artifacts — research outputs, not part of the runnable app
+plots_*/
+colab/
+scripts/
+*.csv
+metrics_results.md
+bibliography_check.txt
+analyze_sus.py
+cross_corpus_validation.py
+generate_*.py
+plot_ordinal_model.py
+train_cefr_ordinal.py
