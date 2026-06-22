@@ -3,6 +3,13 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Dimensions } from 'react
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
+// Web-only hover handlers — onMouse* fire only on react-native-web and are
+// absent from RN's Pressable types, so we attach them via an untyped spread.
+const webHover = (onEnter: () => void, onLeave: () => void): any => ({
+  onMouseEnter: onEnter,
+  onMouseLeave: onLeave,
+});
+
 interface PhonemeCell {
   id: string;
   phoneme: string;
@@ -206,8 +213,7 @@ export const PhonemeHeatmapMap = () => {
               <Pressable
                 key={cell.id}
                 onPress={() => setSelectedCell(cell)}
-                onMouseEnter={() => setHoveredId(cell.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                {...webHover(() => setHoveredId(cell.id), () => setHoveredId(null))}
                 style={[
                   styles.heatCell,
                   {
@@ -237,8 +243,7 @@ export const PhonemeHeatmapMap = () => {
               <Pressable
                 key={cell.id}
                 onPress={() => setSelectedCell(cell)}
-                onMouseEnter={() => setHoveredId(cell.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                {...webHover(() => setHoveredId(cell.id), () => setHoveredId(null))}
                 style={[
                   styles.heatCell,
                   {
@@ -268,8 +273,7 @@ export const PhonemeHeatmapMap = () => {
               <Pressable
                 key={cell.id}
                 onPress={() => setSelectedCell(cell)}
-                onMouseEnter={() => setHoveredId(cell.id)}
-                onMouseLeave={() => setHoveredId(null)}
+                {...webHover(() => setHoveredId(cell.id), () => setHoveredId(null))}
                 style={[
                   styles.heatCell,
                   {
@@ -610,7 +614,7 @@ const styles = StyleSheet.create({
   },
 
   categoryBadge: {
-    display: 'inline-block',
+    alignSelf: 'flex-start',
     backgroundColor: '#e3f2fd',
     color: '#1976d2',
     paddingVertical: 4,

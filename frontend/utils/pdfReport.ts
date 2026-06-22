@@ -401,6 +401,7 @@ export async function downloadReportPDF(): Promise<void> {
         image:        { type: 'jpeg', quality: 0.98 },
         html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#F8FAFC' },
         jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        // @ts-expect-error - pagebreak is supported by html2pdf.js at runtime but absent from its types
         pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] },
       })
       .from(target || container)

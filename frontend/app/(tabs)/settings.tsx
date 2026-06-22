@@ -190,7 +190,7 @@ export default function SettingsScreen() {
           onPress: async () => {
             try {
               await AsyncStorage.removeItem('learner_profile_anonymous');
-              router.push('index');
+              router.push('/(tabs)');
             } catch (e) {
               Alert.alert(tr('error', lang), 'Could not reset data');
             }
