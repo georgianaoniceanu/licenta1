@@ -268,7 +268,7 @@ const scoreRingStyles = StyleSheet.create({
   grade: { fontSize: 13, fontWeight: '700' },
 });
 
-// ─── Phoneme Globe ────────────────────────────────────────────────────────────
+// Phoneme Globe
 // A rotating globe with the 12 phonemes in orbit, colour-coded by status:
 //   green  = mastered (last score ≥ 75)
 //   red    = problem  (attempted but low, or flagged weak in Accent DNA profile)
@@ -282,7 +282,7 @@ const GLOBE_D = Math.round(GLOBE_BOX * 0.46);   // central Earth diameter
 
 const WORLD_MAP = require('../../assets/images/world_map.png');
 
-// ── Spinning 3D Earth (equirectangular map scrolled inside a circular mask) ──
+// Spinning 3D Earth (equirectangular map scrolled inside a circular mask)
 function SpinningGlobe() {
   const scroll = useRef(new Animated.Value(0)).current;
 
@@ -898,7 +898,7 @@ export default function AccentDNAScreen() {
     }
   };
 
-  // ── Upload a pre-recorded audio file instead of recording live ────────────
+  // Upload a pre-recorded audio file instead of recording live
   const openFilePicker = () => {
     if (Platform.OS === 'web') {
       fileInputRef.current?.click();
@@ -951,7 +951,8 @@ export default function AccentDNAScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Back</Text>
+            <Feather name="chevron-left" size={18} color={Colors.light.tint} />
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
             <Feather name="activity" size={14} color={Colors.light.tint} />
@@ -1376,7 +1377,7 @@ export default function AccentDNAScreen() {
             </View>
           )}
 
-          {/* ── Upload alternative ─────────────────────────────────────── */}
+          {/* Upload alternative */}
           {!isRecording && (
             <View style={styles.uploadWrap}>
               <View style={styles.uploadDivider}>
@@ -1614,7 +1615,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingTop: 56 },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  backBtn: { paddingVertical: 6, paddingRight: 12 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
   backText: { color: Colors.light.tint, fontSize: 15, fontWeight: '600' },
   headerBadge: { fontSize: 13, fontWeight: '700', color: Colors.light.tint },
 
@@ -1943,7 +1944,7 @@ const styles = StyleSheet.create({
   },
   nextWordText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // ── Romanian error pattern block ─────────────────────────────────────────
+  // Romanian error pattern block
   romanianErrorBox: {
     backgroundColor: '#8B5CF612',
     borderRadius: 10,

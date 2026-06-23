@@ -145,7 +145,7 @@ const CAF_META = [
   { key: 'F' as const, label: 'Fluency', hint: 'How smoothly you speak (less "um/uh" = higher score)', color: '#8B5CF6' },
 ];
 
-// ─── Chart helpers (pure View/StyleSheet — no SVG or external libraries) ────────
+// Chart helpers (pure View/StyleSheet — no SVG or external libraries)
 // Each line segment is a View rotated with Math.atan2 to align between two points.
 // Positioned absolutely on a containing View sized to chartWidth × height.
 const CHART_W = width - 80; // screen width − (2×20 scroll pad + 2×20 card pad)
@@ -333,7 +333,7 @@ export default function ProgressScreen() {
         }
       }
 
-      // ── AsyncStorage (fast, offline-capable) ──────────────────────────────
+      // AsyncStorage (fast, offline-capable)
       // Track local arrays so Firestore merge can reference them directly
       // without relying on React state timing.
       let localCaf: CAFEntry[] = [];
@@ -368,7 +368,7 @@ export default function ProgressScreen() {
         if (rawGn) { localGenre = JSON.parse(rawGn); setGenreSessions(localGenre); }
       } catch {}
 
-      // ── Firestore merge (survives reinstall — same /sessions endpoint) ─────
+      // Firestore merge (survives reinstall — same /sessions endpoint)
       // Merges remote sessions not already in AsyncStorage, sorts ascending
       // so charts render chronological left→right progression.
       try {
@@ -408,7 +408,7 @@ export default function ProgressScreen() {
         }
       } catch {}
 
-      // ── SM-2 SRS state ────────────────────────────────────────────────────
+      // SM-2 SRS state
       if (isDemo) {
         try {
           const raw = await AsyncStorage.getItem('demo_srs_state');
@@ -459,7 +459,8 @@ export default function ProgressScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Text style={styles.backText}>←  Back</Text>
+            <Feather name="chevron-left" size={18} color="#0FBA9A" />
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.pageTitle}>Learning Progress</Text>
           <TouchableOpacity
@@ -480,11 +481,11 @@ export default function ProgressScreen() {
           >
             {exporting
               ? <ActivityIndicator size="small" color="#fff" />
-              : <Text style={styles.exportBtnText}>📄 Download PDF</Text>}
+              : <Text style={styles.exportBtnText}>Download PDF</Text>}
           </TouchableOpacity>
         </View>
 
-        {/* ── Baseline vs. Now ───────────────────────────────────────── */}
+        {/* Baseline vs. Now */}
         {/* Alderson (2005) diagnostic: measure from a known starting point */}
         {baseline && (() => {
           // Use the original (first-ever) baseline as START when re-diagnostic was done
@@ -786,10 +787,10 @@ export default function ProgressScreen() {
               </View>
               <Text style={styles.paceDescription}>
                 {profile.learning_pace === 'fast'
-                  ? 'Progressing quickly! 🚀'
+                  ? 'Progressing quickly! '
                   : profile.learning_pace === 'normal'
                     ? 'Steady progress. Keep practicing!'
-                    : 'Take your time. Practice makes perfect! 🌱'}
+                    : 'Take your time. Practice makes perfect! '}
               </Text>
             </View>
           </View>
@@ -827,7 +828,7 @@ export default function ProgressScreen() {
           </View>
         </View>
 
-        {/* ── Skill Acquisition — RT/CV Card ── */}
+        {/* Skill Acquisition — RT/CV Card */}
         <View style={styles.rtCard}>
           <Text style={styles.cardTitle}>Automatization Index</Text>
           <Text style={styles.cardDescription}>
@@ -894,7 +895,7 @@ export default function ProgressScreen() {
           )}
         </View>
 
-        {/* ── CAF Profile Card ── */}
+        {/* CAF Profile Card */}
         {/* Research: Pallotti (2014); Skehan (1998); Yan et al. (2020) */}
         <View style={styles.cafCard}>
           <Text style={styles.cardTitle}>CAF Profile</Text>
@@ -984,7 +985,7 @@ export default function ProgressScreen() {
           })()}
         </View>
 
-        {/* ── Exam Readiness Card ── */}
+        {/* Exam Readiness Card */}
         {/* IELTS Band Descriptors (Cambridge ESOL 2024); CEFR official conversion */}
         <View style={styles.examCard}>
           <Text style={styles.cardTitle}>Exam Readiness</Text>
@@ -1118,7 +1119,7 @@ export default function ProgressScreen() {
           })()}
         </View>
 
-        {/* ── Grammar Accuracy Trend ── */}
+        {/* Grammar Accuracy Trend */}
         {/* Pungă & Pârlog (2015): L1 Romanian interference decreases with practice */}
         <View style={styles.grammarTrendCard}>
           <Text style={styles.cardTitle}>Grammar Accuracy Trend</Text>
@@ -1207,7 +1208,7 @@ export default function ProgressScreen() {
           })()}
         </View>
 
-        {/* ── SM-2 Vocabulary Progress ── */}
+        {/* SM-2 Vocabulary Progress */}
         {/* Wozniak (1987): SM-2 EF-driven interval growth */}
         {/* Cepeda et al. (2006): ≥21-day interval = long-term retention */}
         <View style={styles.srsCard}>
@@ -1290,7 +1291,7 @@ export default function ProgressScreen() {
           })()}
         </View>
 
-        {/* ── Performance by Domain (COCA) ── */}
+        {/* Performance by Domain (COCA) */}
         {/* Davies — Corpus of Contemporary American English. Identifies which
             register the user performs best in (Academic, News, Fiction, etc.). */}
         <View style={styles.domainCard}>
@@ -1538,7 +1539,12 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
   backBtn: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingLeft: 10,
+    paddingRight: 16,
     paddingVertical: 9,
     borderRadius: 11,
     borderWidth: 1.5,
@@ -1753,7 +1759,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // ── CAF Card ────────────────────────────────────────────────────────────────
+  // CAF Card
   cafCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 12,
@@ -1787,7 +1793,7 @@ const styles = StyleSheet.create({
   cafStatValue: { fontSize: 18, fontWeight: '800', color: Colors.light.tint },
   cafStatLabel: { fontSize: 10, color: Colors.light.textLight, fontWeight: '600', textTransform: 'uppercase' },
 
-  // ── Exam Readiness Card ────────────────────────────────────────────────────
+  // Exam Readiness Card
   examCard: {
     backgroundColor: Colors.light.surface ?? '#0F1B2D',
     borderRadius: 12, padding: 20, marginBottom: 24,
@@ -1832,7 +1838,7 @@ const styles = StyleSheet.create({
   examCanDoLevel: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' as any, letterSpacing: 0.4 },
   examCanDoText: { fontSize: 13, color: Colors.light.textSecondary, lineHeight: 19 },
 
-  // ── Baseline vs. Now Card ────────────────────────────────────────────────────
+  // Baseline vs. Now Card
   baselineCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 16, overflow: 'hidden',
@@ -1854,7 +1860,7 @@ const styles = StyleSheet.create({
   },
   rerunBadgeText: { fontSize: 11, fontWeight: '700', color: Colors.light.tint },
 
-  // ── Score row ──
+  // Score row
   baselineScoreRow: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingVertical: 20,
@@ -1886,7 +1892,7 @@ const styles = StyleSheet.create({
   },
   cefrBadgeText: { fontSize: 16, fontWeight: '900' },
 
-  // ── Delta centre column ──
+  // Delta centre column
   baselineDeltaCol: { alignItems: 'center', gap: 6, paddingHorizontal: 8 },
   deltaBadge: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 10,
@@ -1897,7 +1903,7 @@ const styles = StyleSheet.create({
   baselineArrow: { fontSize: 20, color: Colors.light.textLight },
   baselineNoData: { fontSize: 10, color: Colors.light.textLight, textAlign: 'center' },
 
-  // ── Exam comparison row ──
+  // Exam comparison row
   baselineExamRow: { flexDirection: 'row', borderBottomWidth: 1, borderColor: Colors.light.border },
   baselineExamBox: {
     flex: 1, alignItems: 'center', paddingVertical: 18, gap: 10,
@@ -1926,7 +1932,7 @@ const styles = StyleSheet.create({
     color: Colors.light.textLight,
   },
 
-  // ── Indicator bars ──
+  // Indicator bars
   baselineIndicatorsSection: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 6, gap: 10 },
   baselineIndicatorsTitle: {
     fontSize: 10, fontWeight: '800', letterSpacing: 1.4,
@@ -1955,7 +1961,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
 
-  // ── Re-run button ──
+  // Re-run button
   rerunBtn: {
     marginHorizontal: 20, marginTop: 16, marginBottom: 4,
     backgroundColor: Colors.light.tint + '12',
@@ -1971,7 +1977,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingBottom: 16,
   },
 
-  // ── Grammar Trend Card ───────────────────────────────────────────────────────
+  // Grammar Trend Card
   grammarTrendCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 12, padding: 20, marginBottom: 24,
@@ -1990,7 +1996,7 @@ const styles = StyleSheet.create({
   },
   grammarTopCatText: { fontSize: 12, fontWeight: '700', color: Colors.light.warning },
 
-  // ── Performance by Domain (COCA) ──────────────────────────────────────────
+  // Performance by Domain (COCA)
   domainCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 12, padding: 20, marginBottom: 24,
@@ -2013,7 +2019,7 @@ const styles = StyleSheet.create({
 
   domainHint: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', textAlign: 'center', lineHeight: 14 },
 
-  // ── SM-2 Vocabulary Retention Card ────────────────────────────────────────────
+  // SM-2 Vocabulary Retention Card
   srsCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 12, padding: 20, marginBottom: 24,
@@ -2040,7 +2046,7 @@ const styles = StyleSheet.create({
   srsSummary: { fontSize: 12, color: Colors.light.textSecondary, textAlign: 'center' },
   srsSource: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', textAlign: 'center' },
 
-  // ── Shared line-chart styles ───────────────────────────────────────────────────
+  // Shared line-chart styles
   chartSection: { gap: 8 },
   chartHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   chartTitle: { fontSize: 12, fontWeight: '700', color: Colors.light.textSecondary },

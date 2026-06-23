@@ -10,6 +10,7 @@ import {
   Animated, TextInput, ActivityIndicator, Dimensions,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -37,10 +38,10 @@ const C = {
   navy:    '#0F1F3A',
 };
 
-// ── Deterministic waveform heights ───────────────────────────────────────────
+// Deterministic waveform heights
 const WAVE_H = [10,32,50,22,58,16,44,28,54,14,40,26,48,18,36,24,46,34,12,42,20,38,56,16,28];
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// Sub-components
 
 /** Animated waveform — each bar pulses independently */
 function LiveWaveform() {
@@ -111,9 +112,9 @@ function AccentCross({ color, style }: { color: string; style: any }) {
   );
 }
 
-// ── Feature visuals (diverse styles) ─────────────────────────────────────────
+// Feature visuals (diverse styles)
 
-// ── Accent DNA — vertical phoneme bar chart ───────────────────────────────────
+// Accent DNA — vertical phoneme bar chart
 function AccentVisual() {
   const phonemes = [
     { ipa: '/θ/', ex: 'think', pct: 92, c: '#FF5733' },
@@ -147,7 +148,7 @@ function AccentVisual() {
   );
 }
 
-// ── Vocabulary Coach — word upgrade cards with left border ────────────────────
+// Vocabulary Coach — word upgrade cards with left border
 function VocabVisual() {
   const upgrades = [
     { from: '"very good"',   to: '"exceptional"',         fromLvl: 'A2', toLvl: 'C1', c: '#7C3AED' },
@@ -162,7 +163,7 @@ function VocabVisual() {
         {upgrades.map((u, i) => (
           <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderLeftWidth: 3, borderLeftColor: u.c }}>
             <Text style={{ fontSize: 11, color: '#94A3B8', textDecorationLine: 'line-through', flex: 1 }}>{u.from}</Text>
-            <Text style={{ fontSize: 15, color: '#CBD5E1', fontWeight: '700' }}>→</Text>
+            <Feather name="arrow-right" size={14} color="#CBD5E1" />
             <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E293B', flex: 1.4 }}>{u.to}</Text>
             <View style={{ backgroundColor: u.c + '1A', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: u.c + '35' }}>
               <Text style={{ fontSize: 9, fontWeight: '900', color: u.c }}>{u.fromLvl}→{u.toLvl}</Text>
@@ -175,7 +176,7 @@ function VocabVisual() {
   );
 }
 
-// ── Shadow Speaking — score circle + waveforms + dimension pills ──────────────
+// Shadow Speaking — score circle + waveforms + dimension pills
 const YOU_W    = [8,22,38,50,30,48,20,42,14,36,52,26,44,18,40,28];
 const NATIVE_W = [10,28,42,54,34,52,24,46,18,40,56,30,48,22,44,32];
 
@@ -228,7 +229,7 @@ function ShadowVisual() {
   );
 }
 
-// ── Progress — CEFR roadmap + horizontal skill bars ───────────────────────────
+// Progress — CEFR roadmap + horizontal skill bars
 function ProgressVisual() {
   const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
   const cur = 2;
@@ -256,9 +257,9 @@ function ProgressVisual() {
                 target  ? { backgroundColor: 'rgba(15,186,154,0.10)', borderColor: '#0FBA9A' } :
                 { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: '#E2E8F0' },
               ]}>
-                <Text style={{ fontSize: 9, fontWeight: '900', color: done ? '#fff' : current ? '#D97706' : target ? '#0FBA9A' : '#CBD5E1' }}>
-                  {done ? '✓' : l}
-                </Text>
+                {done
+                  ? <Feather name="check" size={11} color="#fff" />
+                  : <Text style={{ fontSize: 9, fontWeight: '900', color: current ? '#D97706' : target ? '#0FBA9A' : '#CBD5E1' }}>{l}</Text>}
               </View>
               <Text style={{ fontSize: 7, fontWeight: '800', letterSpacing: 0.4, color: current ? '#D97706' : target ? '#0FBA9A' : 'transparent' }}>
                 {current ? 'NOW' : 'GOAL'}
@@ -292,7 +293,7 @@ function ProgressVisual() {
 
 const FEATURES = [
   {
-    icon: '🎙',
+    icon: 'mic',
     appendix: 'APPENDIX A',
     title: 'Accent DNA Profiling',
     desc: 'Among 1,247 Romanian speakers assessed during beta, these six English phonemes consistently produced the lowest accuracy scores. Each can be mastered — but only if it is named.',
@@ -301,7 +302,7 @@ const FEATURES = [
     Visual: AccentVisual,
   },
   {
-    icon: '📚',
+    icon: 'book-open',
     appendix: 'APPENDIX B',
     title: 'Smart Vocabulary Coach',
     desc: 'Every word you use is classified A1–C2 against the Cambridge EVP corpus — 6,345 entries of corpus-verified vocabulary. See your distribution and get instant level-upgrade suggestions.',
@@ -310,7 +311,7 @@ const FEATURES = [
     Visual: VocabVisual,
   },
   {
-    icon: '📢',
+    icon: 'volume-2',
     appendix: 'APPENDIX C',
     title: 'Shadow Speaking',
     desc: 'Record yourself shadowing native audio. The engine compares your pitch envelope, stress pattern and rhythm against the target — and scores each dimension independently.',
@@ -319,7 +320,7 @@ const FEATURES = [
     Visual: ShadowVisual,
   },
   {
-    icon: '📈',
+    icon: 'trending-up',
     appendix: 'APPENDIX D',
     title: 'CEFR Progress Tracking',
     desc: 'Track your journey from B1 to C1. Every session updates your phoneme accuracy, vocabulary range and fluency score — all mapped to CEFR milestones with research citations.',
@@ -329,7 +330,6 @@ const FEATURES = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -376,7 +376,7 @@ export default function LoginScreen() {
     Animated.timing(formA, { toValue: showAuth ? 1 : 0, duration: 300, useNativeDriver: true }).start();
   }, [showAuth]);
 
-  // ── Auth logic ────────────────────────────────────────────────────────────
+  // Auth logic
   const openAuth = (login: boolean) => {
     setIsLogin(login);
     setShowAuth(true);
@@ -473,12 +473,12 @@ export default function LoginScreen() {
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Render
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
       <View style={{ flex: 1, overflow: 'hidden' }}>
 
-        {/* ── Background gradient ── */}
+        {/* Background gradient */}
         <LinearGradient
           colors={['#B8E8DF', '#CCF0E9', '#E8F5F2', '#F5EEE8', '#F0D0BC']}
           start={{ x: 0, y: 0 }}
@@ -486,7 +486,7 @@ export default function LoginScreen() {
           style={StyleSheet.absoluteFillObject}
         />
 
-        {/* ── Geometric decoration (fixed background layer) ── */}
+        {/* Geometric decoration (fixed background layer) */}
         {/* Teal large blob — top right */}
         <FloatBlob size={260} color="rgba(15,186,154,0.13)" style={{ top: -80, right: -80 }} delay={0} />
         {/* Coral blob — mid left */}
@@ -509,7 +509,7 @@ export default function LoginScreen() {
         <AccentCross color="rgba(15,186,154,0.32)" style={{ top: 380, right: 32 }} />
         <AccentCross color="rgba(232,113,58,0.28)" style={{ top: 580, left: 60 }} />
 
-        {/* ── Banner ── */}
+        {/* Banner */}
         <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
         {banner && (
           <View style={[S.banner, { backgroundColor: banner.type === 'success' ? C.green : C.red }]}>
@@ -517,7 +517,7 @@ export default function LoginScreen() {
           </View>
         )}
 
-        {/* ── Scrollable content ── */}
+        {/* Scrollable content */}
         <ScrollView
           ref={scrollRef}
           style={{ flex: 1 }}
@@ -526,11 +526,11 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
         >
 
-          {/* ── Nav ── */}
+          {/* Nav */}
           <View style={S.nav}>
             <View style={S.brandRow}>
               <LinearGradient colors={[C.teal, '#00C49A']} style={S.logoBox}>
-                <Text style={S.logoEmoji}>🎙</Text>
+                <Feather name="mic" size={20} color="#0D3D30" />
               </LinearGradient>
               <Text style={S.brand}>Voca<Text style={{ color: C.teal }}>Flow</Text></Text>
             </View>
@@ -539,7 +539,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* ── Hero ── */}
+          {/* Hero */}
           <Animated.View style={[S.hero, { opacity: heroA, transform: [{ translateY: heroY }] }]}>
 
             {/* Eyebrow tag */}
@@ -576,7 +576,7 @@ export default function LoginScreen() {
             <View style={S.ctaRow}>
               <TouchableOpacity style={S.ctaDark} onPress={() => openAuth(false)} activeOpacity={0.85}>
                 <Text style={S.ctaDarkText}>Begin the assessment</Text>
-                <Text style={S.ctaDarkArrow}> ↗</Text>
+                <Feather name="arrow-up-right" size={16} color="#fff" style={{ marginLeft: 4 }} />
               </TouchableOpacity>
               <TouchableOpacity style={S.ctaCoral} onPress={() => openAuth(true)} activeOpacity={0.85}>
                 <Text style={S.ctaCoralPlay}>▷</Text>
@@ -585,7 +585,7 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
 
-          {/* ── App preview ── */}
+          {/* App preview */}
           <Animated.View style={[S.previewWrap, { opacity: previewA, transform: [{ translateY: previewY }] }]}>
             <View style={S.previewWindow}>
 
@@ -614,14 +614,15 @@ export default function LoginScreen() {
 
               {/* Streak */}
               <View style={S.streak}>
-                <Text style={S.streakText}>🔥 12-day streak</Text>
+                <Feather name="zap" size={12} color="#fff" />
+                <Text style={S.streakText}>12-day streak</Text>
               </View>
 
               {/* Accent DNA */}
               <View style={S.featureCard}>
                 <View style={S.featureRow}>
                   <View style={[S.featureIcon, { backgroundColor: '#ECFDF5' }]}>
-                    <Text style={{ fontSize: 18 }}>🎙</Text>
+                    <Feather name="mic" size={18} color={C.coral} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={S.featureTitle}>Accent DNA</Text>
@@ -651,7 +652,7 @@ export default function LoginScreen() {
               <View style={S.featureCard}>
                 <View style={S.featureRow}>
                   <View style={[S.featureIcon, { backgroundColor: '#FFF7ED' }]}>
-                    <Text style={{ fontSize: 18 }}>🧠</Text>
+                    <Feather name="cpu" size={18} color={C.purple} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={S.featureTitle}>Vocabulary Coach</Text>
@@ -660,7 +661,7 @@ export default function LoginScreen() {
                 </View>
                 <View style={S.suggRow}>
                   <Text style={S.suggStrike}>"very good"</Text>
-                  <Text style={S.suggArrow}>→</Text>
+                  <Feather name="arrow-right" size={13} color={C.lite} style={S.suggArrow} />
                   <Text style={S.suggGood}>"excellent"</Text>
                   <Text style={S.suggDim}>, "outstanding"</Text>
                 </View>
@@ -669,7 +670,7 @@ export default function LoginScreen() {
             </View>
           </Animated.View>
 
-          {/* ── Stats ── */}
+          {/* Stats */}
           <Animated.View style={[S.statsRow, { opacity: statsA, transform: [{ translateY: statsY }] }]}>
             {[
               { value: '1,247', label: 'ROMANIAN\nSPEAKERS', color: C.teal },
@@ -683,7 +684,7 @@ export default function LoginScreen() {
             ))}
           </Animated.View>
 
-          {/* ── Features section ── */}
+          {/* Features section */}
           <View style={FS.section}>
             <Text style={FS.sectionEye}>WHAT MAKES VOCAFLOW DIFFERENT</Text>
             <Text style={FS.sectionTitle}>Built around the science{'\n'}of pronunciation.</Text>
@@ -706,7 +707,7 @@ export default function LoginScreen() {
                 <View style={FS.featureBody}>
                   <View style={FS.featureTitleRow}>
                     <View style={[FS.featureIconBox, { backgroundColor: feat.tagColor + '20' }]}>
-                      <Text style={{ fontSize: 20 }}>{feat.icon}</Text>
+                      <Feather name={feat.icon as any} size={20} color={feat.tagColor} />
                     </View>
                     <Text style={FS.featureTitle}>{feat.title}</Text>
                   </View>
@@ -719,13 +720,13 @@ export default function LoginScreen() {
             );
           })}
 
-          {/* ── Auth form ── */}
+          {/* Auth form */}
           {showAuth && (
             <Animated.View ref={authCardRef} style={[S.authCard, { opacity: formA }]}>
               <View style={S.authHeader}>
                 <Text style={S.authTitle}>{isLogin ? 'Welcome back' : 'Create account'}</Text>
                 <TouchableOpacity onPress={() => setShowAuth(false)}>
-                  <Text style={S.authClose}>✕</Text>
+                  <Feather name="x" size={20} color={C.muted} />
                 </TouchableOpacity>
               </View>
               <View style={S.tabs}>
@@ -804,7 +805,7 @@ export default function LoginScreen() {
             </Animated.View>
           )}
 
-          {/* ── Footer ── */}
+          {/* Footer */}
           <View style={S.footer}>
             <Text style={S.footerText}>Built on academic research · IELTS · Cambridge · COCA · CEFR</Text>
           </View>
@@ -815,12 +816,11 @@ export default function LoginScreen() {
   );
 }
 
-// ── Shared geometry style ─────────────────────────────────────────────────────
+// Shared geometry style
 const G = StyleSheet.create({
   ring: { position: 'absolute', borderWidth: 1.5 },
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
 const S = StyleSheet.create({
   scroll: {
     paddingBottom: 72,
@@ -836,7 +836,7 @@ const S = StyleSheet.create({
   },
   bannerText: { color: '#fff', fontSize: 14, fontWeight: '700' },
 
-  // ── Nav ──────────────────────────────────────────────────────────────────
+  // Nav
   nav: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingTop: Platform.OS === 'ios' ? 64 : 46, paddingBottom: 16,
@@ -852,7 +852,7 @@ const S = StyleSheet.create({
   },
   navBtnText: { fontSize: 13, fontWeight: '700', color: C.text },
 
-  // ── Hero ─────────────────────────────────────────────────────────────────
+  // Hero
   hero: { marginTop: 16, marginBottom: 36 },
 
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 },
@@ -910,7 +910,7 @@ const S = StyleSheet.create({
   ctaCoralPlay: { fontSize: 13, color: C.coral, fontWeight: '900' },
   ctaCoralText: { fontSize: 15, fontWeight: '700', color: C.coral },
 
-  // ── Preview window ────────────────────────────────────────────────────────
+  // Preview window
   previewWrap: { marginBottom: 32 },
   previewWindow: {
     backgroundColor: 'rgba(255,255,255,0.97)',
@@ -954,6 +954,7 @@ const S = StyleSheet.create({
   // Streak
   streak: {
     alignSelf: 'flex-start', backgroundColor: C.coral,
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999,
     shadowColor: C.coral, shadowOpacity: 0.32, shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 4,
   },
@@ -989,7 +990,7 @@ const S = StyleSheet.create({
   suggGood:   { fontSize: 13, color: C.green, fontWeight: '700' },
   suggDim:    { fontSize: 13, color: C.muted, fontWeight: '600' },
 
-  // ── Stats ─────────────────────────────────────────────────────────────────
+  // Stats
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 44 },
   statCard: {
     flex: 1,
@@ -1001,7 +1002,7 @@ const S = StyleSheet.create({
   statValue: { fontSize: isTablet ? 34 : 22, fontWeight: '900', color: C.text, letterSpacing: -0.8, marginBottom: 5 },
   statLabel: { fontSize: 9, fontWeight: '700', color: C.muted, letterSpacing: 0.7, lineHeight: 13 },
 
-  // ── Auth form ─────────────────────────────────────────────────────────────
+  // Auth form
   authCard: {
     backgroundColor: C.card, borderRadius: 20, padding: 24,
     borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 36,
@@ -1052,19 +1053,19 @@ const S = StyleSheet.create({
   forgotCardTitle: { fontSize: 15, fontWeight: '800', color: C.text, marginBottom: 4 },
   forgotCardDesc:  { fontSize: 13, color: C.muted, lineHeight: 19 },
 
-  // ── Footer ────────────────────────────────────────────────────────────────
+  // Footer
   footer: { paddingTop: 16, alignItems: 'center' },
   footerText: { fontSize: 11, color: 'rgba(10,22,40,0.36)', textAlign: 'center', lineHeight: 17 },
 });
 
-// ── Feature visual inner styles ───────────────────────────────────────────────
+// Feature visual inner styles
 const FV = StyleSheet.create({
   visualPad: { padding: 16, paddingTop: 40, gap: 0 },
   vizLabel:  { fontSize: 9, fontWeight: '800', color: '#94A3B8', letterSpacing: 1.4 },
   vizCite:   { fontSize: 9, color: '#94A3B8', fontStyle: 'italic', marginTop: 10, lineHeight: 13 },
 });
 
-// ── Features section layout styles ────────────────────────────────────────────
+// Features section layout styles
 const FS = StyleSheet.create({
   section: { marginBottom: 28 },
   sectionEye: { fontSize: 10, fontWeight: '800', letterSpacing: 1.8, color: C.teal, marginBottom: 10 },

@@ -42,18 +42,18 @@ export interface IndustryMeta {
 }
 
 export const INDUSTRIES: IndustryMeta[] = [
-  { key: 'tech',             label: 'Technology',            icon: '💻', color: '#7C6FFF', description: 'Software, IT, data, AI' },
-  { key: 'healthcare',       label: 'Healthcare',            icon: '⚕️', color: '#EC4899', description: 'Medicine, nursing, therapy' },
-  { key: 'finance',          label: 'Finance',               icon: '💰', color: '#10B981', description: 'Banking, investment, accounting' },
-  { key: 'law_government',   label: 'Law & Government',      icon: '⚖️', color: '#6366F1', description: 'Legal, policy, public sector' },
-  { key: 'education',        label: 'Education',             icon: '🎓', color: '#F59E0B', description: 'Teaching, research, counseling' },
-  { key: 'engineering',      label: 'Engineering',           icon: '🔧', color: '#0EA5E9', description: 'Mechanical, civil, electrical' },
-  { key: 'media',            label: 'Media & Communication', icon: '📰', color: '#FF7A59', description: 'Journalism, PR, broadcasting' },
-  { key: 'business',         label: 'Business & Management', icon: '💼', color: '#64748B', description: 'Executive, HR, operations' },
-  { key: 'creative',         label: 'Arts & Creative',       icon: '🎨', color: '#E879F9', description: 'Writing, design, music, film' },
-  { key: 'science',          label: 'Science & Research',    icon: '🔬', color: '#1EE8B5', description: 'Biology, chemistry, physics' },
-  { key: 'sales_marketing',  label: 'Sales & Marketing',     icon: '📈', color: '#FBBF24', description: 'Sales, brand, advertising' },
-  { key: 'hospitality',      label: 'Hospitality & Service', icon: '🍽️', color: '#FB7185', description: 'Hotels, restaurants, tourism' },
+  { key: 'tech',             label: 'Technology',            icon: 'monitor', color: '#7C6FFF', description: 'Software, IT, data, AI' },
+  { key: 'healthcare',       label: 'Healthcare',            icon: 'activity', color: '#EC4899', description: 'Medicine, nursing, therapy' },
+  { key: 'finance',          label: 'Finance',               icon: 'dollar-sign', color: '#10B981', description: 'Banking, investment, accounting' },
+  { key: 'law_government',   label: 'Law & Government',      icon: 'message-square', color: '#6366F1', description: 'Legal, policy, public sector' },
+  { key: 'education',        label: 'Education',             icon: 'award', color: '#F59E0B', description: 'Teaching, research, counseling' },
+  { key: 'engineering',      label: 'Engineering',           icon: 'tool', color: '#0EA5E9', description: 'Mechanical, civil, electrical' },
+  { key: 'media',            label: 'Media & Communication', icon: 'file-text', color: '#FF7A59', description: 'Journalism, PR, broadcasting' },
+  { key: 'business',         label: 'Business & Management', icon: 'briefcase', color: '#64748B', description: 'Executive, HR, operations' },
+  { key: 'creative',         label: 'Arts & Creative',       icon: 'pen-tool', color: '#E879F9', description: 'Writing, design, music, film' },
+  { key: 'science',          label: 'Science & Research',    icon: 'search', color: '#1EE8B5', description: 'Biology, chemistry, physics' },
+  { key: 'sales_marketing',  label: 'Sales & Marketing',     icon: 'trending-up', color: '#FBBF24', description: 'Sales, brand, advertising' },
+  { key: 'hospitality',      label: 'Hospitality & Service', icon: 'coffee', color: '#FB7185', description: 'Hotels, restaurants, tourism' },
 ];
 
 export const INDUSTRY_BY_KEY: Record<Industry, IndustryMeta> =
@@ -69,9 +69,9 @@ export interface Job {
   important: string[];    // COCA codes — high-value secondary
 }
 
-// ── 60 jobs ──────────────────────────────────────────────────────────────────
+// 60 jobs
 export const JOBS: Job[] = [
-  // ─── TECHNOLOGY (8) ──────────────────────────────────────────────────────
+  // TECHNOLOGY (8)
   {
     id: 'software-engineer', socCode: '15-1252.00', industry: 'tech',
     title: 'Software Engineer / Developer',
@@ -129,7 +129,7 @@ export const JOBS: Job[] = [
     important:  ['NEWS:Money', 'MAG:Financial'],
   },
 
-  // ─── HEALTHCARE (6) ───────────────────────────────────────────────────────
+  // HEALTHCARE (6)
   {
     id: 'physician', socCode: '29-1228.00', industry: 'healthcare',
     title: 'Physician (General Practitioner)',
@@ -173,7 +173,7 @@ export const JOBS: Job[] = [
     important:  ['NEWS:News_Natl', 'NEWS:Life'],
   },
 
-  // ─── FINANCE (5) ──────────────────────────────────────────────────────────
+  // FINANCE (5)
   {
     id: 'financial-analyst', socCode: '13-2051.00', industry: 'finance',
     title: 'Financial Analyst',
@@ -210,7 +210,7 @@ export const JOBS: Job[] = [
     important:  ['ACAD:Law/PolSci', 'NEWS:News_Intl'],
   },
 
-  // ─── LAW & GOVERNMENT (5) ─────────────────────────────────────────────────
+  // LAW & GOVERNMENT (5)
   {
     id: 'lawyer', socCode: '23-1011.00', industry: 'law_government',
     title: 'Lawyer / Attorney',
@@ -247,7 +247,7 @@ export const JOBS: Job[] = [
     important:  ['ACAD:History', 'MAG:News/Opin'],
   },
 
-  // ─── EDUCATION (4) ────────────────────────────────────────────────────────
+  // EDUCATION (4)
   {
     id: 'teacher-k12', socCode: '25-2031.00', industry: 'education',
     title: 'Secondary School Teacher',
@@ -277,7 +277,7 @@ export const JOBS: Job[] = [
     important:  ['Blog:Acad', 'MAG:News/Opin'],
   },
 
-  // ─── ENGINEERING (5) ──────────────────────────────────────────────────────
+  // ENGINEERING (5)
   {
     id: 'mech-engineer', socCode: '17-2141.00', industry: 'engineering',
     title: 'Mechanical Engineer',
@@ -314,7 +314,7 @@ export const JOBS: Job[] = [
     important:  ['NEWS:News_Natl', 'FIC:SciFi/Fant'],
   },
 
-  // ─── MEDIA & COMMUNICATIONS (5) ───────────────────────────────────────────
+  // MEDIA & COMMUNICATIONS (5)
   {
     id: 'journalist', socCode: '27-3023.00', industry: 'media',
     title: 'Journalist / News Reporter',
@@ -351,7 +351,7 @@ export const JOBS: Job[] = [
     important:  ['Blog:Pers', 'MAG:News/Opin'],
   },
 
-  // ─── BUSINESS & MANAGEMENT (5) ────────────────────────────────────────────
+  // BUSINESS & MANAGEMENT (5)
   {
     id: 'ceo', socCode: '11-1011.00', industry: 'business',
     title: 'Chief Executive (CEO / Director)',
@@ -388,7 +388,7 @@ export const JOBS: Job[] = [
     important:  ['MAG:Sci/Tech', 'NEWS:Editorial'],
   },
 
-  // ─── ARTS & CREATIVE (5) ──────────────────────────────────────────────────
+  // ARTS & CREATIVE (5)
   {
     id: 'novelist', socCode: '27-3043.05', industry: 'creative',
     title: 'Novelist / Author',
@@ -425,7 +425,7 @@ export const JOBS: Job[] = [
     important:  ['TV:Reality', 'NEWS:Life'],
   },
 
-  // ─── SCIENCE & RESEARCH (4) ───────────────────────────────────────────────
+  // SCIENCE & RESEARCH (4)
   {
     id: 'biologist', socCode: '19-1029.00', industry: 'science',
     title: 'Biologist',
@@ -455,7 +455,7 @@ export const JOBS: Job[] = [
     important:  ['ACAD:Law/PolSci', 'NEWS:Editorial'],
   },
 
-  // ─── SALES & MARKETING (4) ────────────────────────────────────────────────
+  // SALES & MARKETING (4)
   {
     id: 'sales-rep', socCode: '41-3091.00', industry: 'sales_marketing',
     title: 'Sales Representative',
@@ -485,7 +485,7 @@ export const JOBS: Job[] = [
     important:  ['MAG:Sci/Tech', 'ACAD:Business'],
   },
 
-  // ─── HOSPITALITY & SERVICE (4) ────────────────────────────────────────────
+  // HOSPITALITY & SERVICE (4)
   {
     id: 'hotel-manager', socCode: '11-9081.00', industry: 'hospitality',
     title: 'Hotel / Lodging Manager',
@@ -516,7 +516,7 @@ export const JOBS: Job[] = [
   },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 export const JOBS_BY_ID: Record<string, Job> =
   Object.fromEntries(JOBS.map(j => [j.id, j]));
 

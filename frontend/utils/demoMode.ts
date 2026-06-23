@@ -18,14 +18,21 @@ export type DemoPreset = 'weak' | 'medium' | 'strong';
 export type JobPreset  = 'ana' | 'mihai' | 'elena' | 'radu' | 'sorin' | 'diana';
 export type AnyPreset  = DemoPreset | JobPreset;
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+/**
+ * Controls whether the demo / persona pickers are shown in the UI (e.g. on the
+ * Home dashboard). Keep `true` for thesis presentations; set to `false` for a
+ * clean production look or screenshots.
+ */
+export const SHOW_DEMO_PROFILES = true;
+
+// Helpers
 const DAY = 24 * 60 * 60 * 1000;
 const NOW = Date.now();
 const tsBack = (d: number) => NOW - d * DAY;
 const ramp   = (start: number, end: number, n: number, i: number) =>
   Math.round(start + (end - start) * (i / (n - 1)));
 
-// ─── Demo isolation: backup / restore real user data ────────────────────────
+// Demo isolation: backup / restore real user data
 // When a demo profile is loaded it overwrites the same AsyncStorage keys used
 // by the real account.  We back up those keys before the first demo load and
 // restore them when the demo is cleared so the real user's progress is never
@@ -95,7 +102,7 @@ async function _restoreRealData(): Promise<void> {
   await AsyncStorage.multiRemove(cleanupKeys);
 }
 
-// ─── Indicator template (same 10 for all profiles, values shift) ─────────────
+// Indicator template (same 10 for all profiles, values shift)
 type Severity = 'critical' | 'moderate' | 'acceptable' | 'strong';
 
 const indicatorNames = [
@@ -138,7 +145,7 @@ function buildIndicators(baseValues: number[]) {
   }));
 }
 
-// ─── Profile definitions ─────────────────────────────────────────────────────
+// Profile definitions
 
 // WEAK: A2 → B1
 //  original: score 32, current: score 46
@@ -232,7 +239,7 @@ const STRONG_CURRENT = {
   exam_specific_scores: { cambridge_cae: 90, toefl_ibt: 108, ielts_academic: 87 },
 };
 
-// ─── Session builders (parametric) ──────────────────────────────────────────
+// Session builders (parametric)
 
 function buildCAF(startC: number, endC: number, startA: number, endA: number,
                   startF: number, endF: number, startCefr: string, endCefr: string) {
@@ -331,7 +338,7 @@ function buildGenre(scoreOffset: number) {
   });
 }
 
-// ─── Learner profile snapshots ──────────────────────────────────────────────
+// Learner profile snapshots
 
 const LEARNER_PROFILES = {
   weak: {
@@ -420,7 +427,7 @@ const SRS_STATES = {
   strong: { due_count: 1,  learning_count: 12, mastered_count: 108, new_count: 5,  total_bank: 126 },
 };
 
-// ─── Shadow speaking sessions ────────────────────────────────────────────────
+// Shadow speaking sessions
 
 const SHADOW_CATEGORIES = ['Daily Conversation', 'News Report', 'Academic Lecture', 'Business Meeting'];
 const SHADOW_DIFFICULTIES = ['B1', 'B2', 'C1'] as const;
@@ -474,7 +481,7 @@ const SHADOW_SESSIONS = {
   strong: buildShadow([84, 88, 86, 90, 92, 89], ['B2', 'C1', 'C1', 'C1', 'C1', 'C1'], TRANSCRIBED_MEDIUM),
 };
 
-// ─── Persona shadow sessions (with real audio recordings) ────────────────────
+// Persona shadow sessions (with real audio recordings)
 // Each persona has 2 recordings stored in assets/audio. The audio_id field
 // resolves to a bundled MP3 at playback time (see constants/demoAudio.ts).
 
@@ -575,7 +582,7 @@ const PERSONA_SHADOW_SESSIONS: Record<JobPreset, PersonaShadow[]> = {
   ],
 };
 
-// ─── Profile assembly ────────────────────────────────────────────────────────
+// Profile assembly
 
 const PROFILES = {
   weak: {
@@ -616,7 +623,7 @@ const PROFILES = {
   },
 } as const;
 
-// ─── Job-based user blueprints (6 fictional users) ───────────────────────────
+// Job-based user blueprints (6 fictional users)
 
 export interface JobUserBlueprint {
   name: string;
@@ -644,7 +651,7 @@ export interface JobUserBlueprint {
 
 export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
   ana: {
-    name: 'Ana', age: 22, avatar: '👩‍⚕️',
+    name: 'Ana', age: 22, avatar: '‍',
     bio: 'Medical student — beginner, just starting English',
     rangeLabel: 'A1 → A2',
     jobId: 'physician', industry: 'healthcare',
@@ -656,7 +663,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
     cefrOriginal: 'A1', cefrCurrent: 'A2',
   },
   mihai: {
-    name: 'Mihai', age: 28, avatar: '👨‍💻',
+    name: 'Mihai', age: 28, avatar: '‍',
     bio: 'Senior dev — better PR descriptions and tech writing',
     rangeLabel: 'B1 → B2',
     jobId: 'software-engineer', industry: 'tech',
@@ -668,7 +675,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
     cefrOriginal: 'B1', cefrCurrent: 'B2',
   },
   elena: {
-    name: 'Elena', age: 31, avatar: '👩‍⚖️',
+    name: 'Elena', age: 31, avatar: '‍',
     bio: 'Corporate lawyer drafting cross-border contracts',
     rangeLabel: 'B2 → C1',
     jobId: 'lawyer', industry: 'law_government',
@@ -680,7 +687,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
     cefrOriginal: 'B2', cefrCurrent: 'C1',
   },
   radu: {
-    name: 'Radu', age: 26, avatar: '🧑‍💼',
+    name: 'Radu', age: 26, avatar: '‍',
     bio: 'Journalist targeting international wire services',
     rangeLabel: 'C1 → C2',
     jobId: 'journalist', industry: 'media',
@@ -692,7 +699,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
     cefrOriginal: 'C1', cefrCurrent: 'C2',
   },
   sorin: {
-    name: 'Sorin', age: 35, avatar: '🧑‍💼',
+    name: 'Sorin', age: 35, avatar: '‍',
     bio: 'Marketing manager pitching to international clients',
     rangeLabel: 'B1 → B2',
     jobId: 'marketing-manager', industry: 'sales_marketing',
@@ -704,7 +711,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
     cefrOriginal: 'B1', cefrCurrent: 'B2',
   },
   diana: {
-    name: 'Diana', age: 24, avatar: '👩‍💼',
+    name: 'Diana', age: 24, avatar: '‍',
     bio: 'Financial analyst climbing the corporate ladder',
     rangeLabel: 'B2 → C1',
     jobId: 'financial-analyst', industry: 'finance',
@@ -717,7 +724,7 @@ export const JOB_USERS: Record<JobPreset, JobUserBlueprint> = {
   },
 };
 
-// ─── Job profile builders ────────────────────────────────────────────────────
+// Job profile builders
 
 function avgOf(arr: number[]): number {
   return Math.round(arr.reduce((a, b) => a + b, 0) / arr.length);
@@ -862,7 +869,7 @@ const JOB_PROFILES = {
   diana:  buildJobProfile('diana'),
 } as const;
 
-// ─── Public API ──────────────────────────────────────────────────────────────
+// Public API
 
 function isJobPreset(p: AnyPreset): p is JobPreset {
   return p === 'ana' || p === 'mihai' || p === 'elena' || p === 'radu' || p === 'sorin' || p === 'diana';

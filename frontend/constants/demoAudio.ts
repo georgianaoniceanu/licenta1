@@ -44,7 +44,7 @@ const AUDIO: Record<string, any> = {
   diana_shadow_1: require('../assets/audio/diana_shadow_1.mp3'),
   diana_shadow_2: require('../assets/audio/diana_shadow_2.mp3'),
 
-  // ── Cloned voices (XTTS-v2), level-calibrated, matching the practised text ──
+  // Cloned voices (XTTS-v2), level-calibrated, matching the practised text
   // Vocabulary (1 speaking phrase per persona)
   ana_vocab_1:    require('../assets/audio/ana_vocab_1.mp3'),
   mihai_vocab_1:  require('../assets/audio/mihai_vocab_1.mp3'),

@@ -1,6 +1,5 @@
 /**
  * Practice Hub — four structured exercise modes
- * ─────────────────────────────────────────────────────────────────────────────
  *
  *   • Adaptive   — SM-2 spaced repetition (Wozniak 1987) on Academic Word List
  *                  (Coxhead 2000). Word selection: overdue reviews first, then
@@ -19,7 +18,6 @@
  *                  prepositions, tense, word order, double negation,
  *                  collocations, false friends, agreement. Static local bank,
  *                  targets the Grammar Accuracy indicator.
- * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -29,6 +27,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { PRACTICE_ENDPOINTS, VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 import {
@@ -37,7 +36,7 @@ import {
   type LocalGrammarItem,
 } from '@/constants/practiceContent';
 
-// ─── Types ──────────────────────────────────────────────────────────────────
+// Types
 type Mode = 'adaptive' | 'retention' | 'reading' | 'grammar' | 'targeted';
 
 // SM-2 vocabulary exercise card returned by GET /vocabulary/exercise
@@ -100,7 +99,7 @@ type ReadingPassage = {
   }>;
 };
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
+// Helpers
 
 async function loadJSON<T>(key: string, def: T): Promise<T> {
   try {
@@ -116,7 +115,7 @@ function pickCEFR(cafSessions: any[]): string {
 }
 
 
-// ─── Component ──────────────────────────────────────────────────────────────
+// Component
 export default function PracticeScreen() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('adaptive');
@@ -125,9 +124,10 @@ export default function PracticeScreen() {
     <View style={styles.root}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-          <Text style={styles.backText}>←  Back</Text>
+          <Feather name="chevron-left" size={18} color="#0FBA9A" />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>🎯 Practice Hub</Text>
+        <Text style={styles.title}>Practice Hub</Text>
       </View>
 
       <ScrollView
@@ -137,11 +137,11 @@ export default function PracticeScreen() {
         contentContainerStyle={styles.tabBar}
       >
         {([
-          { k: 'adaptive',  label: '⚡ Adaptive' },
-          { k: 'retention', label: '🧠 Retention' },
-          { k: 'reading',   label: '📖 Reading' },
-          { k: 'grammar',   label: '✏️ Grammar' },
-          { k: 'targeted',  label: '🎯 Targeted' },
+          { k: 'adaptive',  label: 'Adaptive' },
+          { k: 'retention', label: 'Retention' },
+          { k: 'reading',   label: 'Reading' },
+          { k: 'grammar',   label: 'Grammar' },
+          { k: 'targeted',  label: 'Targeted' },
         ] as { k: Mode; label: string }[]).map(t => (
           <TouchableOpacity
             key={t.k}
@@ -165,7 +165,7 @@ export default function PracticeScreen() {
   );
 }
 
-// ─── Adaptive (SM-2 vocabulary exercise runner) ──────────────────────────────
+// Adaptive (SM-2 vocabulary exercise runner)
 //
 // Exercise selection: SM-2 algorithm (Wozniak 1987).
 //   Priority 1 — overdue reviews (sm2_next_review ≤ today), earliest first
@@ -320,7 +320,7 @@ function AdaptiveBlock() {
 
       {card && !loading && (
         <View style={styles.exerciseCard}>
-          {/* ── Question header ──────────────────────────────────────────── */}
+          {/* Question header */}
           <View style={styles.wordHeader}>
             <View style={{ flex: 1 }}>
               <Text style={card.exercise_format === 'word_to_def' ? styles.wordText : styles.defText}>
@@ -342,7 +342,7 @@ function AdaptiveBlock() {
 
           <Text style={styles.exerciseInstruction}>{card.instruction}</Text>
 
-          {/* ── Options ──────────────────────────────────────────────────── */}
+          {/* Options */}
           {card.options.map((opt, i) => {
             const isSelected = selected === i;
             const isCorrect  = submitted && i === card.correct_index;
@@ -366,7 +366,7 @@ function AdaptiveBlock() {
             );
           })}
 
-          {/* ── Post-submit feedback ─────────────────────────────────────── */}
+          {/* Post-submit feedback */}
           {submitted && (
             <View style={styles.feedbackBox}>
               {result ? (
@@ -409,7 +409,7 @@ function AdaptiveBlock() {
   );
 }
 
-// ─── Retention (SM-2 state viewer) ──────────────────────────────────────────
+// Retention (SM-2 state viewer)
 //
 // Shows the user's real SM-2 schedule from Firestore — no synthetic proxies.
 //
@@ -473,7 +473,7 @@ function RetentionBlock() {
 
       {state && (
         <>
-          {/* ── Stats row ───────────────────────────────────────────────── */}
+          {/* Stats row */}
           <View style={styles.retentionSummary}>
             <View style={styles.retentionStat}>
               <Text style={[styles.retentionNum, { color: '#EF4444' }]}>{state.due_count}</Text>
@@ -493,7 +493,7 @@ function RetentionBlock() {
             </View>
           </View>
 
-          {/* ── Progress bar ────────────────────────────────────────────── */}
+          {/* Progress bar */}
           <View style={styles.retentionRateRow}>
             <Text style={styles.retentionRateLbl}>Practiced {practiced}/{total} words</Text>
             <Text style={styles.retentionRateNum}>{pct}%</Text>
@@ -544,7 +544,7 @@ function SRSSection({
   );
 }
 
-// ─── Reading ────────────────────────────────────────────────────────────────
+// Reading
 function ReadingBlock() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ReadingPassage | null>(null);
@@ -602,7 +602,7 @@ function ReadingBlock() {
       <TouchableOpacity style={styles.primaryBtn} onPress={generate} disabled={loading}>
         {loading
           ? <ActivityIndicator color="#fff" />
-          : <Text style={styles.primaryBtnText}>{data ? '🔄  New passage' : '📖  Generate passage'}</Text>}
+          : <Text style={styles.primaryBtnText}>{data ? ' New passage' : ' Generate passage'}</Text>}
       </TouchableOpacity>
 
       {data && (
@@ -650,7 +650,7 @@ function ReadingBlock() {
               disabled={Object.keys(answers).length !== data.questions.length}
               onPress={() => setSubmitted(true)}
             >
-              <Text style={styles.primaryBtnText}>✓  Submit answers</Text>
+              <Text style={styles.primaryBtnText}> Submit answers</Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.scoreCard}>
@@ -671,7 +671,7 @@ function ReadingBlock() {
   );
 }
 
-// ─── Grammar (Romanian L1 interference drills) ───────────────────────────────
+// Grammar (Romanian L1 interference drills)
 //
 // Targets the Grammar Accuracy indicator (Neumanová 2021 error analysis).
 // Each item is a documented Romanian→English transfer error: articles,
@@ -765,9 +765,9 @@ function GrammarBlock() {
               <Text style={styles.exampleSentence}>
                 {item.prompt.replace('___', item.options[item.correctIndex])}
               </Text>
-              <Text style={styles.grammarRule}>✓ {item.explanation}</Text>
+              <Text style={styles.grammarRule}>{item.explanation}</Text>
               <View style={styles.l1NoteBox}>
-                <Text style={styles.l1NoteLabel}>🇷🇴 ROMANIAN L1 NOTE</Text>
+                <Text style={styles.l1NoteLabel}>ROMANIAN L1 NOTE</Text>
                 <Text style={styles.l1NoteText}>{item.l1_note}</Text>
               </View>
             </View>
@@ -784,7 +784,7 @@ function GrammarBlock() {
   );
 }
 
-// ─── Targeted (LLM exercises targeting the user's weakest CAF indicator) ─────
+// Targeted (LLM exercises targeting the user's weakest CAF indicator)
 //
 // Reads the baseline diagnosis from AsyncStorage, finds the lowest-scoring
 // CAF indicator, maps it to an IELTS criterion, then calls POST /practice/adaptive
@@ -950,7 +950,7 @@ function TargetedBlock() {
 
   return (
     <View>
-      {/* ── Info header ─────────────────────────────────────────────────── */}
+      {/* Info header */}
       <View style={styles.targetedHeader}>
         <Text style={styles.targetedHeaderTitle}>Targeted Practice</Text>
         <Text style={styles.targetedHeaderSub}>
@@ -958,7 +958,7 @@ function TargetedBlock() {
         </Text>
         {!!weakestLabel && (
           <View style={styles.targetedTag}>
-            <Text style={styles.targetedTagText}>📌 Targeting: {weakestLabel}</Text>
+            <Text style={styles.targetedTagText}>Targeting: {weakestLabel}</Text>
           </View>
         )}
         {!!cefrLevel && (
@@ -970,10 +970,10 @@ function TargetedBlock() {
         )}
       </View>
 
-      {/* ── Generate button ─────────────────────────────────────────────── */}
+      {/* Generate button */}
       {exercises.length === 0 && !loading && (
         <TouchableOpacity style={styles.primaryBtn} onPress={fetchExercises} activeOpacity={0.85}>
-          <Text style={styles.primaryBtnText}>✨  Generate exercises</Text>
+          <Text style={styles.primaryBtnText}> Generate exercises</Text>
         </TouchableOpacity>
       )}
 
@@ -984,10 +984,10 @@ function TargetedBlock() {
         </View>
       )}
 
-      {/* ── Done state ──────────────────────────────────────────────────── */}
+      {/* Done state */}
       {done && (
         <View style={styles.targetedDoneCard}>
-          <Text style={styles.targetedDoneEmoji}>🎉</Text>
+          <Feather name="check-circle" size={40} color="#0FBA9A" style={styles.targetedDoneEmoji} />
           <Text style={styles.targetedDoneTitle}>Set complete!</Text>
           <Text style={styles.targetedDoneSub}>
             You finished all {exercises.length} exercises targeting your{' '}
@@ -998,12 +998,12 @@ function TargetedBlock() {
             onPress={fetchExercises}
             activeOpacity={0.85}
           >
-            <Text style={styles.primaryBtnText}>✨  New set</Text>
+            <Text style={styles.primaryBtnText}> New set</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* ── Active exercise ─────────────────────────────────────────────── */}
+      {/* Active exercise */}
       {!done && ex && (
         <>
           {/* Step dots */}
@@ -1045,7 +1045,7 @@ function TargetedBlock() {
                   onPress={advance}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.primaryBtnText}>✓  Got it</Text>
+                  <Text style={styles.primaryBtnText}> Got it</Text>
                 </TouchableOpacity>
               ) : (
                 <>
@@ -1086,7 +1086,7 @@ function TargetedBlock() {
                   activeOpacity={0.85}
                 >
                   <Text style={styles.primaryBtnText}>
-                    {idx + 1 < exercises.length ? 'Next →' : 'Finish ✓'}
+                    {idx + 1 < exercises.length ? 'Next →' : 'Finish '}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -1098,7 +1098,7 @@ function TargetedBlock() {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
+// Styles
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#060D1A' },
   header: {
@@ -1106,7 +1106,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 18, paddingBottom: 8,
   },
   backBtn: {
-    paddingHorizontal: 14, paddingVertical: 9, borderRadius: 11,
+    flexDirection: 'row', alignItems: 'center', gap: 2, alignSelf: 'flex-start',
+    paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11,
     borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#0F1B2D',
   },
   backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },

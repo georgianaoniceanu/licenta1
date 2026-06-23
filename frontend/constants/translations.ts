@@ -1,8 +1,8 @@
 export type Lang = 'en' | 'ro';
 
 const t = {
-  // ── Common ────────────────────────────────────────────────────────────────
-  back:          { en: '← Back',   ro: '← Înapoi' },
+  // Common
+  back:          { en: 'Back',     ro: 'Înapoi' },
   save:          { en: 'Save',     ro: 'Salvează' },
   cancel:        { en: 'Cancel',   ro: 'Anulează' },
   loading:       { en: 'Loading…', ro: 'Se încarcă…' },
@@ -13,7 +13,7 @@ const t = {
   yes:           { en: 'Yes',      ro: 'Da' },
   no:            { en: 'No',       ro: 'Nu' },
 
-  // ── Auth / Login ──────────────────────────────────────────────────────────
+  // Auth / Login
   logIn:               { en: 'Log In',          ro: 'Autentificare' },
   signIn:              { en: 'Sign In',          ro: 'Intră în cont' },
   signUp:              { en: 'Sign Up',          ro: 'Creează cont' },
@@ -27,7 +27,7 @@ const t = {
   welcomeBack:         { en: 'Welcome back',     ro: 'Bine ai revenit' },
   resetEmailSent:      { en: 'Reset email sent — check your inbox.', ro: 'Email de resetare trimis — verifică-ți căsuța.' },
 
-  // ── Sidebar ───────────────────────────────────────────────────────────────
+  // Sidebar
   modules:        { en: 'MODULES',        ro: 'MODULE' },
   researchBasis:  { en: 'RESEARCH BASIS', ro: 'BAZA DE CERCETARE' },
   dashboard:      { en: 'Dashboard',      ro: 'Panou principal' },
@@ -47,7 +47,7 @@ const t = {
   appShowcase:    { en: 'App Showcase',   ro: 'Prezentare' },
   aiLanguageCoach:{ en: 'AI Language Coach', ro: 'Coach AI de limbă' },
 
-  // ── Home Dashboard ────────────────────────────────────────────────────────
+  // Home Dashboard
   hello:              { en: 'Hello',                   ro: 'Bună' },
   yourDashboard:      { en: 'Your English\nDashboard.', ro: 'Tabloul tău de\nbord.' },
   liveAudio:          { en: 'LIVE AUDIO',              ro: 'AUDIO LIVE' },
@@ -87,7 +87,7 @@ const t = {
   signOutTitle:       { en: 'Sign Out',                ro: 'Deconectare' },
   signOutMsg:         { en: 'Are you sure you want to sign out?', ro: 'Ești sigur că vrei să te deconectezi?' },
 
-  // ── Module names ──────────────────────────────────────────────────────────
+  // Module names
   modAccentDna:     { en: 'Accent DNA',      ro: 'Accent DNA' },
   modAccentSub:     { en: 'Fix specific sounds', ro: 'Corectează sunete specifice' },
   modShadow:        { en: 'Shadow Speaking', ro: 'Shadow Speaking' },
@@ -101,7 +101,7 @@ const t = {
   modPractice:      { en: 'Practice Hub',    ro: 'Centru de practică' },
   modPracticeSub:   { en: 'Adaptive exercises', ro: 'Exerciții adaptive' },
 
-  // ── Settings ──────────────────────────────────────────────────────────────
+  // Settings
   settingsTitle:        { en: 'Settings',            ro: 'Setări' },
   tabGeneral:           { en: 'General',             ro: 'General' },
   tabLearning:          { en: 'Learning',            ro: 'Învățare' },
@@ -123,42 +123,43 @@ const t = {
   soundDesc:            { en: 'Play feedback sounds during exercises', ro: 'Redă sunete de feedback în exerciții' },
   appearance:           { en: 'Appearance',          ro: 'Aspect' },
   darkMode:             { en: 'Dark Mode',           ro: 'Mod întunecat' },
-  darkModeActive:       { en: '🌙 Dark theme active',  ro: '🌙 Temă întunecată activă' },
-  lightModeActive:      { en: '☀️ Light theme active', ro: '☀️ Temă luminoasă activă' },
+  darkModeActive:       { en: 'Dark theme active',  ro: 'Temă întunecată activă' },
+  lightModeActive:      { en: 'Light theme active', ro: 'Temă luminoasă activă' },
   dailyGoals:           { en: 'Daily Goals',         ro: 'Obiective zilnice' },
   wordsPerSession:      { en: 'Words per Session',   ro: 'Cuvinte pe sesiune' },
   wordsTarget:          { en: 'Target: {n} words/day', ro: 'Obiectiv: {n} cuvinte/zi' },
   sessionDuration:      { en: 'Session Duration',    ro: 'Durata sesiunii' },
   preferredDuration:    { en: 'Preferred Duration',  ro: 'Durată preferată' },
   minutesPerSession:    { en: '{n} minutes per session', ro: '{n} minute pe sesiune' },
-  inAppReminders:       { en: 'In-App Reminders',    ro: 'Remindere în aplicație' },
-  remindersDesc:        { en: 'These banners appear on the home screen when you open the app.', ro: 'Aceste bannere apar pe ecranul principal când deschizi aplicația.' },
+  inAppReminders:       { en: 'Notifications',        ro: 'Notificări' },
+  remindersDesc:        { en: 'Device notifications to help you keep a steady study habit.', ro: 'Notificări pe telefon care te ajută să înveți constant.' },
   dailyReminder:        { en: 'Daily Reminder',      ro: 'Reminder zilnic' },
-  dailyReminderDesc:    { en: "Show a banner when you haven't practiced today", ro: 'Afișează un banner când nu ai practicat azi' },
+  dailyReminderDesc:    { en: 'A daily nudge at 7 PM to keep your streak alive', ro: 'Un memento zilnic la 19:00 ca să-ți menții seria' },
   achievementAlerts:    { en: 'Achievement Alerts',  ro: 'Alerte realizări' },
-  achievementDesc:      { en: 'Show a banner when your CEFR level improves', ro: 'Afișează un banner când nivelul tău CEFR crește' },
+  achievementDesc:      { en: 'A notification when your CEFR level improves', ro: 'O notificare când nivelul tău CEFR crește' },
   reviewReminders:      { en: 'SRS Review Reminders', ro: 'Remindere recapitulare SRS' },
-  reviewDesc:           { en: 'Show a banner when vocabulary cards are due', ro: 'Afișează un banner când sunt cărți de vocabular de recapitulat' },
+  reviewDesc:           { en: 'A daily reminder at 10 AM to review due words', ro: 'Un memento zilnic la 10:00 pentru cuvintele de recapitulat' },
+  notifPermDenied:      { en: 'Notifications are disabled. Enable them in your device settings to receive reminders.', ro: 'Notificările sunt dezactivate. Activează-le din setările telefonului ca să primești remindere.' },
   accountLabel:         { en: 'Account',             ro: 'Cont' },
   loggedInAs:           { en: 'Logged in as:',       ro: 'Autentificat ca:' },
   apiStatus:            { en: 'API Status',          ro: 'Status API' },
   apiStatusDesc:        { en: 'Verify external services are reachable and your quotas are not exhausted. Run this before any thesis demo.', ro: 'Verifică dacă serviciile externe sunt accesibile și cotele nu sunt epuizate. Rulează înainte de orice demo pentru teză.' },
-  runHealthCheck:       { en: '🔍  Run Health Check', ro: '🔍  Verificare sistem' },
+  runHealthCheck:       { en: 'Run Health Check', ro: 'Verificare sistem' },
   allSystemsOk:         { en: 'All systems operational', ro: 'Toate sistemele funcționează' },
   issuesDetected:       { en: 'Issues detected',     ro: 'Probleme detectate' },
   demoDataTitle:        { en: 'Demo Data',           ro: 'Date demo' },
   demoDataDesc:         { en: 'Load realistic sample data for thesis presentation (no backend needed).', ro: 'Încarcă date eșantion realiste pentru prezentarea tezei (fără backend).' },
   loadDemo:             { en: '▶  Load Demo Data',  ro: '▶  Încarcă date demo' },
-  clearDemo:            { en: '✕  Clear Demo Data', ro: '✕  Șterge datele demo' },
+  clearDemo:            { en: 'Clear Demo Data', ro: 'Șterge datele demo' },
   resetProgress:        { en: 'Reset Progress',      ro: 'Resetează progresul' },
   resetProgressMsg:     { en: 'This will clear all your learning progress. This action cannot be undone.', ro: 'Aceasta va șterge tot progresul tău de învățare. Acțiunea nu poate fi anulată.' },
   reset:                { en: 'Reset',               ro: 'Resetează' },
-  resetProgressBtn:     { en: '⚠️  Reset All Progress', ro: '⚠️  Resetează tot progresul' },
+  resetProgressBtn:     { en: 'Reset All Progress', ro: 'Resetează tot progresul' },
 
-  // ── Notifications banner (home) ───────────────────────────────────────────
-  practiceToday:    { en: "🎯 Time for today's practice session!", ro: '🎯 E timpul pentru sesiunea de practică de azi!' },
+  // Notifications banner (home)
+  practiceToday:    { en: "Time for today's practice session!", ro: 'E timpul pentru sesiunea de practică de azi!' },
 
-  // ── About modal ───────────────────────────────────────────────────────────
+  // About modal
   aboutTitle:     { en: 'About VocaFlow',  ro: 'Despre VocaFlow' },
   appVersion:     { en: 'v1.0.0 · Thesis Edition', ro: 'v1.0.0 · Ediție teză' },
   appTagline:     { en: 'AI-powered English pronunciation studio for Romanian speakers.', ro: 'Studio de pronunție engleză bazat pe AI pentru vorbitori de română.' },

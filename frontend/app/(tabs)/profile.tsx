@@ -26,8 +26,9 @@ import {
 } from '@/utils/voiceProfiles';
 import { JOBS_BY_ID } from '@/constants/jobsDatabase';
 import { getDemoAudio } from '@/constants/demoAudio';
+import { palette } from '@/constants/theme';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type Indicator = {
   name: string;
@@ -67,18 +68,18 @@ type AssessmentRecord = {
   rf_predicted_cefr?: string;
 };
 
-// ─── Palette ──────────────────────────────────────────────────────────────────
+// Palette
 
-const BG     = '#060D1A';
-const CARD   = '#0F1B2D';
-const BORDER = 'rgba(255,255,255,0.08)';
-const TEAL   = '#0FBA9A';
-const CORAL  = '#8B5CF6';
-const PURPLE = '#8B5CF6';
-const NAVY   = '#0A1628';
-const TEXT   = '#F0F6FF';
-const TEXT2  = '#94A3B8';
-const TEXT3  = '#94A3B8';
+const BG     = palette.bg;
+const CARD   = palette.card;
+const BORDER = palette.border;
+const TEAL   = palette.teal;
+const CORAL  = palette.purple;
+const PURPLE = palette.purple;
+const NAVY   = palette.bgElevated;
+const TEXT   = palette.text;
+const TEXT2  = palette.textMuted;
+const TEXT3  = palette.textMuted;
 
 const CEFR_COLORS: Record<string, string> = {
   A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6',
@@ -90,7 +91,7 @@ const SEVERITY_COLORS: Record<string, string> = {
   critical: '#EF4444', moderate: '#8B5CF6', acceptable: '#0FBA9A', strong: '#8B5CF6',
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 function initials(name: string): string {
   return name
@@ -100,7 +101,7 @@ function initials(name: string): string {
     .join('');
 }
 
-// ─── Row components ───────────────────────────────────────────────────────────
+// Row components
 
 const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
   <View style={R.row}>
@@ -157,9 +158,9 @@ const QL = StyleSheet.create({
   label: { flex: 1, fontSize: 14, fontWeight: '600', color: TEXT },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// Main Screen
 
-// ── Voice Profile Card ──────────────────────────────────────────────────────
+// Voice Profile Card
 
 const VOICE_SAMPLE_BY_PRESET: Record<string, string> = {
   weak:   "I... I want to learn English. It is, uh, difficult sometimes.",
@@ -236,7 +237,7 @@ function VoiceProfileCard({
         </View>
         {hasRealRecording && (
           <View style={S.voiceRealBadge}>
-            <Text style={S.voiceRealBadgeText}>● REC</Text>
+            <Text style={S.voiceRealBadgeText}>REC</Text>
           </View>
         )}
       </View>
@@ -245,7 +246,7 @@ function VoiceProfileCard({
         <VoiceMetric label="RATE"   value={`${profile.rate.toFixed(2)}×`} />
         <VoiceMetric label="PITCH"  value={profile.pitch.toFixed(2)} />
         <VoiceMetric label="ACCENT" value={profile.accent} />
-        <VoiceMetric label="VOICE"  value={profile.preferredGender === 'female' ? '♀' : '♂'} />
+        <VoiceMetric label="VOICE"  value={profile.preferredGender === 'female' ? 'Female' : 'Male'} />
       </View>
 
       {job && (
@@ -441,12 +442,12 @@ export default function ProfileScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={TEAL} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Page title ── */}
+        {/* Page title */}
         <View style={S.pageHeader}>
           <Text style={S.pageTitle}>Profile</Text>
         </View>
 
-        {/* ── Avatar card ── */}
+        {/* Avatar card */}
         <LinearGradient colors={[NAVY, '#0F2440']} style={S.avatarCard}>
           <View style={S.avatarCircle}>
             <Text style={S.avatarText}>{avatarLabel}</Text>
@@ -461,10 +462,10 @@ export default function ProfileScreen() {
           )}
         </LinearGradient>
 
-        {/* ── Voice Profile card ── */}
+        {/* Voice Profile card */}
         <VoiceProfileCard preset={activeDemoPreset} displayName={displayName} jobId={userJobId} />
 
-        {/* ── 3-stat strip ── */}
+        {/* 3-stat strip */}
         {diagnosis && (
           <View style={S.statsRow}>
             <View style={[S.statCard, { borderTopColor: TEAL }]}>
@@ -482,22 +483,22 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Learning profile ── */}
+        {/* Learning profile */}
         {profile && (
           <View style={S.section}>
             <Text style={S.sectionTitle}>Learning Profile</Text>
             <View style={S.card}>
               {profile.target_exam && (
-                <InfoRow icon="🎓" label="TARGET EXAM" value={profile.target_exam} />
+                <InfoRow icon="" label="TARGET EXAM" value={profile.target_exam} />
               )}
               {profile.target_domain && (
-                <InfoRow icon="🏢" label="DOMAIN" value={profile.target_domain} />
+                <InfoRow icon="" label="DOMAIN" value={profile.target_domain} />
               )}
               {profile.primary_goal && (
-                <InfoRow icon="🎯" label="PRIMARY GOAL" value={profile.primary_goal} />
+                <InfoRow icon="" label="PRIMARY GOAL" value={profile.primary_goal} />
               )}
               {profile.daily_study_minutes != null && (
-                <InfoRow icon="⏱" label="DAILY GOAL" value={`${profile.daily_study_minutes} min / day`} />
+                <InfoRow icon="" label="DAILY GOAL" value={`${profile.daily_study_minutes} min / day`} />
               )}
               {!profile.target_exam && !profile.target_domain && !profile.primary_goal && !profile.daily_study_minutes && (
                 <Text style={S.emptyNote}>Complete onboarding to fill this section.</Text>
@@ -506,7 +507,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Self vs. Predicted ── */}
+        {/* Self vs. Predicted */}
         {diagnosis && profile?.self_assessed_cefr && (
           <View style={S.section}>
             <Text style={S.sectionTitle}>Self vs. Predicted</Text>
@@ -533,7 +534,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Level verified by AI card ── */}
+        {/* Level verified by AI card */}
         {diagnosis?.rf_predicted_cefr && (() => {
           const agree   = diagnosis.rf_predicted_cefr === diagnosis.predicted_cefr;
           const conf    = diagnosis.rf_confidence ?? 0;
@@ -589,7 +590,7 @@ export default function ProfileScreen() {
           );
         })()}
 
-        {/* ── Assessment History ── */}
+        {/* Assessment History */}
         {assessmentHistory.length > 0 && (
           <View style={S.section}>
             <Text style={S.sectionTitle}>Assessment History</Text>
@@ -632,7 +633,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Weakest indicators ── */}
+        {/* Weakest indicators */}
         {criticalInds.length > 0 && (
           <View style={S.section}>
             <Text style={S.sectionTitle}>Weakest Indicators</Text>
@@ -658,7 +659,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Focus & Strengths ── */}
+        {/* Focus & Strengths */}
         {diagnosis && (diagnosis.critical_areas.length > 0 || diagnosis.strengths.length > 0) && (
           <View style={S.section}>
             <Text style={S.sectionTitle}>Focus & Strengths</Text>
@@ -689,7 +690,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* ── Quick links ── */}
+        {/* Quick links */}
         <View style={S.section}>
           <Text style={S.sectionTitle}>Quick Links</Text>
           <QuickLink icon="activity"    label="Take Assessment"  route="/(tabs)/assessment" color={TEAL}   />
@@ -697,7 +698,7 @@ export default function ProfileScreen() {
           <QuickLink icon="settings"    label="Settings"         route="/(tabs)/settings"   color={TEXT2}  />
         </View>
 
-        {/* ── Sign out ── */}
+        {/* Sign out */}
         <TouchableOpacity style={S.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <Feather name="log-out" size={16} color="#EF4444" />
           <Text style={S.logoutText}>Sign Out</Text>
@@ -709,7 +710,7 @@ export default function ProfileScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 
 const S = StyleSheet.create({
   root:    { flex: 1, backgroundColor: BG },

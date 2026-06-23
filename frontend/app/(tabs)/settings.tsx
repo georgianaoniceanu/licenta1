@@ -11,15 +11,22 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '@/constants/theme';
 import { loadDemoProfile, clearDemoData, type DemoPreset } from '@/utils/demoMode';
 import { HEALTH_ENDPOINT } from '@/constants/api';
-import { useDarkMode } from '@/context/DarkMode';
 import { useLanguage } from '@/context/Language';
 import { tr } from '@/constants/translations';
+import {
+  requestNotificationPermissions,
+  scheduleDailyReminder,
+  cancelDailyReminder,
+  scheduleReviewReminder,
+  cancelReviewReminder,
+  setAchievementAlertsEnabled,
+} from '@/utils/notifications';
 
 type HealthCheck = { ok: boolean; latency_ms?: number; error?: string; characters_used?: number; characters_limit?: number };
 type HealthData = {
@@ -73,9 +80,9 @@ function makeTheme(dark: boolean) {
 
 export default function SettingsScreen() {
   const router = useRouter();
-  const { isDark, toggle: toggleDarkMode } = useDarkMode();
   const { lang, setLang } = useLanguage();
-  const T = makeTheme(isDark);
+  // App is dark-only — always use the canonical dark palette.
+  const T = makeTheme(false);
 
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
@@ -108,7 +115,14 @@ export default function SettingsScreen() {
     try {
       const stored = await AsyncStorage.getItem('app_settings');
       if (stored) {
-        setSettings(JSON.parse(stored));
+        const parsed: Settings = JSON.parse(stored);
+        setSettings(parsed);
+        // Re-sync OS notifications with saved preferences (no permission prompt;
+        // silently no-ops if permission was never granted).
+        const n = parsed.notifications ?? DEFAULT_SETTINGS.notifications;
+        if (n.dailyReminder) scheduleDailyReminder(); else cancelDailyReminder();
+        if (n.reviewReminders) scheduleReviewReminder(); else cancelReviewReminder();
+        setAchievementAlertsEnabled(n.achievementAlerts ?? true);
       }
     } catch (e) {
       console.error('Error loading settings:', e);
@@ -140,15 +154,34 @@ export default function SettingsScreen() {
     saveSettings(newSettings);
   };
 
-  const handleNotificationToggle = (key: keyof Settings['notifications']) => {
+  const handleNotificationToggle = async (key: keyof Settings['notifications']) => {
+    const next = !settings.notifications[key];
+
+    // Enabling a scheduled reminder requires OS notification permission.
+    if (next && (key === 'dailyReminder' || key === 'reviewReminders' || key === 'achievementAlerts')) {
+      const granted = await requestNotificationPermissions();
+      if (!granted) {
+        Alert.alert(tr('error', lang), tr('notifPermDenied', lang));
+        return;
+      }
+    }
+
     const newSettings = {
       ...settings,
-      notifications: {
-        ...settings.notifications,
-        [key]: !settings.notifications[key],
-      },
+      notifications: { ...settings.notifications, [key]: next },
     };
-    saveSettings(newSettings);
+    await saveSettings(newSettings);
+
+    // Reflect the change in the OS scheduler.
+    if (key === 'dailyReminder') {
+      await (next ? scheduleDailyReminder() : cancelDailyReminder());
+    }
+    if (key === 'reviewReminders') {
+      await (next ? scheduleReviewReminder() : cancelReviewReminder());
+    }
+    if (key === 'achievementAlerts') {
+      await setAchievementAlertsEnabled(next);
+    }
   };
 
   const handleDailyGoalChange = (value: number) => {
@@ -214,7 +247,13 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={[styles.root, { backgroundColor: T.bg }]}>
       <View style={[styles.header, { borderBottomColor: T.border }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel={tr('back', lang)}
+        >
+          <Feather name="chevron-left" size={18} color="#8B5CF6" />
           <Text style={styles.backText}>{tr('back', lang)}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: T.text }]}>{tr('settingsTitle', lang)}</Text>
@@ -229,10 +268,15 @@ export default function SettingsScreen() {
               key={tab}
               style={[styles.tab, activeSection === tab && styles.tabActive]}
               onPress={() => setActiveSection(tab)}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activeSection === tab }}
+              accessibilityLabel={tr(tabKey as any, lang)}
             >
-              <Text style={styles.tabText}>
-                {tab === 'general' ? '⚙️' : tab === 'learning' ? '📚' : tab === 'notifications' ? '🔔' : '👤'}
-              </Text>
+              <Feather
+                name={tab === 'general' ? 'settings' : tab === 'learning' ? 'book' : tab === 'notifications' ? 'bell' : 'user'}
+                size={18}
+                color={activeSection === tab ? T.active : T.text2}
+              />
               <Text style={[styles.tabLabel, { color: activeSection === tab ? T.active : T.text2 }]}>
                 {tr(tabKey as any, lang)}
               </Text>
@@ -293,7 +337,7 @@ export default function SettingsScreen() {
                   >
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.optionTitle, { color: active ? T.active : T.text, fontWeight: active ? '700' : '600' }]}>
-                        {l === 'en' ? '🇬🇧 English' : '🇷🇴 Română'}
+                        {l === 'en' ? 'English' : 'Română'}
                       </Text>
                       <Text style={[styles.optionSubtitle, { color: T.text2 }]}>
                         {l === 'en' ? tr('englishInterface', lang) : tr('romanianInterface', lang)}
@@ -319,27 +363,11 @@ export default function SettingsScreen() {
                   onValueChange={() => saveSettings({ ...settings, soundEnabled: !settings.soundEnabled })}
                   trackColor={{ false: '#445566', true: '#8B5CF6' }}
                   thumbColor="#fff"
+                  accessibilityLabel={tr('enableSound', lang)}
                 />
               </View>
             </View>
 
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('appearance', lang)}</Text>
-              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('darkMode', lang)}</Text>
-                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
-                    {isDark ? tr('darkModeActive', lang) : tr('lightModeActive', lang)}
-                  </Text>
-                </View>
-                <Switch
-                  value={isDark}
-                  onValueChange={toggleDarkMode}
-                  trackColor={{ false: '#445566', true: '#8B5CF6' }}
-                  thumbColor="#fff"
-                />
-              </View>
-            </View>
           </>
         )}
 
@@ -437,6 +465,7 @@ export default function SettingsScreen() {
                 onValueChange={() => handleNotificationToggle('dailyReminder')}
                 trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
+                accessibilityLabel={tr('dailyReminder', lang)}
               />
             </View>
 
@@ -452,6 +481,7 @@ export default function SettingsScreen() {
                 onValueChange={() => handleNotificationToggle('achievementAlerts')}
                 trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
+                accessibilityLabel={tr('achievementAlerts', lang)}
               />
             </View>
 
@@ -467,6 +497,7 @@ export default function SettingsScreen() {
                 onValueChange={() => handleNotificationToggle('reviewReminders')}
                 trackColor={{ false: '#445566', true: '#8B5CF6' }}
                 thumbColor="#fff"
+                accessibilityLabel={tr('reviewReminders', lang)}
               />
             </View>
           </View>
@@ -495,6 +526,9 @@ export default function SettingsScreen() {
                 onPress={runHealthCheck}
                 disabled={healthLoading}
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityState={{ disabled: healthLoading, busy: healthLoading }}
+                accessibilityLabel={tr('runHealthCheck', lang)}
               >
                 {healthLoading
                   ? <ActivityIndicator size="small" color="#fff" />
@@ -555,11 +589,11 @@ export default function SettingsScreen() {
 
               {(
                 [
-                  { preset: 'weak'   as DemoPreset, emoji: '📉', color: '#EF4444', label: tr('demoWeakLabel', lang),   range: tr('demoWeakRange', lang)   },
-                  { preset: 'medium' as DemoPreset, emoji: '📈', color: '#8B5CF6', label: tr('demoMedLabel', lang),    range: tr('demoMedRange', lang)    },
-                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#8B5CF6', label: tr('demoStrongLabel', lang), range: tr('demoStrongRange', lang) },
+                  { preset: 'weak'   as DemoPreset, icon: 'trending-down' as const, color: '#EF4444', label: tr('demoWeakLabel', lang),   range: tr('demoWeakRange', lang)   },
+                  { preset: 'medium' as DemoPreset, icon: 'trending-up' as const,   color: '#8B5CF6', label: tr('demoMedLabel', lang),    range: tr('demoMedRange', lang)    },
+                  { preset: 'strong' as DemoPreset, icon: 'award' as const,         color: '#8B5CF6', label: tr('demoStrongLabel', lang), range: tr('demoStrongRange', lang) },
                 ] as const
-              ).map(({ preset, emoji, color, label, range }) => {
+              ).map(({ preset, icon, color, label, range }) => {
                 const busy = demoLoading === preset;
                 return (
                   <TouchableOpacity
@@ -579,7 +613,9 @@ export default function SettingsScreen() {
                       }
                     }}
                   >
-                    <Text style={{ fontSize: 20 }}>{busy ? '⏳' : emoji}</Text>
+                    {busy
+                      ? <ActivityIndicator size="small" color={color} />
+                      : <Feather name={icon} size={20} color={color} />}
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.demoProfileLabel, { color }]}>{label}</Text>
                     </View>
@@ -604,7 +640,7 @@ export default function SettingsScreen() {
                         onPress: async () => {
                           try {
                             await clearDemoData();
-                            Alert.alert('✓', 'Demo data cleared. Go to Home to pick a new profile.');
+                            Alert.alert('Done', 'Demo data cleared. Go to Home to pick a new profile.');
                           } catch (e: any) {
                             Alert.alert(tr('error', lang), String(e?.message || e));
                           }
@@ -624,6 +660,8 @@ export default function SettingsScreen() {
               <TouchableOpacity
                 style={styles.dangerCard}
                 onPress={handleResetData}
+                accessibilityRole="button"
+                accessibilityLabel={tr('resetProgressBtn', lang)}
               >
                 <View>
                   <Text style={styles.dangerTitle}>{tr('resetProgressBtn', lang)}</Text>
@@ -635,7 +673,12 @@ export default function SettingsScreen() {
             </View>
 
             <View style={styles.section}>
-              <TouchableOpacity style={styles.signOutBtn} onPress={handleSignOut}>
+              <TouchableOpacity
+                style={styles.signOutBtn}
+                onPress={handleSignOut}
+                accessibilityRole="button"
+                accessibilityLabel={tr('signOut', lang)}
+              >
                 <Text style={styles.signOutText}>{tr('signOut', lang)}</Text>
               </TouchableOpacity>
             </View>
@@ -665,7 +708,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  backBtn: { paddingVertical: 6, paddingRight: 12 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
   backText: { color: '#8B5CF6', fontSize: 15, fontWeight: '600' },
   headerTitle: { color: '#F0F6FF', fontSize: 18, fontWeight: '700' },
 

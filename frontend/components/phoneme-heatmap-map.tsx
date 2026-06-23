@@ -170,7 +170,7 @@ export const PhonemeHeatmapMap = () => {
       {/* Title */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: textColor }]}>
-          🗺️ Phonological Difficulty Heatmap
+          Phonological Difficulty Heatmap
         </Text>
         <Text style={[styles.subtitle, { color: textColor }]}>
           Based on Măchiță (2021) - Romanian vs English Phonology
@@ -206,7 +206,7 @@ export const PhonemeHeatmapMap = () => {
         {/* VOWEL ROW */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: textColor }]}>
-            📢 VOWEL SYSTEM (Tense-Lax Distinction)
+            VOWEL SYSTEM (Tense-Lax Distinction)
           </Text>
           <View style={styles.gridRow}>
             {PHONEME_DATA.filter(p => p.category === 'vowel').map(cell => (
@@ -236,7 +236,7 @@ export const PhonemeHeatmapMap = () => {
         {/* CONSONANT ROW */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: textColor }]}>
-            🔊 CONSONANTS (Missing Fricatives)
+            CONSONANTS (Missing Fricatives)
           </Text>
           <View style={styles.gridRow}>
             {PHONEME_DATA.filter(p => p.category === 'consonant').map(cell => (
@@ -266,7 +266,7 @@ export const PhonemeHeatmapMap = () => {
         {/* ALLOPHONES ROW */}
         <View style={styles.section}>
           <Text style={[styles.sectionLabel, { color: textColor }]}>
-            🎯 ALLOPHONES (Positional Variations)
+            ALLOPHONES (Positional Variations)
           </Text>
           <View style={styles.gridRow}>
             {PHONEME_DATA.filter(p => p.category === 'alophone').map(cell => (
@@ -313,7 +313,7 @@ export const PhonemeHeatmapMap = () => {
                 onPress={() => setSelectedCell(null)}
                 style={styles.closeBtn}
               >
-                <Text style={styles.closeBtnText}>✕</Text>
+                <Text style={styles.closeBtnText}></Text>
               </Pressable>
             </LinearGradient>
 
@@ -346,19 +346,19 @@ export const PhonemeHeatmapMap = () => {
 
               {/* Issue */}
               <View style={styles.infoSection}>
-                <Text style={styles.infoLabel}>🔍 The Problem:</Text>
+                <Text style={styles.infoLabel}>The Problem:</Text>
                 <Text style={styles.infoText}>{selectedCell.issue}</Text>
               </View>
 
               {/* Strategy */}
               <View style={styles.infoSection}>
-                <Text style={styles.infoLabel}>💡 Correction Strategy:</Text>
+                <Text style={styles.infoLabel}>Correction Strategy:</Text>
                 <Text style={styles.infoText}>{selectedCell.strategy}</Text>
               </View>
 
               {/* Category */}
               <View style={styles.infoSection}>
-                <Text style={styles.infoLabel}>📁 Category:</Text>
+                <Text style={styles.infoLabel}>Category:</Text>
                 <Text style={styles.categoryBadge}>
                   {selectedCell.category.toUpperCase()}
                 </Text>
@@ -367,7 +367,7 @@ export const PhonemeHeatmapMap = () => {
               {/* Source */}
               <View style={styles.sourceSection}>
                 <Text style={styles.sourceText}>
-                  📚 Măchiță, O.-M. (2021). The Acquisition of English Phonology by Romanian and French Learners of English
+                  Măchiță, O.-M. (2021). The Acquisition of English Phonology by Romanian and French Learners of English
                 </Text>
               </View>
             </ScrollView>
@@ -378,7 +378,7 @@ export const PhonemeHeatmapMap = () => {
       {/* KEY FINDINGS */}
       <View style={styles.findingsSection}>
         <Text style={[styles.sectionHeading, { color: textColor }]}>
-          🎓 Key Research Findings
+          Key Research Findings
         </Text>
 
         <View style={styles.findingBox}>

@@ -1,20 +1,9 @@
 /**
- * Home Dashboard — Personalized learner overview
+ * Home dashboard: predicted CEFR, the learner's proficiency indicators and
+ * shortcuts into each training module.
  *
- * Research Foundation:
- * ─────────────────────────────────────────────────────────────────────────────
- * Predicted CEFR & overall score: Assessment Indicators Calculator
- *   (Ahari et al. 2025; Lee 2021; CAF framework — Pallotti 2015)
- *
- * Re-assessment tracking: quantitative progress comparison
- *   (Norris & Ortega 2009; Alderson 2005 diagnostic cycle)
- *
- * Module recommendations: indicator-to-module gap mapping
- *   (Module Effectiveness — module_effectiveness.py)
- *
- * Dual Diagnosis badge: self-perception vs. system measurement
- *   (Alderson 2005; Present-Thomas et al. 2013)
- * ─────────────────────────────────────────────────────────────────────────────
+ * Indicators follow the CAF framework (Pallotti 2015) and CEFR-aligned spoken
+ * metrics (Lee 2021); module recommendations map weak indicators to modules.
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -43,16 +32,17 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '@/constants/api';
 import { getStreak, type StreakData } from '@/utils/streak';
-import { loadDemoProfile, clearDemoData, getJobDemoUsers, type DemoPreset, type JobPreset, type AnyPreset } from '@/utils/demoMode';
+import { loadDemoProfile, clearDemoData, getJobDemoUsers, SHOW_DEMO_PROFILES, type DemoPreset, type JobPreset, type AnyPreset } from '@/utils/demoMode';
 import { JOBS_BY_ID } from '@/constants/jobsDatabase';
 import { warmupVoices } from '@/utils/voiceProfiles';
 import { useLanguage } from '@/context/Language';
 import { useLearnerProfile } from '@/context/LearnerProfile';
 import { tr } from '@/constants/translations';
+import { palette } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Types
 
 type Indicator = {
   name: string;
@@ -81,37 +71,37 @@ type OnboardingProfile = {
   daily_study_minutes?: number;
 };
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// Constants
 
-const BG     = '#060D1A';
-const CARD   = '#0F1B2D';
-const BORDER = 'rgba(255,255,255,0.08)';
-const TEAL   = '#0FBA9A';
-const CORAL  = '#8B5CF6';
-const PURPLE = '#8B5CF6';
-const NAVY   = '#0A1628';
-const TEXT   = '#F0F6FF';
-const TEXT2  = '#94A3B8';
-const TEXT3  = '#94A3B8';
+const BG     = palette.bg;
+const CARD   = palette.card;
+const BORDER = palette.border;
+const TEAL   = palette.teal;
+const PURPLE = palette.purple;
+const CORAL  = palette.purple;
+const NAVY   = palette.bgElevated;
+const TEXT   = palette.text;
+const TEXT2  = palette.textMuted;
+const TEXT3  = palette.textMuted;
 
 const SEVERITY_COLORS: Record<string, string> = {
-  critical:   '#EF4444',
-  moderate:   '#8B5CF6',
-  acceptable: '#0FBA9A',
-  strong:     '#8B5CF6',
+  critical:   palette.danger,
+  moderate:   palette.purple,
+  acceptable: palette.teal,
+  strong:     palette.purple,
 };
 
 const CEFR_COLORS: Record<string, string> = {
-  A1: '#94A3B8',
-  A2: '#64748B',
-  B1: '#8B5CF6',
-  B2: '#8B5CF6',
-  C1: '#8B5CF6',
-  C2: '#0FBA9A',
+  A1: palette.textMuted,
+  A2: palette.textSubtle,
+  B1: palette.purple,
+  B2: palette.purple,
+  C1: palette.purple,
+  C2: palette.teal,
 };
 
 
-// ─── Animated Waveform ────────────────────────────────────────────────────────
+// Animated Waveform
 
 const WAVE_HEIGHTS = [14, 28, 44, 24, 38, 52, 20, 40, 32, 48, 26, 36, 18, 46, 30, 42, 22, 34, 50, 26, 16, 44, 28, 38];
 
@@ -147,7 +137,7 @@ const AnimatedWaveform = () => (
   </View>
 );
 
-// ─── Indicator info definitions ──────────────────────────────────────────────
+// Indicator info definitions
 
 type IndicatorInfo = { eli5: string; plain: string; formula: string; studies: string; rationale: string };
 
@@ -231,7 +221,7 @@ function resolveInfo(name: string): IndicatorInfo | null {
   return INDICATOR_INFO[clean] ?? null;
 }
 
-// ─── Indicator Bar Row ────────────────────────────────────────────────────────
+// Indicator Bar Row
 
 const IndicatorRow = ({ item, index, onInfo }: { item: Indicator; index: number; onInfo: () => void }) => {
   const barAnim = useRef(new Animated.Value(0)).current;
@@ -246,7 +236,7 @@ const IndicatorRow = ({ item, index, onInfo }: { item: Indicator; index: number;
   const color = SEVERITY_COLORS[item.severity] ?? TEAL;
   return (
     <View style={IR.row}>
-      <TouchableOpacity style={IR.nameWrap} onPress={onInfo} activeOpacity={0.6} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}>
+      <TouchableOpacity style={IR.nameWrap} onPress={onInfo} activeOpacity={0.6} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={`${item.name}, ${item.cefr_level}. Tap for details`}>
         <Text style={IR.name} numberOfLines={1}>{item.name}</Text>
         <Feather name="info" size={11} color={TEXT2} style={{ marginLeft: 3, opacity: 0.7 }} />
       </TouchableOpacity>
@@ -310,7 +300,7 @@ const IR = StyleSheet.create({
   },
 });
 
-// ─── Module Row ───────────────────────────────────────────────────────────────
+// Module Row
 
 const ModuleRow = ({
   label, subtitle, icon, route, color,
@@ -327,6 +317,8 @@ const ModuleRow = ({
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       activeOpacity={1}
+      accessibilityRole="link"
+      accessibilityLabel={`${label}. ${subtitle}`}
     >
       <Animated.View style={[MR.row, { transform: [{ scale: pressAnim }] }]}>
         <View style={[MR.iconWrap, { backgroundColor: color + '14' }]}>
@@ -366,7 +358,7 @@ const MR = StyleSheet.create({
   subtitle: { fontSize: 12, color: TEXT2 },
 });
 
-// ─── Main Screen ──────────────────────────────────────────────────────────────
+// Main Screen
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -504,7 +496,7 @@ export default function HomeScreen() {
       >
         <Animated.View style={{ opacity: fadeAnim }}>
 
-          {/* ── Notification banner ── */}
+          {/* Notification banner */}
           {showNotifBanner && (
             <TouchableOpacity
               style={S.notifBanner}
@@ -516,7 +508,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ── Header ── */}
+          {/* Header */}
           <View style={S.header}>
             <View style={S.headerLeft}>
               <Text style={S.eyebrow}>{tr('hello', lang)}, {firstName}</Text>
@@ -533,17 +525,22 @@ export default function HomeScreen() {
             <View style={S.headerRight}>
               {streak.current > 0 && (
                 <View style={S.streakBadge}>
-                  <Text style={S.streakFire}>🔥</Text>
+                  <Feather name="zap" size={13} color="#EA580C" />
                   <Text style={S.streakNum}>{streak.current}</Text>
                 </View>
               )}
-              <TouchableOpacity onPress={handleLogout} style={S.logoutBtn}>
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={S.logoutBtn}
+                accessibilityRole="button"
+                accessibilityLabel={tr('signOut', lang)}
+              >
                 <Feather name="log-out" size={16} color={TEXT2} />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* ── Waveform card ── */}
+          {/* Waveform card */}
           {diagnosis && (
             <View style={S.waveCard}>
               <View style={S.waveTop}>
@@ -559,7 +556,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── 3-stat strip ── */}
+          {/* 3-stat strip */}
           {diagnosis ? (
             <View style={S.statsRow}>
               <View style={[S.statCard, { borderTopColor: TEAL }]}>
@@ -598,7 +595,7 @@ export default function HomeScreen() {
             </>
           )}
 
-          {/* ── Profile chips ── */}
+          {/* Profile chips */}
           {profile && (profile.target_exam || profile.target_domain) && (
             <View style={S.chipRow}>
               {profile.target_exam && (
@@ -616,7 +613,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Proficiency DNA ── */}
+          {/* Proficiency DNA */}
           {sortedInds.length > 0 && (
             <View style={S.section}>
               <View style={S.sectionHead}>
@@ -636,7 +633,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Focus Areas ── */}
+          {/* Focus Areas */}
           {diagnosis && diagnosis.critical_areas.length > 0 && (
             <View style={[S.section, S.alertCard]}>
               <View style={S.alertHeader}>
@@ -652,7 +649,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Strengths ── */}
+          {/* Strengths */}
           {diagnosis && diagnosis.strengths.length > 0 && (
             <View style={[S.section, S.strengthCard]}>
               <View style={S.alertHeader}>
@@ -668,7 +665,7 @@ export default function HomeScreen() {
             </View>
           )}
 
-          {/* ── Skill Training ── */}
+          {/* Skill Training */}
           <View style={S.section}>
             <View style={S.sectionHead}>
               <Text style={S.sectionTitle}>{tr('skillTraining', lang)}</Text>
@@ -688,7 +685,7 @@ export default function HomeScreen() {
             ))}
           </View>
 
-          {/* ── Tools ── */}
+          {/* Tools */}
           <View style={S.section}>
             <View style={S.sectionHead}>
               <Text style={[S.sectionTitle, { color: TEXT2, fontSize: 14 }]}>{tr('tools', lang)}</Text>
@@ -705,7 +702,7 @@ export default function HomeScreen() {
             ))}
           </View>
 
-          {/* ── Re-assessment CTA ── */}
+          {/* Re-assessment CTA */}
           {diagnosis && (
             <TouchableOpacity
               onPress={() => router.push('/initial_diagnostic')}
@@ -722,7 +719,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          {/* ── Redo onboarding ── */}
+          {/* Redo onboarding */}
           <TouchableOpacity
             onPress={() => router.push('/onboarding')}
             activeOpacity={0.85}
@@ -733,17 +730,18 @@ export default function HomeScreen() {
             <Feather name="arrow-right" size={14} color={PURPLE} />
           </TouchableOpacity>
 
-          {/* ── Demo profile switcher — always visible ── */}
+          {/* Demo / persona pickers — gated behind a flag (see utils/demoMode) */}
+          {SHOW_DEMO_PROFILES && (
           <View style={S.demoSwitcher}>
             <Text style={S.demoSwitcherLabel}>{tr('demoChoose', lang)}</Text>
             <View style={S.demoSwitcherRow}>
               {(
                 [
-                  { preset: 'weak'   as DemoPreset, emoji: '📉', color: '#EF4444', range: 'A2→B1' },
-                  { preset: 'medium' as DemoPreset, emoji: '📈', color: PURPLE,    range: 'B1→B2' },
-                  { preset: 'strong' as DemoPreset, emoji: '🏆', color: '#8B5CF6', range: 'B2→C1' },
+                  { preset: 'weak'   as DemoPreset, icon: 'trending-down' as const, color: '#EF4444', range: 'A2→B1' },
+                  { preset: 'medium' as DemoPreset, icon: 'trending-up' as const,   color: PURPLE,    range: 'B1→B2' },
+                  { preset: 'strong' as DemoPreset, icon: 'award' as const,         color: '#8B5CF6', range: 'B2→C1' },
                 ]
-              ).map(({ preset, emoji, color, range }) => {
+              ).map(({ preset, icon, color, range }) => {
                 const busy = demoLoading === preset;
                 return (
                   <TouchableOpacity
@@ -762,14 +760,16 @@ export default function HomeScreen() {
                       }
                     }}
                   >
-                    <Text style={S.demoChipEmoji}>{busy ? '⏳' : emoji}</Text>
+                    {busy
+                      ? <ActivityIndicator size="small" color={color} />
+                      : <Feather name={icon} size={16} color={color} />}
                     <Text style={[S.demoChipRange, { color }]}>{range}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
 
-            {/* ── Persona-based demo profiles (6 fictional users with jobs) ── */}
+            {/* Persona-based demo profiles (6 fictional users with jobs) */}
             <Text style={[S.demoSwitcherLabel, { marginTop: 16 }]}>OR PICK A LEARNER PERSONA</Text>
             <View style={S.demoPersonaGrid}>
               {getJobDemoUsers().map(({ key, user }) => {
@@ -810,7 +810,7 @@ export default function HomeScreen() {
                       }
                     }}
                   >
-                    <Text style={S.personaAvatar}>{busy ? '⏳' : user.avatar}</Text>
+                    <Text style={S.personaAvatar}>{busy ? '…' : user.name.charAt(0)}</Text>
                     <Text style={S.personaName}>{user.name}, {user.age}</Text>
                     <Text style={[S.personaJob, { color: personaColor }]} numberOfLines={1}>
                       {job?.title ?? user.jobId}
@@ -821,12 +821,13 @@ export default function HomeScreen() {
               })}
             </View>
           </View>
+          )}
 
           <View style={{ height: 48 }} />
         </Animated.View>
       </ScrollView>
 
-      {/* ── Indicator info modal ── */}
+      {/* Indicator info modal */}
       <Modal
         visible={infoIndicator !== null}
         transparent
@@ -845,13 +846,13 @@ export default function HomeScreen() {
                       <Feather name="activity" size={16} color={TEAL} />
                     </View>
                     <Text style={S.modalTitle}>{infoIndicator}</Text>
-                    <TouchableOpacity onPress={() => setInfoIndicator(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <TouchableOpacity onPress={() => setInfoIndicator(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }} accessibilityRole="button" accessibilityLabel={tr('close', lang)}>
                       <Feather name="x" size={18} color={TEXT2} />
                     </TouchableOpacity>
                   </View>
 
                   <View style={S.modalEli5}>
-                    <Text style={S.modalEli5Label}>💡 IN PLAIN ENGLISH</Text>
+                    <Text style={S.modalEli5Label}>IN PLAIN ENGLISH</Text>
                     <Text style={S.modalEli5Text}>{info.eli5}</Text>
                   </View>
 
@@ -876,7 +877,7 @@ export default function HomeScreen() {
         </Pressable>
       </Modal>
 
-      {/* ── "You selected user X" confirmation ── */}
+      {/* "You selected user X" confirmation */}
       <Modal
         visible={pickedUser !== null}
         transparent
@@ -886,7 +887,7 @@ export default function HomeScreen() {
         <Pressable style={S.pickOverlay} onPress={() => setPickedUser(null)}>
           <Pressable style={[S.pickCard, { borderColor: (pickedUser?.color ?? TEAL) + '55' }]} onPress={() => {}}>
             <View style={[S.pickAvatarWrap, { backgroundColor: (pickedUser?.color ?? TEAL) + '1A' }]}>
-              <Text style={S.pickAvatar}>{pickedUser?.avatar}</Text>
+              <Text style={S.pickAvatar}>{pickedUser?.name?.charAt(0)}</Text>
             </View>
             <Text style={S.pickLabel}>{tr('youSelected', lang)}</Text>
             <Text style={[S.pickName, { color: pickedUser?.color ?? TEAL }]}>{pickedUser?.name}</Text>
@@ -909,7 +910,7 @@ export default function HomeScreen() {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 
 const S = StyleSheet.create({
   root:             { flex: 1, backgroundColor: BG },

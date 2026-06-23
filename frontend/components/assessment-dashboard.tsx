@@ -200,7 +200,7 @@ export function AssessmentDashboard({
               activeTab === 'modules' && { color: tintColor, fontWeight: '700' },
             ]}
           >
-            🎯 Modules ({recommendations.recommendations.length})
+            Modules ({recommendations.recommendations.length})
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -216,7 +216,7 @@ export function AssessmentDashboard({
               activeTab === 'feedback' && { color: tintColor, fontWeight: '700' },
             ]}
           >
-            📝 Feedback (5)
+            Feedback (5)
           </Text>
         </TouchableOpacity>
       </View>
@@ -228,7 +228,7 @@ export function AssessmentDashboard({
             {/* Critical Gaps Warning */}
             {recommendations.critical_gaps.length > 0 && (
               <View style={styles.warningBox}>
-                <Text style={styles.warningTitle}>⚠️ Areas Needing Immediate Focus:</Text>
+                <Text style={styles.warningTitle}>Areas Needing Immediate Focus:</Text>
                 {recommendations.critical_gaps.slice(0, 3).map((gap: any, idx: number) => (
                   <Text key={idx} style={styles.warningItem}>
                     • {gap.indicator}: {(gap.severity * 100).toFixed(0)}% severity
@@ -295,7 +295,7 @@ export function AssessmentDashboard({
           style={[styles.button, styles.secondaryButton]}
           onPress={fetchAssessmentData}
         >
-          <Text style={styles.secondaryButtonText}>🔄 Refresh</Text>
+          <Text style={styles.secondaryButtonText}>Refresh</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.button, { backgroundColor: tintColor }]}
@@ -306,7 +306,7 @@ export function AssessmentDashboard({
             ]);
           }}
         >
-          <Text style={styles.primaryButtonText}>📥 Export Report</Text>
+          <Text style={styles.primaryButtonText}>Export Report</Text>
         </TouchableOpacity>
       </View>
     </View>

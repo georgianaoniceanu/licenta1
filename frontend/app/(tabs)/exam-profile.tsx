@@ -4,20 +4,21 @@ import {
   TextInput, ActivityIndicator, Alert, StatusBar, Platform,
 } from 'react-native';
 import { Audio } from 'expo-av';
+import { Feather } from '@expo/vector-icons';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Colors } from '@/constants/theme';
+import { Colors, palette } from '@/constants/theme';
 import { VOCABULARY_ENDPOINTS, API_URL } from '@/constants/api';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// Constants
 
-const TEAL   = '#0FBA9A';
-const NAVY   = '#F0F6FF';
-const SLATE  = '#94A3B8';
-const BORDER = 'rgba(255,255,255,0.08)';
-const CARD   = '#0F1B2D';
-const BG     = '#060D1A';
+const TEAL   = palette.teal;
+const NAVY   = palette.text;
+const SLATE  = palette.textMuted;
+const BORDER = palette.border;
+const CARD   = palette.card;
+const BG     = palette.bg;
 
 const CEFR_COLOR: Record<string, string> = {
   A1: '#94A3B8', A2: '#64748B',
@@ -93,7 +94,7 @@ const SOURCES = [
   { short: 'Cambridge Assessment English (2023)', detail: '3-criterion Speaking rubric (Pronunciation & Fluency, Language Resource, Discourse Management) — 731659-cambridge-english-skills-test-schools-speaking-assessment-criteria' },
 ];
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// Types
 
 interface IeltsResult {
   fluency_coherence: number;
@@ -153,7 +154,7 @@ interface ExamProfileResult {
   sources: string[];
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 function bandBar(band: number, color: string) {
   const pct = (band / 9) * 100;
@@ -164,7 +165,7 @@ function bandBar(band: number, color: string) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
+// Main component
 
 export default function ExamProfileScreen() {
   const [mode, setMode] = useState<'speaking' | 'writing'>('speaking');
@@ -176,7 +177,7 @@ export default function ExamProfileScreen() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const recordingTimeRef = useRef(0);
 
-  // ── Audio recording state ──────────────────────────────────────────────────
+  // Audio recording state
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [transcribing, setTranscribing] = useState(false);
@@ -222,12 +223,12 @@ export default function ExamProfileScreen() {
       const data = await res.json();
       if (data.success && data.data?.transcribed_text) {
         setText(data.data.transcribed_text);
-        setTranscribeStatus('✓ Transcribed — tap Compute Profile');
+        setTranscribeStatus('Transcribed — tap Compute Profile');
       } else {
-        setTranscribeStatus('⚠️ No speech detected. Try again.');
+        setTranscribeStatus('Warning: No speech detected. Try again.');
       }
     } catch {
-      setTranscribeStatus('⚠️ Transcription failed. Check connection.');
+      setTranscribeStatus('Warning: Transcription failed. Check connection.');
     } finally {
       setTranscribing(false);
     }
@@ -340,7 +341,7 @@ export default function ExamProfileScreen() {
             onPress={() => { setMode(m); setResult(null); }}
           >
             <Text style={[styles.modeBtnText, mode === m && styles.modeBtnTextActive]}>
-              {m === 'speaking' ? '🎙 Speaking' : '✍️ Writing'}
+              {m === 'speaking' ? 'Speaking' : 'Writing'}
             </Text>
           </TouchableOpacity>
         ))}
@@ -371,8 +372,8 @@ export default function ExamProfileScreen() {
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.recordBtnText}>
                   {isRecording
-                    ? `⏹  Stop  (${Math.floor(recordingTime/60)}:${String(recordingTime%60).padStart(2,'0')})`
-                    : '🎙  Start Recording'}
+                    ? ` Stop  (${Math.floor(recordingTime/60)}:${String(recordingTime%60).padStart(2,'0')})`
+                    : ' Start Recording'}
                 </Text>
             }
           </TouchableOpacity>
@@ -430,7 +431,7 @@ export default function ExamProfileScreen() {
         }
       </TouchableOpacity>
 
-      {/* ─── Results ────────────────────────────────────────────────────────── */}
+      {/* Results */}
       {result && (
         <View style={styles.results}>
 
@@ -590,7 +591,7 @@ export default function ExamProfileScreen() {
             onPress={() => setShowIndicators(v => !v)}
           >
             <Text style={styles.collapseTitle}>Linguistic Indicators</Text>
-            <Text style={styles.collapseArrow}>{showIndicators ? '▲' : '▼'}</Text>
+            <Feather name={showIndicators ? 'chevron-up' : 'chevron-down'} size={16} color={SLATE} />
           </TouchableOpacity>
           {showIndicators && (
             <View style={styles.indicatorsGrid}>
@@ -620,7 +621,7 @@ export default function ExamProfileScreen() {
             onPress={() => setShowSources(v => !v)}
           >
             <Text style={styles.collapseTitle}>Academic Sources</Text>
-            <Text style={styles.collapseArrow}>{showSources ? '▲' : '▼'}</Text>
+            <Feather name={showSources ? 'chevron-up' : 'chevron-down'} size={16} color={SLATE} />
           </TouchableOpacity>
           {showSources && (
             <View style={styles.sourcesCard}>
@@ -639,7 +640,7 @@ export default function ExamProfileScreen() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// Styles
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },

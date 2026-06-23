@@ -1,6 +1,5 @@
 /**
  * PDF Report Generator — VocaFlow Progress Snapshot
- * ─────────────────────────────────────────────────────────────────────────────
  * Builds a printable HTML report from the data persisted in AsyncStorage and
  * opens it in a new window with print stylesheet applied. The user clicks the
  * browser's "Save as PDF" option from the print dialog.
@@ -19,7 +18,6 @@
  *   • Grammar accuracy trend
  *   • Performance by domain (COCA — 9 top-level genres)
  *   • Indicator definitions + academic sources
- * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -105,7 +103,7 @@ export async function generateReportHTML(): Promise<string> {
   const delta = currentScore !== null && startBaseline
     ? currentScore - Math.round(startBaseline.overall_score) : null;
 
-  // ── Aggregations ──
+  // Aggregations
   const examLatest = examSessions[examSessions.length - 1] || null;
   const examAvg = examSessions.length > 0
     ? Math.round(examSessions.slice(-5).reduce((s, e) => s + e.ielts_overall, 0)
@@ -134,7 +132,7 @@ export async function generateReportHTML(): Promise<string> {
     .map(([g, v]) => ({ g, avg: Math.round(v.total / v.count), count: v.count }))
     .sort((a, b) => b.avg - a.avg);
 
-  // ── Build HTML ──
+  // Build HTML
   const bar = (pct: number, color: string, w = '100%') =>
     `<div class="bar"><div class="fill" style="width:${Math.min(pct, 100)}%;background:${color};"></div></div>`;
 
@@ -192,7 +190,7 @@ export async function generateReportHTML(): Promise<string> {
 </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">🖨 Save as PDF</button>
+<button class="print-btn" onclick="window.print()">Save as PDF</button>
 <div class="page">
   <div class="header">
     <div>
@@ -302,7 +300,7 @@ export async function generateReportHTML(): Promise<string> {
           .join('')}
       </tbody>
     </table>
-    ` : '<div style="font-size:11px;color:#10B981;text-align:center;padding:8px;">✓ No interference errors detected.</div>'}
+    ` : '<div style="font-size:11px;color:#10B981;text-align:center;padding:8px;">No interference errors detected.</div>'}
   </div>
   ` : ''}
 

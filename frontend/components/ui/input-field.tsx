@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 
 interface InputFieldProps extends TextInputProps {
@@ -61,16 +62,19 @@ const InputField: React.FC<InputFieldProps> = ({
           secureTextEntry={isSecure && secureTextEntry}
           onFocus={() => setIsFocused(true)}
           onBlur={() => setIsFocused(false)}
+          accessibilityLabel={label ?? placeholder}
+          accessibilityHint={error}
         />
 
         {secureTextEntry && (
           <TouchableOpacity
             onPress={handlePasswordToggle}
             style={styles.passwordToggle}
+            accessibilityRole="button"
+            accessibilityLabel={isSecure ? 'Show password' : 'Hide password'}
+            accessibilityState={{ checked: !isSecure }}
           >
-            <Text style={styles.passwordToggleText}>
-              {isSecure ? '👁️' : '👁️‍🗨️'}
-            </Text>
+            <Feather name={isSecure ? 'eye' : 'eye-off'} size={18} color={Colors.light.textSecondary} />
           </TouchableOpacity>
         )}
       </View>
