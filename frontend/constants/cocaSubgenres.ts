@@ -29,7 +29,7 @@ export interface CocaMainMeta {
   description: string;
 }
 
-// ── Main category metadata ───────────────────────────────────────────────────
+// Main category metadata
 export const COCA_MAIN_CATEGORIES: CocaMainMeta[] = [
   { key: 'SPOK', label: 'Spoken',    color: '#10B981', icon: 'mic', description: 'TV/radio broadcasts, news anchors' },
   { key: 'FIC',  label: 'Fiction',   color: '#7C6FFF', icon: 'book-open', description: 'Novels, short stories, fan fiction' },
@@ -45,7 +45,7 @@ export const COCA_MAIN_CATEGORIES: CocaMainMeta[] = [
 export const COCA_MAIN_BY_KEY: Record<CocaMainKey, CocaMainMeta> =
   Object.fromEntries(COCA_MAIN_CATEGORIES.map(c => [c.key, c])) as any;
 
-// ── All 96 subgenres ─────────────────────────────────────────────────────────
+// All 96 subgenres
 export const COCA_SUBGENRES: CocaSubgenre[] = [
   // SPOK (9)
   { id: 101, code: 'SPOK:ABC',          main: 'SPOK', sub: 'ABC',         label: 'ABC News',          icon: 'monitor', description: 'ABC TV broadcasts' },
@@ -162,7 +162,7 @@ export const COCA_SUBGENRES: CocaSubgenre[] = [
   { id: 214, code: 'TV:Misc',           main: 'TV',   sub: 'Misc',        label: 'TV Misc',           icon: 'monitor', description: 'Other TV' },
 ];
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 export const COCA_BY_CODE: Record<string, CocaSubgenre> =
   Object.fromEntries(COCA_SUBGENRES.map(s => [s.code, s]));
 

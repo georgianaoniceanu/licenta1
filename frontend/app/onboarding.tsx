@@ -2,7 +2,6 @@
  * Onboarding Screen — 6-step learner profiling wizard
  *
  * Research Foundation:
- * ─────────────────────────────────────────────────────────────────────────────
  * Step 1 — CEFR Self-Assessment
  *   Present-Thomas, Weltens & de Jong (2013): self-assessment is a valid
  *   learner-centred proficiency classification method. "Can-do" descriptors
@@ -28,7 +27,6 @@
  * Step 6 — Study Intensity
  *   Skehan (1998): time on task and motivation significantly affect development
  *   rate (high motivation → 1.40× faster CEFR progression).
- * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useState, useRef } from 'react';
@@ -47,15 +45,13 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, BorderRadius, Typography } from '@/constants/theme';
+import { Feather } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, Typography, palette } from '@/constants/theme';
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 import { INDUSTRIES, jobsByIndustry, type Industry } from '@/constants/jobsDatabase';
 
-// ─────────────────────────────────────────────────────────────────────────────
 // QUESTION DATA  (mirrors backend onboarding.py)
-// ─────────────────────────────────────────────────────────────────────────────
 
 const CEFR_OPTIONS = [
   { value: 'A1', label: 'A1 — Beginner',        description: 'I can use very basic phrases and introduce myself.' },
@@ -67,50 +63,50 @@ const CEFR_OPTIONS = [
 ];
 
 const GOAL_OPTIONS = [
-  { value: 'vocabulary',   label: 'Vocabulary Range',       icon: '📚', description: 'Use a wider variety of words; avoid repetition.' },
-  { value: 'pronunciation', label: 'Pronunciation',          icon: '🗣️', description: 'Produce sounds more clearly and accurately.' },
-  { value: 'grammar',      label: 'Grammar Accuracy',        icon: '✏️', description: 'Fewer errors in verb tenses and sentence structure.' },
-  { value: 'fluency',      label: 'Fluency',                 icon: '⚡', description: 'Speak more smoothly, with fewer pauses and hesitations.' },
-  { value: 'complexity',   label: 'Sentence Complexity',     icon: '🔗', description: 'Build longer, more varied sentences.' },
-  { value: 'coherence',    label: 'Discourse & Coherence',   icon: '🧩', description: 'Connect ideas clearly using transitions.' },
+  { value: 'vocabulary',   label: 'Vocabulary Range',       icon: 'book-open', description: 'Use a wider variety of words; avoid repetition.' },
+  { value: 'pronunciation', label: 'Pronunciation',          icon: 'mic', description: 'Produce sounds more clearly and accurately.' },
+  { value: 'grammar',      label: 'Grammar Accuracy',        icon: 'edit-2', description: 'Fewer errors in verb tenses and sentence structure.' },
+  { value: 'fluency',      label: 'Fluency',                 icon: 'zap', description: 'Speak more smoothly, with fewer pauses and hesitations.' },
+  { value: 'complexity',   label: 'Sentence Complexity',     icon: 'link', description: 'Build longer, more varied sentences.' },
+  { value: 'coherence',    label: 'Discourse & Coherence',   icon: 'grid', description: 'Connect ideas clearly using transitions.' },
 ];
 
 const DOMAIN_OPTIONS = [
-  { value: 'conversation',   label: 'Everyday Conversation', icon: '💬', description: 'Casual talk, quick responses, turn-taking.' },
-  { value: 'narration',      label: 'Storytelling',           icon: '📖', description: 'Telling stories, describing past events.' },
-  { value: 'description',    label: 'Descriptions',           icon: '🖼️', description: 'Describing people, places, objects in detail.' },
-  { value: 'argumentation',  label: 'Arguments & Opinions',   icon: '⚖️', description: 'Presenting views, persuading, debating.' },
-  { value: 'academic',       label: 'Academic / Professional',icon: '🎓', description: 'Presentations, formal writing, academic English.' },
-  { value: 'technical',      label: 'Technical / Specialized',icon: '🔬', description: 'Domain-specific: medical, IT, legal, etc.' },
+  { value: 'conversation',   label: 'Everyday Conversation', icon: 'message-circle', description: 'Casual talk, quick responses, turn-taking.' },
+  { value: 'narration',      label: 'Storytelling',           icon: 'book', description: 'Telling stories, describing past events.' },
+  { value: 'description',    label: 'Descriptions',           icon: 'image', description: 'Describing people, places, objects in detail.' },
+  { value: 'argumentation',  label: 'Arguments & Opinions',   icon: 'message-square', description: 'Presenting views, persuading, debating.' },
+  { value: 'academic',       label: 'Academic / Professional',icon: 'award', description: 'Presentations, formal writing, academic English.' },
+  { value: 'technical',      label: 'Technical / Specialized',icon: 'search', description: 'Domain-specific: medical, IT, legal, etc.' },
 ];
 
 const EXAM_OPTIONS = [
-  { value: 'general',        label: 'General Improvement',   icon: '🌐', description: 'No specific exam — improve overall English.' },
-  { value: 'ielts_academic', label: 'IELTS Academic',        icon: '📝', description: 'Lexical Resource, Coherence, Grammar, Pronunciation.' },
-  { value: 'ielts_general',  label: 'IELTS General',         icon: '📝', description: 'IELTS for migration and workplace purposes.' },
-  { value: 'toefl_ibt',      label: 'TOEFL iBT',             icon: '🏫', description: 'Language Use, Organization, Delivery, Vocabulary.' },
-  { value: 'cambridge_fce',  label: 'Cambridge B2 First',    icon: '🏅', description: 'FCE — B2 level Cambridge certificate.' },
-  { value: 'cambridge_cae',  label: 'Cambridge C1 Advanced', icon: '🥇', description: 'CAE — C1 level Cambridge certificate.' },
-  { value: 'cambridge_cpe',  label: 'Cambridge C2 Proficiency', icon: '🏆', description: 'CPE — highest Cambridge certificate.' },
-  { value: 'pte_core',       label: 'PTE Core',              icon: '🌏', description: 'Pearson Test of English — Core (Canada immigration).' },
+  { value: 'general',        label: 'General Improvement',   icon: 'globe', description: 'No specific exam — improve overall English.' },
+  { value: 'ielts_academic', label: 'IELTS Academic',        icon: 'file-text', description: 'Lexical Resource, Coherence, Grammar, Pronunciation.' },
+  { value: 'ielts_general',  label: 'IELTS General',         icon: 'file-text', description: 'IELTS for migration and workplace purposes.' },
+  { value: 'toefl_ibt',      label: 'TOEFL iBT',             icon: 'book', description: 'Language Use, Organization, Delivery, Vocabulary.' },
+  { value: 'cambridge_fce',  label: 'Cambridge B2 First',    icon: 'award', description: 'FCE — B2 level Cambridge certificate.' },
+  { value: 'cambridge_cae',  label: 'Cambridge C1 Advanced', icon: 'award', description: 'CAE — C1 level Cambridge certificate.' },
+  { value: 'cambridge_cpe',  label: 'Cambridge C2 Proficiency', icon: 'award', description: 'CPE — highest Cambridge certificate.' },
+  { value: 'pte_core',       label: 'PTE Core',              icon: 'globe', description: 'Pearson Test of English — Core (Canada immigration).' },
 ];
 
 const WEAK_AREA_OPTIONS = [
-  { value: 'vocabulary',        label: 'Vocabulary Range',         icon: '📚', description: 'I tend to repeat the same words.' },
-  { value: 'word_choice',       label: 'Word Sophistication',      icon: '💡', description: 'I use simple words instead of more precise ones.' },
-  { value: 'pronunciation',     label: 'Pronunciation',            icon: '🗣️', description: 'My sounds are sometimes unclear or incorrect.' },
-  { value: 'fluency',           label: 'Fluency / Hesitations',    icon: '⏸️', description: 'I pause a lot or use fillers (um, uh).' },
-  { value: 'grammar',           label: 'Grammar Accuracy',         icon: '✏️', description: 'I make errors in tenses or sentence structure.' },
-  { value: 'sentence_length',   label: 'Short/Simple Sentences',   icon: '📏', description: 'My sentences are short; I struggle to combine ideas.' },
-  { value: 'complex_structures', label: 'Complex Structures',      icon: '🔗', description: 'I rarely use subordinate clauses.' },
-  { value: 'coherence',         label: 'Connecting Ideas',         icon: '🧩', description: "My ideas don't flow; I lack transitions." },
+  { value: 'vocabulary',        label: 'Vocabulary Range',         icon: 'book-open', description: 'I tend to repeat the same words.' },
+  { value: 'word_choice',       label: 'Word Sophistication',      icon: 'star', description: 'I use simple words instead of more precise ones.' },
+  { value: 'pronunciation',     label: 'Pronunciation',            icon: 'mic', description: 'My sounds are sometimes unclear or incorrect.' },
+  { value: 'fluency',           label: 'Fluency / Hesitations',    icon: 'pause-circle', description: 'I pause a lot or use fillers (um, uh).' },
+  { value: 'grammar',           label: 'Grammar Accuracy',         icon: 'edit-2', description: 'I make errors in tenses or sentence structure.' },
+  { value: 'sentence_length',   label: 'Short/Simple Sentences',   icon: 'align-left', description: 'My sentences are short; I struggle to combine ideas.' },
+  { value: 'complex_structures', label: 'Complex Structures',      icon: 'link', description: 'I rarely use subordinate clauses.' },
+  { value: 'coherence',         label: 'Connecting Ideas',         icon: 'grid', description: "My ideas don't flow; I lack transitions." },
 ];
 
 const STUDY_TIME_OPTIONS = [
-  { value: 10,  label: '10 min / day', icon: '⚡', description: 'Quick daily practice — maintains momentum.' },
-  { value: 20,  label: '20 min / day', icon: '🎯', description: 'Recommended minimum for steady progress.' },
-  { value: 30,  label: '30 min / day', icon: '🚀', description: 'Good balance — covers all key modules.' },
-  { value: 60,  label: '60+ min / day', icon: '🔥', description: 'Intensive — fastest CEFR progression.' },
+  { value: 10,  label: '10 min / day', icon: 'zap', description: 'Quick daily practice — maintains momentum.' },
+  { value: 20,  label: '20 min / day', icon: 'target', description: 'Recommended minimum for steady progress.' },
+  { value: 30,  label: '30 min / day', icon: 'zap', description: 'Good balance — covers all key modules.' },
+  { value: 60,  label: '60+ min / day', icon: 'zap', description: 'Intensive — fastest CEFR progression.' },
 ];
 
 const STEPS = [
@@ -123,9 +119,7 @@ const STEPS = [
   { key: 'daily_study_minutes',   title: 'Study Time',         subtitle: 'How much time can you study each day?' },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
 // COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 
 export default function OnboardingScreen() {
   const router = useRouter();
@@ -247,7 +241,7 @@ export default function OnboardingScreen() {
   const step = STEPS[currentStep];
   const progress = (currentStep + 1) / STEPS.length;
 
-  // ─── RENDER STEP OPTIONS ────────────────────────────────────────────────────
+  // RENDER STEP OPTIONS
 
   const renderOptions = () => {
     switch (step.key) {
@@ -272,7 +266,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.optionDesc}>{opt.description}</Text>
               </View>
               {answers.self_assessed_cefr === opt.value && (
-                <View style={styles.checkCircle}><Text style={styles.checkMark}>✓</Text></View>
+                <View style={styles.checkCircle}><Feather name="check" size={12} color="#fff" /></View>
               )}
             </View>
           </TouchableOpacity>
@@ -298,7 +292,7 @@ export default function OnboardingScreen() {
             >
               {selectedInd ? (
                 <>
-                  <Text style={styles.dropdownIcon}>{selectedInd.icon}</Text>
+                  <Feather name={selectedInd.icon as any} size={20} color={TINT} />
                   <Text style={styles.dropdownValue}>{selectedInd.label}</Text>
                 </>
               ) : (
@@ -331,14 +325,14 @@ export default function OnboardingScreen() {
                           }}
                           activeOpacity={0.7}
                         >
-                          <Text style={styles.pickerItemIcon}>{ind.icon}</Text>
+                          <Feather name={ind.icon as any} size={20} color={TINT} />
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.pickerItemLabel, selected && { color: ind.color, fontWeight: '800' }]}>
                               {ind.label}
                             </Text>
                             <Text style={styles.pickerItemDesc} numberOfLines={1}>{ind.description}</Text>
                           </View>
-                          {selected && <Text style={[styles.pickerCheck, { color: ind.color }]}>✓</Text>}
+                          {selected && <Feather name="check" size={14} color={ind.color} />}
                         </TouchableOpacity>
                       );
                     })}
@@ -374,7 +368,7 @@ export default function OnboardingScreen() {
                         <Text style={styles.jobSoc}>SOC {job.socCode}</Text>
                       </View>
                       {selected && (
-                        <View style={styles.checkCircle}><Text style={styles.checkMark}>✓</Text></View>
+                        <View style={styles.checkCircle}><Feather name="check" size={12} color="#fff" /></View>
                       )}
                     </TouchableOpacity>
                   );
@@ -401,13 +395,13 @@ export default function OnboardingScreen() {
                 onPress={() => selectSingle('primary_goal', opt.value)}
                 activeOpacity={0.75}
               >
-                <Text style={styles.gridIcon}>{opt.icon}</Text>
+                <Feather name={opt.icon as any} size={22} color={TINT} />
                 <Text style={[styles.gridLabel, answers.primary_goal === opt.value && styles.gridLabelSelected]}>
                   {opt.label}
                 </Text>
                 <Text style={styles.gridDesc}>{opt.description}</Text>
                 {answers.primary_goal === opt.value && (
-                  <View style={styles.gridCheck}><Text style={styles.checkMark}>✓</Text></View>
+                  <View style={styles.gridCheck}><Feather name="check" size={12} color="#fff" /></View>
                 )}
               </TouchableOpacity>
             ))}
@@ -424,13 +418,13 @@ export default function OnboardingScreen() {
                 onPress={() => selectSingle('target_domain', opt.value)}
                 activeOpacity={0.75}
               >
-                <Text style={styles.gridIcon}>{opt.icon}</Text>
+                <Feather name={opt.icon as any} size={22} color={TINT} />
                 <Text style={[styles.gridLabel, answers.target_domain === opt.value && styles.gridLabelSelected]}>
                   {opt.label}
                 </Text>
                 <Text style={styles.gridDesc}>{opt.description}</Text>
                 {answers.target_domain === opt.value && (
-                  <View style={styles.gridCheck}><Text style={styles.checkMark}>✓</Text></View>
+                  <View style={styles.gridCheck}><Feather name="check" size={12} color="#fff" /></View>
                 )}
               </TouchableOpacity>
             ))}
@@ -446,7 +440,7 @@ export default function OnboardingScreen() {
             activeOpacity={0.75}
           >
             <View style={styles.optionRow}>
-              <Text style={styles.examIcon}>{opt.icon}</Text>
+              <Feather name={opt.icon as any} size={20} color={TINT} />
               <View style={styles.optionTextBlock}>
                 <Text style={[styles.optionLabel, answers.target_exam === opt.value && styles.optionLabelSelected]}>
                   {opt.label}
@@ -454,7 +448,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.optionDesc}>{opt.description}</Text>
               </View>
               {answers.target_exam === opt.value && (
-                <View style={styles.checkCircle}><Text style={styles.checkMark}>✓</Text></View>
+                <View style={styles.checkCircle}><Feather name="check" size={12} color="#fff" /></View>
               )}
             </View>
           </TouchableOpacity>
@@ -481,7 +475,7 @@ export default function OnboardingScreen() {
                   activeOpacity={disabled ? 1 : 0.75}
                 >
                   <View style={styles.optionRow}>
-                    <Text style={styles.examIcon}>{opt.icon}</Text>
+                    <Feather name={opt.icon as any} size={20} color={TINT} />
                     <View style={styles.optionTextBlock}>
                       <Text style={[styles.optionLabel, selected && styles.optionLabelSelected]}>
                         {opt.label}
@@ -489,7 +483,7 @@ export default function OnboardingScreen() {
                       <Text style={styles.optionDesc}>{opt.description}</Text>
                     </View>
                     <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-                      {selected && <Text style={styles.checkMark}>✓</Text>}
+                      {selected && <Feather name="check" size={12} color="#fff" />}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -507,7 +501,7 @@ export default function OnboardingScreen() {
             activeOpacity={0.75}
           >
             <View style={styles.optionRow}>
-              <Text style={styles.examIcon}>{opt.icon}</Text>
+              <Feather name={opt.icon as any} size={20} color={TINT} />
               <View style={styles.optionTextBlock}>
                 <Text style={[styles.optionLabel, answers.daily_study_minutes === opt.value && styles.optionLabelSelected]}>
                   {opt.label}
@@ -515,7 +509,7 @@ export default function OnboardingScreen() {
                 <Text style={styles.optionDesc}>{opt.description}</Text>
               </View>
               {answers.daily_study_minutes === opt.value && (
-                <View style={styles.checkCircle}><Text style={styles.checkMark}>✓</Text></View>
+                <View style={styles.checkCircle}><Feather name="check" size={12} color="#fff" /></View>
               )}
             </View>
           </TouchableOpacity>
@@ -526,11 +520,11 @@ export default function OnboardingScreen() {
     }
   };
 
-  // ─── RENDER ─────────────────────────────────────────────────────────────────
+  // RENDER
 
   return (
-    <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
-      <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+    <View style={[styles.container, { backgroundColor: BG }]}>
+      <StatusBar barStyle="light-content" backgroundColor={BG} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -565,7 +559,8 @@ export default function OnboardingScreen() {
       <View style={styles.navRow}>
         {currentStep > 0 ? (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
-            <Text style={styles.backBtnText}>←  Back</Text>
+            <Feather name="chevron-left" size={18} color={TINT} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
         ) : (
           <View style={styles.backBtn} />
@@ -590,18 +585,16 @@ export default function OnboardingScreen() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // STYLES
-// ─────────────────────────────────────────────────────────────────────────────
 
 // VocaFlow brand palette (light theme) — matches login & rest of app
-const TINT = '#0FBA9A';
-const TINT_LIGHT = '#ECFDF5';
-const CARD = '#FFFFFF';
-const BORDER = '#E5E7EB';
-const BG = '#F8FAFC';
-const TEXT = '#0F172A';
-const TEXT_MUTED = '#64748B';
+const TINT = palette.teal;
+const TINT_LIGHT = 'rgba(15,186,154,0.12)';
+const CARD = palette.card;
+const BORDER = palette.border;
+const BG = palette.bg;
+const TEXT = palette.text;
+const TEXT_MUTED = palette.textMuted;
 
 const styles = StyleSheet.create({
   container: {
@@ -653,7 +646,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // ── List options (CEFR, Exam, Study Time, Weak Areas) ──
+  // List options (CEFR, Exam, Study Time, Weak Areas)
   optionCard: {
     backgroundColor: CARD,
     borderRadius: BorderRadius.md,
@@ -755,7 +748,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.md,
   },
 
-  // ── Grid options (Goal, Domain) ──
+  // Grid options (Goal, Domain)
   gridTwo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -805,7 +798,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
 
-  // ── Bottom nav ──
+  // Bottom nav
   navRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -818,12 +811,14 @@ const styles = StyleSheet.create({
     borderTopColor: BORDER,
   },
   backBtn: {
+    flexDirection: 'row',
+    gap: 2,
     paddingVertical: 12,
     paddingHorizontal: 22,
     borderRadius: 12,
     borderWidth: 1.5,
     borderColor: TINT,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: CARD,
     minWidth: 100,
     alignItems: 'center',
     justifyContent: 'center',
@@ -892,7 +887,7 @@ const styles = StyleSheet.create({
     lineHeight: 13,
   },
 
-  // ── Industry dropdown / spinner ──────────────────────────────────────────
+  // Industry dropdown / spinner
   dropdownTrigger: {
     flexDirection: 'row',
     alignItems: 'center',

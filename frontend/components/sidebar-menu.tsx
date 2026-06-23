@@ -17,17 +17,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useLanguage } from '@/context/Language';
 import { tr, type TKey } from '@/constants/translations';
+import { palette } from '@/constants/theme';
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
-const BG     = '#060D1A';
-const CARD   = '#0F1B2D';
-const TEAL   = '#0FBA9A';
-const CORAL  = '#8B5CF6';
-const TEXT   = '#F0F6FF';
-const TEXT2  = '#8BA0B8';
-const BORDER = 'rgba(255,255,255,0.07)';
+// Theme
+const BG     = palette.bg;
+const CARD   = palette.card;
+const TEAL   = palette.teal;
+const CORAL  = palette.purple;
+const TEXT   = palette.text;
+const TEXT2  = palette.textMuted;
+const BORDER = palette.border;
 
-// ── Menu definition ───────────────────────────────────────────────────────────
+// Menu definition
 type FeatherIconName = React.ComponentProps<typeof Feather>['name'];
 
 const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: string }[] = [
@@ -48,7 +49,7 @@ const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: stri
   { key: 'about',         route: '/modal',                icon: 'info',        color: '#8B5CF6' },
 ];
 
-// ── MenuItem ──────────────────────────────────────────────────────────────────
+// MenuItem
 const MenuItem = ({
   label,
   route,
@@ -81,6 +82,9 @@ const MenuItem = ({
       onPressIn={onPressIn}
       onPressOut={onPressOut}
       activeOpacity={1}
+      accessibilityRole="link"
+      accessibilityState={{ selected: isActive }}
+      accessibilityLabel={label}
     >
       <Animated.View
         style={[
@@ -136,7 +140,7 @@ const MI = StyleSheet.create({
   },
 });
 
-// ── SidebarMenu ───────────────────────────────────────────────────────────────
+// SidebarMenu
 interface SidebarMenuProps {
   onClose?: () => void;
 }
@@ -183,8 +187,13 @@ export default function SidebarMenu({ onClose }: SidebarMenuProps) {
     <View style={S.container}>
       {/* Header */}
       <LinearGradient colors={['#0A2540', '#060D1A']} style={S.header}>
-        <TouchableOpacity style={S.closeBtn} onPress={onClose}>
-          <Text style={S.closeBtnText}>✕</Text>
+        <TouchableOpacity
+          style={S.closeBtn}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel={tr('close', lang)}
+        >
+          <Feather name="x" size={18} color={palette.textMuted} />
         </TouchableOpacity>
         <View style={S.logoRow}>
           <LinearGradient colors={[TEAL, '#00C49A']} style={S.logoBubble}>
@@ -225,8 +234,13 @@ export default function SidebarMenu({ onClose }: SidebarMenuProps) {
 
       {/* Footer */}
       <View style={S.footer}>
-        <TouchableOpacity style={S.logoutBtn} onPress={handleLogout}>
-          <Text style={S.logoutIcon}>🚪</Text>
+        <TouchableOpacity
+          style={S.logoutBtn}
+          onPress={handleLogout}
+          accessibilityRole="button"
+          accessibilityLabel={tr('signOut', lang)}
+        >
+          <Feather name="log-out" size={16} color={palette.purple} />
           <Text style={S.logoutLabel}>{tr('signOut', lang)}</Text>
         </TouchableOpacity>
       </View>

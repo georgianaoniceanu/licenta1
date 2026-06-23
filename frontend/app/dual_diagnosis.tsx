@@ -1,6 +1,5 @@
 /**
  * Dual Diagnosis Screen
- * ─────────────────────────────────────────────────────────────────────────────
  * Alderson (2005): Diagnostic testing in ELT — self-perception vs. system
  *   measurement reveals awareness gaps that determine intervention priority.
  *
@@ -9,7 +8,6 @@
  *
  * Li & Shintani (2010): Accurate diagnosis is the foundation of corrective
  *   feedback. Effect size d=0.48 from targeted intervention.
- * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -38,7 +36,7 @@ const TEAL  = Colors.light.tint;
 const CORAL = Colors.light.accent;
 const AMBER = Colors.light.warning;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// Types
 type Discrepancy = {
   user_score: number;
   system_score: number;
@@ -56,7 +54,7 @@ type DualDiagnosisResult = {
   research_justification: string;
 };
 
-// ── Pre-baked demo results ────────────────────────────────────────────────────
+// Pre-baked demo results
 const DEMO_RESULTS: Record<string, DualDiagnosisResult> = {
   weak: {
     pain_points: ['vocabulary', 'grammar', 'pronunciation'],
@@ -125,7 +123,7 @@ const DEMO_RESULTS: Record<string, DualDiagnosisResult> = {
   },
 };
 
-// ── Discrepancy Bar ───────────────────────────────────────────────────────────
+// Discrepancy Bar
 const DiscrepancyBar = ({
   area,
   data,
@@ -261,7 +259,7 @@ const db = StyleSheet.create({
   },
 });
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
+// Main Screen
 export default function DualDiagnosisScreen() {
   const router = useRouter();
 
@@ -367,7 +365,7 @@ export default function DualDiagnosisScreen() {
         {/* Header */}
         <View style={S.header}>
           <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Feather name="arrow-left" size={20} color={Colors.light.text} />
+            <Feather name="chevron-left" size={22} color={Colors.light.text} />
           </TouchableOpacity>
           <View style={S.headerCenter}>
             <View style={S.heroIcon}>

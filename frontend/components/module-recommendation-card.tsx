@@ -39,13 +39,13 @@ export function ModuleRecommendationCard({ module, onSelect }: ModuleRecommendat
   const getPriorityEmoji = (level: string) => {
     switch (level) {
       case 'CRITICAL':
-        return '🔴';
+        return '';
       case 'HIGH':
-        return '🟡';
+        return '';
       case 'MEDIUM':
-        return '🟡';
+        return '';
       default:
-        return '🟢';
+        return '';
     }
   };
   

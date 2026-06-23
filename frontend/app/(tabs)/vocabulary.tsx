@@ -417,7 +417,7 @@ export default function VocabularyScreen() {
     try {
       setRecordingTime(0);
       setIsRecording(true);
-      setTranscriptionStatus('[🎤 Recording...]');
+      setTranscriptionStatus('[Recording...]');
       setTranscribedText('');
       // Revoke previous blob URL to free memory
       if (audioUri && audioUri.startsWith('blob:')) {
@@ -485,18 +485,18 @@ export default function VocabularyScreen() {
         const blobPromise: Promise<Blob> | undefined = (window as any).__blobPromise;
         if (!mediaRecorder || !blobPromise) {
           setIsRecording(false);
-          setTranscriptionStatus('⚠️ Recording was not started — try again.');
+          setTranscriptionStatus('Warning: Recording was not started — try again.');
           return;
         }
         setIsRecording(false);
-        setTranscriptionStatus('⏹ Finalizing audio…');
+        setTranscriptionStatus('Finalizing audio…');
         try {
           mediaRecorder.stop();
         } catch {}
         audioStream?.getTracks().forEach((track: any) => track.stop());
         const blob = await blobPromise;
         if (!blob || blob.size === 0) {
-          setTranscriptionStatus('⚠️ No audio captured. Check your microphone permission.');
+          setTranscriptionStatus('Warning: No audio captured. Check your microphone permission.');
           return;
         }
         // Save blob URL for in-app playback
@@ -504,7 +504,7 @@ export default function VocabularyScreen() {
           if (audioUri && audioUri.startsWith('blob:')) URL.revokeObjectURL(audioUri);
           setAudioUri(URL.createObjectURL(blob));
         } catch {}
-        setTranscriptionStatus('📤 Sending to backend…');
+        setTranscriptionStatus('Sending to backend…');
         await sendAudioBlobToBackend(blob);
       } else {
         if (!recording) { setIsRecording(false); return; }
@@ -514,14 +514,14 @@ export default function VocabularyScreen() {
         setRecording(null);
         if (uri) {
           setAudioUri(uri);
-          setTranscriptionStatus('📤 Sending to backend…');
+          setTranscriptionStatus('Sending to backend…');
           await sendAudioToBackend(uri);
         }
       }
     } catch (error) {
       setIsRecording(false);
       setTranscribedText('');
-      setTranscriptionStatus('❌ ' + (error instanceof Error ? error.message : String(error)));
+      setTranscriptionStatus('Error: ' + (error instanceof Error ? error.message : String(error)));
     }
   }, [recording, isWeb]);
 
@@ -530,7 +530,7 @@ export default function VocabularyScreen() {
       setTranscribing(true);
       const token = await getFreshToken();
       if (!token) {
-        setTranscriptionStatus('❌ Not authenticated. Please sign in again.');
+        setTranscriptionStatus('Error: Not authenticated. Please sign in again.');
         setTranscribing(false);
         return;
       }
@@ -559,7 +559,7 @@ export default function VocabularyScreen() {
 
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
-        setTranscriptionStatus(`❌ Backend error ${response.status}${errText ? ': ' + errText.slice(0, 80) : ''}`);
+        setTranscriptionStatus(`Error: Backend error ${response.status}${errText ? ': ' + errText.slice(0, 80) : ''}`);
         setTranscribing(false);
         return;
       }
@@ -567,7 +567,7 @@ export default function VocabularyScreen() {
       const data = await response.json();
       const text = data.data?.transcribed_text || data.transcribed_text || data.text || '';
       if (!text.trim()) {
-        setTranscriptionStatus('⚠️ No speech detected. Try recording again — speak clearly for 5+ seconds.');
+        setTranscriptionStatus('Warning: No speech detected. Try recording again — speak clearly for 5+ seconds.');
         setTranscribing(false);
         return;
       }
@@ -580,7 +580,7 @@ export default function VocabularyScreen() {
       const msg = error?.name === 'AbortError'
         ? 'Backend timed out (30s). Is the API server running?'
         : (error?.message || String(error));
-      setTranscriptionStatus('❌ ' + msg);
+      setTranscriptionStatus('Error: ' + msg);
     }
   }, [auth]);
 
@@ -589,7 +589,7 @@ export default function VocabularyScreen() {
       setTranscribing(true);
       const token = await getFreshToken();
       if (!token) {
-        setTranscriptionStatus('❌ Not authenticated. Please sign in again.');
+        setTranscriptionStatus('Error: Not authenticated. Please sign in again.');
         setTranscribing(false);
         return;
       }
@@ -609,7 +609,7 @@ export default function VocabularyScreen() {
 
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
-        setTranscriptionStatus(`❌ Backend error ${response.status}${errText ? ': ' + errText.slice(0, 80) : ''}`);
+        setTranscriptionStatus(`Error: Backend error ${response.status}${errText ? ': ' + errText.slice(0, 80) : ''}`);
         setTranscribing(false);
         return;
       }
@@ -617,7 +617,7 @@ export default function VocabularyScreen() {
       const data = await response.json();
       const text = data.data?.transcribed_text || data.transcribed_text || data.text || '';
       if (!text.trim()) {
-        setTranscriptionStatus('⚠️ No speech detected. Try recording again — speak clearly for 5+ seconds.');
+        setTranscriptionStatus('Warning: No speech detected. Try recording again — speak clearly for 5+ seconds.');
         setTranscribing(false);
         return;
       }
@@ -630,7 +630,7 @@ export default function VocabularyScreen() {
       const msg = error?.name === 'AbortError'
         ? 'Backend timed out (30s). Is the API server running?'
         : (error?.message || String(error));
-      setTranscriptionStatus('❌ ' + msg);
+      setTranscriptionStatus('Error: ' + msg);
     }
   }, [auth]);
 
@@ -646,9 +646,7 @@ export default function VocabularyScreen() {
       const token = await getFreshToken();
       if (!token) { Alert.alert('Auth Error', 'Not authenticated'); return; }
 
-      // ───────────────────────────────────────────────────────────────────────
       // Helper: POST JSON to endpoint, returns parsed data or null on error
-      // ───────────────────────────────────────────────────────────────────────
       const post = async (url: string, body: any): Promise<any> => {
         try {
           const r = await fetch(url, {
@@ -665,11 +663,9 @@ export default function VocabularyScreen() {
       const sourceText = isWriting ? manualText : transcribedText;
       const firstWord = textToAnalyze.trim().split(' ')[0].toLowerCase();
 
-      // ───────────────────────────────────────────────────────────────────────
       // ROUND 1 — Independent calls fired in parallel
       //   No data dependencies between them; total time = max(individual times)
       //   instead of sum (~60% reduction over previous sequential flow).
-      // ───────────────────────────────────────────────────────────────────────
       const round1 = await Promise.allSettled([
         // 0: Vocabulary suggestions (always required — first result expected)
         post(VOCABULARY_ENDPOINTS.ANALYZE, { text: textToAnalyze }),
@@ -725,9 +721,7 @@ export default function VocabularyScreen() {
       if (genreData?.data) finalResult.genre_profile = genreData.data;
       if (errorsData?.data) finalResult.romanian_errors = errorsData.data;
 
-      // ───────────────────────────────────────────────────────────────────────
       // Speech / writing metrics — purely client-side, instant
-      // ───────────────────────────────────────────────────────────────────────
       let sm: SpeechMetrics | null = null;
       if (sourceText && sourceText.trim().length > 0) {
         const rawWords = sourceText.trim().split(/\s+/).filter(w => w.length > 0);
@@ -748,9 +742,7 @@ export default function VocabularyScreen() {
         finalResult.speech_metrics = sm;
       }
 
-      // ───────────────────────────────────────────────────────────────────────
       // ROUND 2 — Exam profile depends on CEFR distribution from Round 1
-      // ───────────────────────────────────────────────────────────────────────
       let examData: any = null;
       if (sm && sourceText) {
         examData = await post(VOCABULARY_ENDPOINTS.EXAM_PROFILE, {
@@ -765,9 +757,7 @@ export default function VocabularyScreen() {
         if (examData?.data) finalResult.exam_profile = examData.data;
       }
 
-      // ───────────────────────────────────────────────────────────────────────
       // ROUND 3 — Persist sessions to AsyncStorage (parallel writes)
-      // ───────────────────────────────────────────────────────────────────────
       if (sm) {
         const cefrLevel = finalResult.cefr_data?.vocab_cefr_level ?? 'B1';
         const cefrScore = { A1: 20, A2: 35, B1: 50, B2: 70, C1: 85, C2: 95 }[cefrLevel] ?? 50;
@@ -913,7 +903,7 @@ export default function VocabularyScreen() {
     }
   }, [audioUri, audioPlaying, isWeb]);
 
-  // ── Audio file upload (for users who don't want to record live) ───────────
+  // Audio file upload (for users who don't want to record live)
   const openFilePicker = useCallback(() => {
     if (isWeb) {
       fileInputRef.current?.click();
@@ -930,12 +920,12 @@ export default function VocabularyScreen() {
 
     // Validate it's an audio file
     if (!file.type.startsWith('audio/') && !/\.(mp3|wav|m4a|ogg|webm|flac|aac)$/i.test(file.name)) {
-      setTranscriptionStatus('⚠️ Please select an audio file (MP3, WAV, M4A, OGG, WebM).');
+      setTranscriptionStatus('Warning: Please select an audio file (MP3, WAV, M4A, OGG, WebM).');
       return;
     }
     // Size guard — 15 MB
     if (file.size > 15 * 1024 * 1024) {
-      setTranscriptionStatus('⚠️ File too large (max 15 MB). Trim the clip and try again.');
+      setTranscriptionStatus('Warning: File too large (max 15 MB). Trim the clip and try again.');
       return;
     }
 
@@ -951,11 +941,11 @@ export default function VocabularyScreen() {
       setAudioUri(URL.createObjectURL(file));
     } catch {}
 
-    setTranscriptionStatus('📤 Uploading audio…');
+    setTranscriptionStatus('Uploading audio…');
     await sendAudioBlobToBackend(file);
   }, [audioUri, sendAudioBlobToBackend]);
 
-  // ── Screen 1: Prompt Selection ─────────────────────────────────────
+  // Screen 1: Prompt Selection
   if (!selectedPrompt) {
     return (
       <View style={styles.container}>
@@ -1008,7 +998,7 @@ export default function VocabularyScreen() {
     );
   }
 
-  // ── Screen 2: Recording & Text Input ──────────────────────────────
+  // Screen 2: Recording & Text Input
   if (!analysisResult) {
     return (
       <View style={styles.container}>
@@ -1016,7 +1006,8 @@ export default function VocabularyScreen() {
 
         <View style={styles.topBar}>
           <TouchableOpacity onPress={() => setSelectedPrompt(null)} style={styles.backBtn} activeOpacity={0.7}>
-            <Text style={styles.backBtnText}>←  Back</Text>
+            <Feather name="chevron-left" size={18} color={Colors.light.tint} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
           <Text style={[styles.topBarTitle, { flex: 1 }]}>{currentPrompt?.title}</Text>
           <View style={{ width: 40 }} />
@@ -1034,7 +1025,7 @@ export default function VocabularyScreen() {
             <View style={styles.demoBanner}>
               <Text style={styles.demoBannerTitle}>Demo Mode — Text / Upload Analysis</Text>
               <Text style={styles.demoBannerText}>
-                Type at least 20 words, or use the 📁 Upload tab to analyse a pre-recorded audio file. Then tap Analyse for the full AI-powered vocabulary, grammar and exam profile.
+                Type at least 20 words, or use the Upload tab to analyse a pre-recorded audio file. Then tap Analyse for the full AI-powered vocabulary, grammar and exam profile.
               </Text>
             </View>
           )}
@@ -1071,7 +1062,7 @@ export default function VocabularyScreen() {
                   onPress={isRecording ? stopRecording : startRecording}
                 >
                   <Text style={styles.recordBtnText}>
-                    {isRecording ? '⏹ Stop' : '● Record'}
+                    {isRecording ? 'Stop' : 'Record'}
                   </Text>
                 </TouchableOpacity>
 
@@ -1100,12 +1091,12 @@ export default function VocabularyScreen() {
                   <View style={styles.qualityRow}>
                     <Text style={styles.qualityLabel}>Duration:</Text>
                     <Text style={recordingTime < 30 ? styles.qualityFeedbackWarning : styles.qualityFeedbackGood}>
-                      {recordingTime < 30 ? `⏱️ Keep going (${30 - recordingTime}s more)` : `✓ Good length (${recordingTime}s)`}
+                      {recordingTime < 30 ? `Keep going (${30 - recordingTime}s more)` : `Good length (${recordingTime}s)`}
                     </Text>
                   </View>
                   <View style={styles.qualityRow}>
                     <Text style={styles.qualityLabel}>Status:</Text>
-                    <Text style={styles.qualityFeedbackActive}>🎤 Recording — speak clearly!</Text>
+                    <Text style={styles.qualityFeedbackActive}>Recording — speak clearly!</Text>
                   </View>
                 </View>
               )}
@@ -1129,7 +1120,7 @@ export default function VocabularyScreen() {
                         activeOpacity={0.7}
                       >
                         <Text style={styles.audioPlayBtnText}>
-                          {audioPlaying ? '⏸  Pause' : '▶  Play recording'}
+                          {audioPlaying ? 'Pause' : 'Play recording'}
                         </Text>
                       </TouchableOpacity>
                       <Text style={styles.audioHint}>Listen back to your speech</Text>
@@ -1149,12 +1140,12 @@ export default function VocabularyScreen() {
               {transcriptionStatus && !isRecording && !transcribedText && !transcribing && (
                 <View style={[
                   styles.statusBox,
-                  transcriptionStatus.startsWith('❌') && { borderColor: Colors.light.error, backgroundColor: Colors.light.error + '10' },
-                  transcriptionStatus.startsWith('⚠️') && { borderColor: Colors.light.warning, backgroundColor: Colors.light.warning + '10' },
+                  transcriptionStatus.startsWith('Error') && { borderColor: Colors.light.error, backgroundColor: Colors.light.error + '10' },
+                  transcriptionStatus.startsWith('Warning') && { borderColor: Colors.light.warning, backgroundColor: Colors.light.warning + '10' },
                 ]}>
                   <Text style={[
                     styles.statusText,
-                    transcriptionStatus.startsWith('❌') && { color: Colors.light.error, fontWeight: '700' },
+                    transcriptionStatus.startsWith('Error') && { color: Colors.light.error, fontWeight: '700' },
                   ]}>{transcriptionStatus}</Text>
                 </View>
               )}
@@ -1190,13 +1181,13 @@ export default function VocabularyScreen() {
                   disabled={transcribing}
                 >
                   <Text style={styles.uploadBtnText}>
-                    {uploadedFileName ? '🔄  Choose a different file' : '⬆️  Choose audio file'}
+                    {uploadedFileName ? ' Choose a different file' : ' Choose audio file'}
                   </Text>
                 </TouchableOpacity>
 
                 {uploadedFileName && (
                   <Text style={styles.uploadFileName} numberOfLines={1}>
-                    📎 {uploadedFileName}
+                    {uploadedFileName}
                   </Text>
                 )}
 
@@ -1226,7 +1217,7 @@ export default function VocabularyScreen() {
                         activeOpacity={0.7}
                       >
                         <Text style={styles.audioPlayBtnText}>
-                          {audioPlaying ? '⏸  Pause' : '▶  Play upload'}
+                          {audioPlaying ? 'Pause' : 'Play upload'}
                         </Text>
                       </TouchableOpacity>
                       <Text style={styles.audioHint}>Listen to the uploaded file</Text>
@@ -1245,12 +1236,12 @@ export default function VocabularyScreen() {
               {transcriptionStatus && !transcribing && !transcribedText && (
                 <View style={[
                   styles.statusBox,
-                  transcriptionStatus.startsWith('❌') && { borderColor: Colors.light.error, backgroundColor: Colors.light.error + '10' },
-                  transcriptionStatus.startsWith('⚠️') && { borderColor: Colors.light.warning, backgroundColor: Colors.light.warning + '10' },
+                  transcriptionStatus.startsWith('Error') && { borderColor: Colors.light.error, backgroundColor: Colors.light.error + '10' },
+                  transcriptionStatus.startsWith('Warning') && { borderColor: Colors.light.warning, backgroundColor: Colors.light.warning + '10' },
                 ]}>
                   <Text style={[
                     styles.statusText,
-                    transcriptionStatus.startsWith('❌') && { color: Colors.light.error, fontWeight: '700' },
+                    transcriptionStatus.startsWith('Error') && { color: Colors.light.error, fontWeight: '700' },
                   ]}>{transcriptionStatus}</Text>
                 </View>
               )}
@@ -1288,7 +1279,7 @@ export default function VocabularyScreen() {
     );
   }
 
-  // ── Screen 3: Results ─────────────────────────────────────────────
+  // Screen 3: Results
   const pronunciationScore = analysisResult?.pronunciation_score ?? null;
   const suggestionCount = analysisResult?.suggestions?.length ?? 0;
 
@@ -1309,7 +1300,8 @@ export default function VocabularyScreen() {
 
       <View style={styles.topBar}>
         <TouchableOpacity onPress={resetAnalysis} style={styles.backBtn} activeOpacity={0.7}>
-          <Text style={styles.backBtnText}>←  Back</Text>
+          <Feather name="chevron-left" size={18} color={Colors.light.tint} />
+          <Text style={styles.backBtnText}>Back</Text>
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={styles.topBarTitle}>Results</Text>
@@ -1338,7 +1330,7 @@ export default function VocabularyScreen() {
       {/* Play the saved recording (speaking / uploaded sessions) */}
       {savedAudioId && (
         <TouchableOpacity style={styles.playRecBtn} onPress={toggleSavedAudio} activeOpacity={0.85}>
-          <Text style={styles.playRecIcon}>{savedAudioPlaying ? '⏸' : '▶'}</Text>
+          <Feather name={savedAudioPlaying ? 'pause' : 'play'} size={18} color={Colors.light.tint} />
           <View style={{ flex: 1 }}>
             <Text style={styles.playRecText}>
               {savedAudioPlaying ? 'Playing recording…' : 'Play your recording'}
@@ -1406,7 +1398,7 @@ export default function VocabularyScreen() {
               <Feather
                 name={tab.icon}
                 size={13}
-                color={activeTab === tab.key ? Colors.light.tint : Colors.light.textSecondary}
+                color={activeTab === tab.key ? '#060D1A' : Colors.light.textSecondary}
               />
               <Text style={[styles.tabBtnText, activeTab === tab.key && styles.tabBtnTextActive]}>
                 {tab.label}{tab.count !== undefined ? ` (${tab.count})` : ''}
@@ -1421,7 +1413,7 @@ export default function VocabularyScreen() {
         contentContainerStyle={styles.resultsContent}
         style={{ opacity: resultsOpacity, transform: [{ scale: resultsScale }] }}
       >
-        {/* ── Tab: Words ─────────────────────────────────────────── */}
+        {/* Tab: Words */}
         {activeTab === 'words' && (
           <>
             {/* CEFR Vocabulary Distribution — EVP / new-GSL / AWL / NAWL */}
@@ -1492,7 +1484,7 @@ export default function VocabularyScreen() {
             )}
 
             <View style={styles.improvedSection}>
-              <Text style={styles.sectionTitle}>✨ Improved Version</Text>
+              <Text style={styles.sectionTitle}>Improved Version</Text>
               <Text style={styles.improvedText}>{analysisResult?.improved_text}</Text>
             </View>
 
@@ -1520,14 +1512,14 @@ export default function VocabularyScreen() {
                 </View>
               ) : (
                 <View style={styles.successBanner}>
-                  <Text style={styles.successBannerText}>🌟 Great job! No weak words detected.</Text>
+                  <Text style={styles.successBannerText}>Great job! No weak words detected.</Text>
                 </View>
               )}
             </View>
           </>
         )}
 
-        {/* ── Tab: Pronunciation ─────────────────────────────────── */}
+        {/* Tab: Pronunciation */}
         {activeTab === 'pronunciation' && (
           <View style={styles.tabSection}>
             {pronunciationScore !== null ? (
@@ -1590,28 +1582,28 @@ export default function VocabularyScreen() {
               </>
             ) : (
               <View style={styles.emptyTab}>
-                <Text style={styles.emptyTabText}>🎤 Record your speech to get pronunciation analysis.</Text>
+                <Text style={styles.emptyTabText}>Record your speech to get pronunciation analysis.</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Tab: Phonetics ─────────────────────────────────────── */}
+        {/* Tab: Phonetics */}
         {activeTab === 'phonetics' && (
           <View style={styles.tabSection}>
             {analysisResult?.phonetic_breakdown ? (
               <>
-                {/* ── IPA side-by-side ── */}
+                {/* IPA side-by-side */}
                 <View style={styles.phoneticCard}>
-                  <Text style={styles.sectionTitle}>📊 IPA Comparison</Text>
+                  <Text style={styles.sectionTitle}>IPA Comparison</Text>
                   <View style={styles.phoneticComparison}>
                     <View style={styles.phoneticItem}>
-                      <Text style={styles.phoneticLabel}>🎯 Target</Text>
+                      <Text style={styles.phoneticLabel}>Target</Text>
                       <Text style={styles.phoneticIPA}>{analysisResult.phonetic_breakdown.target_ipa}</Text>
                     </View>
                     <Text style={styles.phoneticArrow}>→</Text>
                     <View style={styles.phoneticItem}>
-                      <Text style={styles.phoneticLabel}>🎤 You said</Text>
+                      <Text style={styles.phoneticLabel}>You said</Text>
                       <Text style={[styles.phoneticIPA, { color: (analysisResult.phonetic_breakdown.phoneme_errors?.length ?? 0) > 0 ? '#8B5CF6' : Colors.light.tint }]}>
                         {analysisResult.phonetic_breakdown.user_ipa}
                       </Text>
@@ -1619,12 +1611,12 @@ export default function VocabularyScreen() {
                   </View>
                   {(analysisResult.phonetic_breakdown.phoneme_errors?.length ?? 0) === 0 && (
                     <View style={styles.perfectRow}>
-                      <Text style={styles.perfectText}>✅ Perfect match — no phoneme errors detected</Text>
+                      <Text style={styles.perfectText}>Perfect match — no phoneme errors detected</Text>
                     </View>
                   )}
                 </View>
 
-                {/* ── Per-error correction cards ── */}
+                {/* Per-error correction cards */}
                 {(analysisResult.phonetic_breakdown.phoneme_errors?.length ?? 0) > 0 && (
                   <>
                     <Text style={styles.errorsHeading}>
@@ -1635,7 +1627,7 @@ export default function VocabularyScreen() {
                         {/* Header: position + phonemes */}
                         <View style={styles.correctionHeader}>
                           <View style={styles.correctionPosition}>
-                            <Text style={styles.correctionPositionText}>📍 {err.position}</Text>
+                            <Text style={styles.correctionPositionText}>{err.position}</Text>
                           </View>
                           <View style={styles.correctionPhonemes}>
                             <View style={styles.phonemeChipWrong}>
@@ -1657,20 +1649,20 @@ export default function VocabularyScreen() {
                           <Text style={styles.correctionHowLabel}>HOW TO CORRECT</Text>
                           <Text style={styles.correctionHowText}>
                             {/θ|ð/.test(err.target_phoneme)
-                              ? '👅 Place tongue tip lightly between upper and lower front teeth. For /θ/ blow air without voice; for /ð/ add vibration in the throat.'
+                              ? 'Place tongue tip lightly between upper and lower front teeth. For /θ/ blow air without voice; for /ð/ add vibration in the throat.'
                               : /æ/.test(err.target_phoneme)
-                              ? '↕️ Drop your jaw further than for /e/. Feel the front of your tongue rise. Your mouth should look like a wide open smile.'
+                              ? 'Drop your jaw further than for /e/. Feel the front of your tongue rise. Your mouth should look like a wide open smile.'
                               : /ŋ/.test(err.target_phoneme)
-                              ? '↩️ Raise the back of your tongue to touch the soft palate (as in /k/ or /g/). Let air flow through the nose — no extra /g/ at the end.'
+                              ? 'Raise the back of your tongue to touch the soft palate (as in /k/ or /g/). Let air flow through the nose — no extra /g/ at the end.'
                               : /ə/.test(err.target_phoneme)
-                              ? '😌 Completely relax your mouth. Tongue sits in the middle, lips neutral. This is the shortest, most unstressed sound in English.'
+                              ? 'Completely relax your mouth. Tongue sits in the middle, lips neutral. This is the shortest, most unstressed sound in English.'
                               : /ɫ|dark.*l|l.*dark/i.test(err.target_phoneme)
-                              ? '👅 Touch tongue tip to the ridge behind upper teeth AND raise the back of the tongue toward the soft palate simultaneously.'
+                              ? 'Touch tongue tip to the ridge behind upper teeth AND raise the back of the tongue toward the soft palate simultaneously.'
                               : /ʌ/.test(err.target_phoneme)
-                              ? '↕️ Open mouth slightly, tongue in the centre. Less open than Romanian /a/ — more like a quick, relaxed mid-central sound.'
+                              ? 'Open mouth slightly, tongue in the centre. Less open than Romanian /a/ — more like a quick, relaxed mid-central sound.'
                               : err.explanation.length > 0
-                              ? `🔁 Practice the minimal pair: say the word with ${err.target_phoneme} repeatedly, exaggerating the sound before reducing it to natural speed.`
-                              : '🎯 Record yourself again, focusing only on this sound.'}
+                              ? `Practice the minimal pair: say the word with ${err.target_phoneme} repeatedly, exaggerating the sound before reducing it to natural speed.`
+                              : 'Record yourself again, focusing only on this sound.'}
                           </Text>
                         </View>
                       </View>
@@ -1680,7 +1672,7 @@ export default function VocabularyScreen() {
 
                 {(analysisResult?.word_family?.related_forms?.length ?? 0) > 0 && (
                   <View style={styles.wordFamilyCard}>
-                    <Text style={styles.sectionTitle}>🔗 Word Family: {analysisResult?.word_family?.target_word}</Text>
+                    <Text style={styles.sectionTitle}>Word Family: {analysisResult?.word_family?.target_word}</Text>
                     {analysisResult!.word_family!.related_forms.map((form, i) => (
                       <View key={i} style={styles.wordFormItem}>
                         <View style={styles.wordFormHeader}>
@@ -1688,8 +1680,8 @@ export default function VocabularyScreen() {
                           <Text style={styles.wordFormPos}> ({form.part_of_speech})</Text>
                         </View>
                         <Text style={styles.wordFormDefinition}>{form.definition}</Text>
-                        <Text style={styles.wordFormPronunciation}>🔊 {form.pronunciation}</Text>
-                        <Text style={styles.wordFormExample}>✏️ {form.example_sentence}</Text>
+                        <Text style={styles.wordFormPronunciation}>{form.pronunciation}</Text>
+                        <Text style={styles.wordFormExample}>{form.example_sentence}</Text>
                       </View>
                     ))}
                   </View>
@@ -1697,18 +1689,18 @@ export default function VocabularyScreen() {
               </>
             ) : (
               <View style={styles.emptyTab}>
-                <Text style={styles.emptyTabText}>🔬 Record your speech to see phonetic breakdown and word family analysis.</Text>
+                <Text style={styles.emptyTabText}>Record your speech to see phonetic breakdown and word family analysis.</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Tab: Exercise ──────────────────────────────────────── */}
+        {/* Tab: Exercise */}
         {activeTab === 'exercise' && (
           <View style={styles.tabSection}>
             {analysisResult?.personalized_exercise ? (
               <View style={styles.exerciseCard}>
-                <Text style={styles.sectionTitle}>💪 Personalized Exercise</Text>
+                <Text style={styles.sectionTitle}>Personalized Exercise</Text>
                 <View style={styles.exerciseMeta}>
                   <View style={styles.exerciseMetaItem}>
                     <Text style={styles.exerciseMetaLabel}>Type</Text>
@@ -1737,13 +1729,13 @@ export default function VocabularyScreen() {
               </View>
             ) : (
               <View style={styles.emptyTab}>
-                <Text style={styles.emptyTabText}>💪 Complete an analysis to get your personalized exercise.</Text>
+                <Text style={styles.emptyTabText}>Complete an analysis to get your personalized exercise.</Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Tab: Grammar — Romanian Error Detector ─────────────── */}
+        {/* Tab: Grammar — Romanian Error Detector */}
         {activeTab === 'grammar' && (
           <View style={styles.tabSection}>
             {analysisResult?.romanian_errors ? (() => {
@@ -1766,10 +1758,12 @@ export default function VocabularyScreen() {
                   {/* Overview card */}
                   <View style={styles.grammarOverviewCard}>
                     <View style={styles.grammarScoreCircle}>
-                      <Text style={[styles.grammarScoreNumber, { color: scoreColor }]}>
-                        {Math.round(re.severity_score)}
-                      </Text>
-                      <Text style={styles.grammarScoreMax}>/100</Text>
+                      <View style={styles.scoreInner}>
+                        <Text style={[styles.grammarScoreNumber, { color: scoreColor }]}>
+                          {Math.round(re.severity_score)}
+                        </Text>
+                        <Text style={styles.grammarScoreMax}>/100</Text>
+                      </View>
                     </View>
                     <View style={styles.grammarOverviewInfo}>
                       <Text style={styles.grammarOverviewTitle}>
@@ -1905,14 +1899,14 @@ export default function VocabularyScreen() {
             })() : (
               <View style={styles.emptyTab}>
                 <Text style={styles.emptyTabText}>
-                  ⚠️ Record your speech to detect Romanian interference errors in your English.
+                  Record your speech to detect Romanian interference errors in your English.
                 </Text>
               </View>
             )}
           </View>
         )}
 
-        {/* ── Tab: Exam Profile ──────────────────────────────────── */}
+        {/* Tab: Exam Profile */}
         {activeTab === 'exam' && (
           <View style={styles.tabSection}>
             {analysisResult?.exam_profile ? (() => {
@@ -1929,9 +1923,9 @@ export default function VocabularyScreen() {
                 pronunciation:        { label: 'Pronunciation',     color: '#8B5CF6' },
               };
               const CRIT_META: Record<string, { label: string; color: string; icon: string }> = {
-                pronunciation_fluency: { label: 'Pronunciation & Fluency', color: '#8B5CF6', icon: '🗣️' },
-                language_resource:     { label: 'Language Resource',       color: '#8B5CF6', icon: '📚' },
-                discourse_management:  { label: 'Discourse Management',    color: '#0FBA9A', icon: '🧩' },
+                pronunciation_fluency: { label: 'Pronunciation & Fluency', color: '#8B5CF6', icon: '' },
+                language_resource:     { label: 'Language Resource',       color: '#8B5CF6', icon: '' },
+                discourse_management:  { label: 'Discourse Management',    color: '#0FBA9A', icon: '' },
               };
               const IELTS_CRITERIA = focus.priority
                 .filter(key => !(isWritingMode && key === 'pronunciation'))
@@ -1941,9 +1935,13 @@ export default function VocabularyScreen() {
                 SPOK: '#0FBA9A', FIC: '#8B5CF6', MAG: '#8B5CF6', NEWS: '#8B5CF6', ACAD: '#0FBA9A',
                 Web: '#8B5CF6', Blog: '#8B5CF6', Mov: '#EF4444', TV: '#8B5CF6',
               };
-              const GENRE_ICON: Record<CocaGroup, string> = {
-                SPOK: '🗣️', FIC: '📖', MAG: '📰', NEWS: '🗞️', ACAD: '🎓',
-                Web: '🌐', Blog: '✍️', Mov: '🎬', TV: '📺',
+              const GENRE_LABEL: Record<CocaGroup, string> = {
+                SPOK: 'Spoken', FIC: 'Fiction', MAG: 'Magazine', NEWS: 'News', ACAD: 'Academic',
+                Web: 'Web', Blog: 'Blog', Mov: 'Movies', TV: 'Television',
+              };
+              const GENRE_ICON: Record<CocaGroup, React.ComponentProps<typeof Feather>['name']> = {
+                SPOK: 'mic', FIC: 'book-open', MAG: 'file-text', NEWS: 'rss',
+                ACAD: 'award', Web: 'globe', Blog: 'edit-3', Mov: 'film', TV: 'monitor',
               };
               const ALL_GROUPS: CocaGroup[] = ['SPOK','FIC','MAG','NEWS','ACAD','Web','Blog','Mov','TV'];
 
@@ -1952,8 +1950,10 @@ export default function VocabularyScreen() {
                   {/* Overall band summary */}
                   <View style={styles.examOverallCard}>
                     <View style={styles.examBandCircle}>
-                      <Text style={styles.examBandNumber}>{ep.ielts.overall}</Text>
-                      <Text style={styles.examBandMax}>/9</Text>
+                      <View style={styles.scoreInner}>
+                        <Text style={styles.examBandNumber}>{ep.ielts.overall}</Text>
+                        <Text style={styles.examBandMax}>/9</Text>
+                      </View>
                     </View>
                     <View style={styles.examOverallInfo}>
                       <Text style={styles.examBandLabel}>{ep.ielts.band_label}</Text>
@@ -2018,7 +2018,7 @@ export default function VocabularyScreen() {
                         <View key={key} style={styles.examCriteriaRow}>
                           <View style={styles.examCriteriaHeader}>
                             <Text style={[styles.examCriteriaLabel, isPriority && { fontWeight: '800' }]}>
-                              {isPriority ? '★ ' : ''}{label}
+                              {isPriority ? '' : ''}{label}
                             </Text>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                               <Text style={styles.examCriteriaWeight}>{weight}%</Text>
@@ -2119,7 +2119,7 @@ export default function VocabularyScreen() {
                           backgroundColor: GENRE_COLOR[domGroup] + '15',
                           borderLeftColor: GENRE_COLOR[domGroup],
                         }]}>
-                          <Text style={styles.genreDominantIcon}>{GENRE_ICON[domGroup]}</Text>
+                          <Feather name={GENRE_ICON[domGroup]} size={22} color={GENRE_COLOR[domGroup]} />
                           <View style={{ flex: 1 }}>
                             <Text style={[styles.genreDominantLabel, { color: GENRE_COLOR[domGroup] }]}>
                               {gp.dominant_label}
@@ -2134,7 +2134,10 @@ export default function VocabularyScreen() {
                           const pct = gp.distribution_groups[g] ?? 0;
                           return (
                             <View key={g} style={styles.genreRow}>
-                              <Text style={styles.genreLabel}>{GENRE_ICON[g]} {g}</Text>
+                              <View style={styles.genreLabelRow}>
+                                <Feather name={GENRE_ICON[g]} size={13} color={GENRE_COLOR[g]} />
+                                <Text style={styles.genreLabel}>{GENRE_LABEL[g]}</Text>
+                              </View>
                               <View style={styles.examBarBg}>
                                 <View style={[styles.examBarFill, {
                                   width: `${Math.min(pct, 100)}%` as any,
@@ -2183,7 +2186,7 @@ export default function VocabularyScreen() {
             })() : (
               <View style={styles.emptyTab}>
                 <Text style={styles.emptyTabText}>
-                  🎓 Record your speech to get your IELTS band estimate, CEFR level and Cambridge exam recommendation.
+                  Record your speech to get your IELTS band estimate, CEFR level and Cambridge exam recommendation.
                 </Text>
               </View>
             )}
@@ -2204,7 +2207,7 @@ export default function VocabularyScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.light.background },
 
-  // ── Prompt Selection ───────────────────────────────────────────────
+  // Prompt Selection
   header: {
     paddingTop: 60, paddingHorizontal: Spacing.xl, paddingBottom: Spacing.xl,
     backgroundColor: Colors.light.background,
@@ -2231,7 +2234,7 @@ const styles = StyleSheet.create({
   promptText: { fontSize: 12, color: Colors.light.textSecondary, lineHeight: 17 },
   promptCTA: { fontSize: 18, fontWeight: '700', color: Colors.light.tint },
 
-  // ── Top Bar ────────────────────────────────────────────────────────
+  // Top Bar
   topBar: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: 20, paddingTop: 56, paddingBottom: 14,
@@ -2239,7 +2242,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   backBtn: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    alignSelf: 'flex-start',
+    paddingLeft: 10,
+    paddingRight: 16,
     paddingVertical: 9,
     borderRadius: 11,
     borderWidth: 1.5,
@@ -2271,7 +2279,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // ── Recording Screen ───────────────────────────────────────────────
+  // Recording Screen
   promptDisplay: {
     marginHorizontal: 20, marginTop: 20,
     backgroundColor: Colors.light.surface,
@@ -2404,7 +2412,7 @@ const styles = StyleSheet.create({
   actionAreaDisabled: { opacity: 0.5 },
   analyzeBtn: { height: 50, borderRadius: 14 },
 
-  // ── Results Screen ─────────────────────────────────────────────────
+  // Results Screen
   scoreSummaryCard: {
     marginHorizontal: 20, marginBottom: 8,
     backgroundColor: Colors.light.surface,
@@ -2438,7 +2446,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   tabBtnText: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
-  tabBtnTextActive: { color: '#fff', fontWeight: '800' },
+  tabBtnTextActive: { color: '#060D1A', fontWeight: '800' },
 
   resultsContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
   tabSection: { gap: 16 },
@@ -2628,7 +2636,7 @@ const styles = StyleSheet.create({
   noSuggestions: { fontSize: 14, color: Colors.light.success, fontWeight: '600', textAlign: 'center', paddingVertical: Spacing.lg },
   continueBtn: { height: 56, borderRadius: 16, marginTop: Spacing.xl, marginBottom: Spacing.xl },
 
-  // ── Speech Metrics Strip ────────────────────────────────────────────────────
+  // Speech Metrics Strip
   metricsStrip: {
     flexDirection: 'row', alignItems: 'center',
     marginHorizontal: 20, marginBottom: 8,
@@ -2642,7 +2650,7 @@ const styles = StyleSheet.create({
   metricChipLabel: { fontSize: 9, fontWeight: '600', color: Colors.light.textLight, textTransform: 'uppercase', letterSpacing: 0.5 },
   metricChipDivider: { width: 1, height: 28, backgroundColor: Colors.light.border },
 
-  // ── CEFR Distribution Card ──────────────────────────────────────────────────
+  // CEFR Distribution Card
   cefrCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 14, padding: 16, marginBottom: 16,
@@ -2666,7 +2674,7 @@ const styles = StyleSheet.create({
   },
   wordChipText: { fontSize: 13, fontWeight: '700', color: '#8B5CF6' },
 
-  // ── Tagged Transcript ───────────────────────────────────────────────────────
+  // Tagged Transcript
   taggedTranscript: { gap: 8, paddingTop: 4 },
   taggedRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   taggedWord: {
@@ -2676,7 +2684,7 @@ const styles = StyleSheet.create({
   taggedWordText: { fontSize: 13, color: Colors.light.text, lineHeight: 18 },
   taggedWordLevel: { fontSize: 8, fontWeight: '700', letterSpacing: 0.3 },
 
-  // ── Exam Profile Tab ────────────────────────────────────────────────────────
+  // Exam Profile Tab
   examOverallCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     backgroundColor: Colors.light.surface, borderRadius: 14,
@@ -2687,11 +2695,11 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: Colors.light.tint + '18',
     justifyContent: 'center',
-    flexDirection: 'row', alignItems: 'flex-end' as any,
-    paddingBottom: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
   },
-  examBandNumber: { fontSize: 32, fontWeight: '800', color: Colors.light.tint },
-  examBandMax: { fontSize: 14, fontWeight: '600', color: Colors.light.textLight, marginBottom: 2 },
+  examBandNumber: { fontSize: 30, fontWeight: '800', color: Colors.light.tint },
+  examBandMax: { fontSize: 13, fontWeight: '600', color: Colors.light.textLight, marginLeft: 1 },
   examOverallInfo: { flex: 1, gap: 3 },
   examBandLabel: { fontSize: 17, fontWeight: '700', color: Colors.light.text },
   examBandSub: { fontSize: 12, color: Colors.light.textSecondary },
@@ -2744,7 +2752,7 @@ const styles = StyleSheet.create({
   examFocusWeightLabel: { fontSize: 9, color: Colors.light.textSecondary, textAlign: 'center', lineHeight: 13 },
   examFocusTip: { fontSize: 12, color: Colors.light.textSecondary, lineHeight: 18, fontStyle: 'italic' },
 
-  // ── Cambridge ESOL Assessment Card ──────────────────────────────────────
+  // Cambridge ESOL Assessment Card
   cambridgeAssessCard: {
     backgroundColor: Colors.light.surface, borderRadius: 14,
     padding: 16, marginBottom: 12,
@@ -2800,7 +2808,8 @@ const styles = StyleSheet.create({
   genreDominantLabel: { fontSize: 14, fontWeight: '800', marginBottom: 2 },
   genreDominantDesc: { fontSize: 11, color: Colors.light.textSecondary, lineHeight: 15 },
   genreRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  genreLabel: { fontSize: 11, fontWeight: '700', color: Colors.light.text, width: 78 },
+  genreLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, width: 108 },
+  genreLabel: { fontSize: 11, fontWeight: '700', color: Colors.light.text },
   genrePct: { fontSize: 12, fontWeight: '800', width: 42, textAlign: 'right' },
   genreCoverage: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic', marginTop: 4, textAlign: 'center' },
   genreSubcatBadge: { fontSize: 10, color: Colors.light.textLight, marginTop: 4, fontStyle: 'italic' },
@@ -2838,7 +2847,7 @@ const styles = StyleSheet.create({
   examIndicatorSource: { fontSize: 10, color: Colors.light.textLight, fontStyle: 'italic' },
   examIndicatorValue: { fontSize: 15, fontWeight: '800', color: Colors.light.tint },
 
-  // ── Grammar / Romanian Error Detector Tab ──────────────────────────────────
+  // Grammar / Romanian Error Detector Tab
   grammarOverviewCard: {
     flexDirection: 'row', alignItems: 'center', gap: 16,
     backgroundColor: Colors.light.surface, borderRadius: 14,
@@ -2849,11 +2858,12 @@ const styles = StyleSheet.create({
     width: 72, height: 72, borderRadius: 36,
     backgroundColor: Colors.light.border + '40',
     justifyContent: 'center',
-    flexDirection: 'row', alignItems: 'flex-end' as any,
-    paddingBottom: 8,
+    alignItems: 'center',
+    flexDirection: 'row',
   },
-  grammarScoreNumber: { fontSize: 28, fontWeight: '800' },
-  grammarScoreMax: { fontSize: 13, fontWeight: '600', color: Colors.light.textLight, marginBottom: 2 },
+  scoreInner: { flexDirection: 'row', alignItems: 'baseline' },
+  grammarScoreNumber: { fontSize: 26, fontWeight: '800' },
+  grammarScoreMax: { fontSize: 12, fontWeight: '600', color: Colors.light.textLight, marginLeft: 1 },
   grammarOverviewInfo: { flex: 1, gap: 3 },
   grammarOverviewTitle: { fontSize: 15, fontWeight: '700', color: Colors.light.text },
   grammarOverviewSub: { fontSize: 12, color: Colors.light.textSecondary },
@@ -2905,7 +2915,7 @@ const styles = StyleSheet.create({
   },
   grammarResearchText: { fontSize: 11, color: Colors.light.textSecondary, lineHeight: 17, fontStyle: 'italic' },
 
-  // ── Inline error highlights on transcript ──────────────────────────────────
+  // Inline error highlights on transcript
   grammarInlineCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 14, padding: 16, marginBottom: 12,
@@ -2939,7 +2949,7 @@ const styles = StyleSheet.create({
   grammarInlineLegendDot: { width: 10, height: 10, borderRadius: 5 },
   grammarInlineLegendText: { fontSize: 11, fontWeight: '600', color: Colors.light.textSecondary },
 
-  // ── Inline Exam Profile Card ───────────────────────────────────────────────
+  // Inline Exam Profile Card
   examInlineCard: {
     backgroundColor: Colors.light.surface, borderRadius: 14,
     borderWidth: 1, borderColor: Colors.light.border,

@@ -1,19 +1,19 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack } from 'expo-router';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { Stack, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { LearnerProfileProvider } from '@/context/LearnerProfile';
-import { DarkModeProvider, useDarkMode } from '@/context/DarkMode';
 import { LanguageProvider } from '@/context/Language';
 import { tickStreak } from '@/utils/streak';
+import { configureNotifications } from '@/utils/notifications';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
 
 function AppShell() {
-  const { isDark } = useDarkMode();
   const router = useRouter();
   useEffect(() => {
+    // App is dark-only: set up the notification handler once on launch.
+    configureNotifications();
     const checkAuth = async () => {
       try {
         tickStreak();
@@ -35,7 +35,7 @@ function AppShell() {
   }, [router]);
 
   return (
-    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={DarkTheme}>
       <Stack>
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -44,19 +44,17 @@ function AppShell() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'About VocaFlow', headerShown: true }} />
       </Stack>
-      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <StatusBar style="light" />
     </ThemeProvider>
   );
 }
 
 export default function RootLayout() {
   return (
-    <DarkModeProvider>
-      <LanguageProvider>
-        <LearnerProfileProvider>
-          <AppShell />
-        </LearnerProfileProvider>
-      </LanguageProvider>
-    </DarkModeProvider>
+    <LanguageProvider>
+      <LearnerProfileProvider>
+        <AppShell />
+      </LearnerProfileProvider>
+    </LanguageProvider>
   );
 }

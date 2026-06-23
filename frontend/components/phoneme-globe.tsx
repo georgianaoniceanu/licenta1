@@ -201,7 +201,7 @@ export const PhonemeGlobe = () => {
   return (
     <ScrollView style={[styles.container, { backgroundColor }]} showsVerticalScrollIndicator={false}>
       <View style={styles.header}>
-        <Text style={[styles.title, { color: textColor }]}>🌍 Phoneme Globe</Text>
+        <Text style={[styles.title, { color: textColor }]}>Phoneme Globe</Text>
         <Text style={[styles.subtitle, { color: textColor }]}>
           Swipe to rotate • Tap to learn
         </Text>
@@ -275,7 +275,7 @@ export const PhonemeGlobe = () => {
           <View style={[styles.detailHeader, { backgroundColor: getPhonemeColor(selectedPhoneme.errorRate) }]}>
             <Text style={styles.detailPhoneme}>{selectedPhoneme.name}</Text>
             <Pressable onPress={() => setSelectedPhoneme(null)}>
-              <Text style={styles.closeBtn}>✕</Text>
+              <Text style={styles.closeBtn}></Text>
             </Pressable>
           </View>
 
@@ -294,14 +294,14 @@ export const PhonemeGlobe = () => {
               </Text>
             </View>
 
-            <Text style={styles.sectionTitle}>🔍 The Problem</Text>
+            <Text style={styles.sectionTitle}>The Problem</Text>
             <Text style={styles.sectionText}>{selectedPhoneme.issue}</Text>
 
-            <Text style={styles.sectionTitle}>💡 Strategy</Text>
+            <Text style={styles.sectionTitle}>Strategy</Text>
             <Text style={styles.sectionText}>{selectedPhoneme.strategy}</Text>
 
             <Text style={styles.sourceText}>
-              📚 Măchiță, O.-M. (2021)
+              Măchiță, O.-M. (2021)
             </Text>
           </View>
         </View>

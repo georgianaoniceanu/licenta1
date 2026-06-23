@@ -12,7 +12,7 @@
 
 import type { AnyPreset } from './demoMode';
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// Types
 export type WordBreakdown = { word: string; correct: number; total: number; ok: boolean };
 
 /** Full Accent DNA feedback (matches the Feedback type rendered in accent.tsx). */
@@ -56,7 +56,7 @@ export type VocabSession = {
   result: any;           // full AnalysisResult-compatible object (Results screen)
 };
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 const DAY = 86_400_000;
 const daysAgo = (n: number) => Date.now() - n * DAY;
 
@@ -138,7 +138,7 @@ function accent(daysBack: number, text: string, score: number, problems: string[
   };
 }
 
-// ── Full Vocabulary result builder ───────────────────────────────────────────
+// Full Vocabulary result builder
 // Produces a complete AnalysisResult-compatible object so a saved session opens
 // the full Results screen (Words / Speaking / Phonetics / Exercise / Grammar /
 // Exam tabs + metrics + improved version), exactly like a fresh analysis.
@@ -189,7 +189,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
   const fillerRate = speaking ? Math.max(0, Math.min(14, Math.round((100 - spec.score) / 8))) : 0;
   const fillerCount = Math.round(wordCount * fillerRate / 100);
 
-  // ── CEFR distribution (percentages) + per-word tags ──
+  // CEFR distribution (percentages) + per-word tags
   const levelOf: Record<string, string> = {};
   spec.highlights.forEach(([w, l]) => { levelOf[w.toLowerCase()] = l; });
   const counts: Record<string, number> = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
@@ -209,7 +209,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
     .filter(([, l]) => LEVEL_ORDER.indexOf(l) >= 3)
     .map(([w]) => w);
 
-  // ── Exam profile ──
+  // Exam profile
   const band = ieltsBand(spec.score);
   const exam_profile = {
     mode: speaking ? 'speaking' : 'writing',
@@ -244,7 +244,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
     ],
   };
 
-  // ── Genre profile ──
+  // Genre profile
   const dist_groups: Record<string, number> = {
     SPOK: 6, FIC: 5, MAG: 8, NEWS: 8, ACAD: 10, Web: 7, Blog: 6, Mov: 3, TV: 3,
   };
@@ -266,7 +266,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
     source: 'COCA 96-subgenre register model (Davies 2008; Biber & Conrad 2019)',
   };
 
-  // ── Romanian errors ──
+  // Romanian errors
   const categories: Record<string, number> = {};
   spec.grammar.forEach(([type]) => { categories[type] = (categories[type] || 0) + 1; });
   const severity_score = Math.max(0, Math.min(100, 100 - spec.grammar.reduce((a, [, , s]) => a + s * 8, 0)));
@@ -282,7 +282,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
     research: 'Măchiță, O.-M. (2021); Swan & Smith (2001) Learner English.',
   };
 
-  // ── Suggestions / improved text / word family / exercise ──
+  // Suggestions / improved text / word family / exercise
   const suggestions = spec.suggestions.map(([original_word, better_alternative, explanation]) => ({
     original_word, better_alternative, explanation,
   }));
@@ -305,7 +305,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
     personalization_score: Math.min(1, 0.6 + spec.score / 300),
   };
 
-  // ── Speech-only sections (record / upload) ──
+  // Speech-only sections (record / upload)
   const speechSections = speaking ? {
     pronunciation_score: spec.score,
     emotion_analysis: {
@@ -366,7 +366,7 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
   };
 }
 
-// ── Accent DNA sessions ──────────────────────────────────────────────────────
+// Accent DNA sessions
 const ACCENT: Record<AnyPreset, AccentSession[]> = {
   weak: [
     accent(1, 'I think this is the right answer.', 46, ['θ', 'ð', 'ɪ']),
@@ -415,7 +415,7 @@ const ACCENT: Record<AnyPreset, AccentSession[]> = {
   ],
 };
 
-// ── Vocabulary sessions (full results) ───────────────────────────────────────
+// Vocabulary sessions (full results)
 const VOCAB: Record<AnyPreset, VocabSession[]> = {
   weak: [
     buildVocabResult({ daysBack: 2, topic: 'Daily Routine', mode: 'type', level: 'A2', score: 48,
@@ -563,7 +563,7 @@ const VOCAB: Record<AnyPreset, VocabSession[]> = {
   ],
 };
 
-// ── Per-phoneme scores (drive the Accent DNA globe colours) ──────────────────
+// Per-phoneme scores (drive the Accent DNA globe colours)
 // Keys MUST match PHONEME_EXERCISES[].phoneme in app/(tabs)/accent.tsx.
 // last score >= 75 → "Mastered" (green); < 75 → "Needs work" (red);
 // omitted phoneme → "To explore" (yellow).
@@ -579,7 +579,7 @@ const PHONEME_SCORES: Record<AnyPreset, Record<string, number>> = {
   diana: { '/θ/': 80, '/ð/': 72, '/i:/-/ɪ/': 84, '/u:/-/ʊ/': 82, '/æ/-/ɑ:/': 78, '/ŋ/': 88, '/ə/': 86, '[kʰ]': 84, '/ʌ/': 81 },
 };
 
-// ── Public API ───────────────────────────────────────────────────────────────
+// Public API
 export function accentSessionsFor(preset: AnyPreset): AccentSession[] {
   return ACCENT[preset] ?? [];
 }

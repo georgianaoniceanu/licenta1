@@ -1,14 +1,15 @@
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { palette } from '@/constants/theme';
 
-const TEAL   = '#0FBA9A';
-const NAVY   = '#0F1B2D';
-const TEXT   = '#F0F6FF';
-const TEXT2  = '#94A3B8';
-const TEXT3  = '#94A3B8';
-const BORDER = 'rgba(255,255,255,0.08)';
-const CARD   = '#0F1B2D';
-const BG     = '#060D1A';
+const TEAL   = palette.teal;
+const NAVY   = palette.card;
+const TEXT   = palette.text;
+const TEXT2  = palette.textMuted;
+const TEXT3  = palette.textMuted;
+const BORDER = palette.border;
+const CARD   = palette.card;
+const BG     = palette.bg;
 
 const RESEARCH = [
   { cite: 'Pallotti (2015)',          topic: 'CAF Framework — Complexity, Accuracy, Fluency' },
@@ -26,12 +27,12 @@ const RESEARCH = [
 ];
 
 const MODULES = [
-  { icon: '🎙', name: 'Accent DNA',      desc: 'IPA phoneme heatmap for Romanian learners' },
-  { icon: '📢', name: 'Shadow Speaking', desc: 'Prosody matching — pitch, rhythm, stress' },
-  { icon: '📚', name: 'Vocabulary Coach', desc: 'CEFR-calibrated word upgrade suggestions' },
-  { icon: '💪', name: 'Practice Hub',    desc: 'Adaptive, retention, reading, listening' },
-  { icon: '📋', name: 'Assessment',      desc: 'IELTS + Cambridge + CAF profile' },
-  { icon: '📈', name: 'Progress',        desc: 'CEFR journey & skill indicator tracking' },
+  { icon: '', name: 'Accent DNA',      desc: 'IPA phoneme heatmap for Romanian learners' },
+  { icon: '', name: 'Shadow Speaking', desc: 'Prosody matching — pitch, rhythm, stress' },
+  { icon: '', name: 'Vocabulary Coach', desc: 'CEFR-calibrated word upgrade suggestions' },
+  { icon: '', name: 'Practice Hub',    desc: 'Adaptive, retention, reading, listening' },
+  { icon: '', name: 'Assessment',      desc: 'IELTS + Cambridge + CAF profile' },
+  { icon: '', name: 'Progress',        desc: 'CEFR journey & skill indicator tracking' },
 ];
 
 export default function AboutModal() {
@@ -47,7 +48,7 @@ export default function AboutModal() {
         <View style={S.header}>
           <View style={S.logoRow}>
             <View style={S.logoBubble}>
-              <Text style={S.logoText}>🎙</Text>
+              <Text style={S.logoText}></Text>
             </View>
             <View>
               <Text style={S.appName}>VocaFlow</Text>

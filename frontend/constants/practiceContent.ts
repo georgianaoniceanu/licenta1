@@ -11,7 +11,7 @@
  * All content is static and deterministic — no AI generation.
  */
 
-// ── Vocabulary (Adaptive) ─────────────────────────────────────────────────────
+// Vocabulary (Adaptive)
 export interface LocalVocabCard {
   word: string;
   pronunciation: string;
@@ -138,7 +138,7 @@ export const LOCAL_VOCAB_CARDS: LocalVocabCard[] = [
   },
 ];
 
-// ── Reading passages ─────────────────────────────────────────────────────────
+// Reading passages
 export interface LocalReadingQuestion {
   type: 'literal' | 'inferential' | 'vocabulary';
   question: string;
@@ -319,7 +319,7 @@ export const LOCAL_READING_PASSAGES: LocalReadingPassage[] = [
   },
 ];
 
-// ── Grammar (Romanian L1 interference) ───────────────────────────────────────
+// Grammar (Romanian L1 interference)
 // Error categories grounded in Neumanová (2021) error analysis + the app's
 // rule-based L1 detector. Each item targets a documented Romanian→English
 // transfer error.
@@ -481,7 +481,7 @@ export function pickGrammarItem(cefr?: string | null): LocalGrammarItem {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 
 /** Map a CEFR string to an index for filtering content at/below the user level. */
 const CEFR_RANK: Record<string, number> = { A1: 0, A2: 1, B1: 2, B2: 3, C1: 4, C2: 5 };

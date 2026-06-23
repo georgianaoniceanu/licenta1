@@ -91,6 +91,9 @@ const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       activeOpacity={0.85}
       style={[styles.container, containerStyle, style as any]}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: disabled || loading, busy: loading }}
     >
       {loading ? (
         <ActivityIndicator color={getTextColor()} />

@@ -56,27 +56,27 @@ export const VOCABULARY_ENDPOINTS = {
   // NEW: Sends audio file, returns transcribed text
   TRANSCRIBE: `${API_URL}/vocabulary/transcribe`,
   
-  // FEATURE 24: Generate context-aware pronunciation sentences
+  // Generate context-aware pronunciation sentences
   // Personalizes exercises based on user interests and difficulty
   GENERATE_CONTEXT_SENTENCE: `${API_URL}/vocabulary/generate-context-aware-sentence`,
   
-  // FEATURE 25: Analyze pronunciation with emotion & confidence detection
+  // Analyze pronunciation with emotion & confidence detection
   // Returns: pronunciation score, emotion analysis, speech quality metrics
   ANALYZE_PRONUNCIATION_WITH_EMOTION: `${API_URL}/vocabulary/analyze-pronunciation-with-emotion`,
   
-  // FEATURE 16: Generate phonetic breakdown using IPA
+  // Generate phonetic breakdown using IPA
   // Shows exact phoneme differences between target and user pronunciation
   PHONETIC_BREAKDOWN: `${API_URL}/vocabulary/phonetic-breakdown`,
   
-  // FEATURE 17: Generate word family drilling exercises
+  // Generate word family drilling exercises
   // Related word forms: noun, verb, adjective, gerund, etc.
   WORD_FAMILY: `${API_URL}/vocabulary/word-family`,
   
-  // FEATURE 15: Generate highly personalized exercises
+  // Generate highly personalized exercises
   // Based on: weak areas, difficulty, learning style, time available
   PERSONALIZED_EXERCISE: `${API_URL}/vocabulary/personalized-exercise`,
   
-  // FEATURE 14: Analyze recording quality in real-time
+  // Analyze recording quality in real-time
   // Detects: silence, noise, amplitude, quality issues
   ANALYZE_RECORDING_QUALITY: `${API_URL}/vocabulary/analyze-recording-quality`,
 

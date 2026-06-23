@@ -42,27 +42,27 @@ export function FeedbackPanel({ feedback, expanded = false }: FeedbackPanelProps
   const tintColor = useThemeColor({}, 'tint');
 
   const getSeverityStyles = (severity: string) => {
-    if (severity.includes('CRITICAL') || severity.includes('🔴')) {
+    if (severity.includes('CRITICAL') || severity.includes('')) {
       return {
         background: '#fee2e2',
         border: '#dc2626',
         text: '#7f1d1d',
-        badge: '🔴',
+        badge: '',
       };
     }
-    if (severity.includes('HIGH') || severity.includes('🟡')) {
+    if (severity.includes('HIGH') || severity.includes('')) {
       return {
         background: '#fef3c7',
         border: '#f59e0b',
         text: '#92400e',
-        badge: '🟡',
+        badge: '',
       };
     }
     return {
       background: '#d1fae5',
       border: '#10b981',
       text: '#065f46',
-      badge: '🟢',
+      badge: '',
     };
   };
 
@@ -223,7 +223,7 @@ export function FeedbackPanel({ feedback, expanded = false }: FeedbackPanelProps
               style={[styles.downloadButton, { borderColor: tintColor }]}
             >
               <Text style={[styles.downloadText, { color: tintColor }]}>
-                📄 Full Report (Markdown)
+                Full Report (Markdown)
               </Text>
             </TouchableOpacity>
           </View>

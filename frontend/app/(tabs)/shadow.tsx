@@ -365,7 +365,7 @@ export default function ShadowSpeakingScreen() {
     }
   };
 
-  // ── Upload a pre-recorded audio file instead of recording live ────────────
+  // Upload a pre-recorded audio file instead of recording live
   const openFilePicker = () => {
     if (Platform.OS === 'web') {
       fileInputRef.current?.click();
@@ -530,7 +530,8 @@ export default function ShadowSpeakingScreen() {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={styles.backText}>← Back</Text>
+            <Feather name="chevron-left" size={18} color={Colors.light.tint} />
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
           <Text style={styles.headerBadge}>Shadow Speaking</Text>
         </View>
@@ -543,7 +544,7 @@ export default function ShadowSpeakingScreen() {
         {/* Previously practised fragments (saved sessions for this user) */}
         <SavedSessions<SavedShadow>
           storageKey="vf_shadow_sessions"
-          title="🎙 Practised fragments"
+          title="Practised fragments"
           accent={Colors.light.tint}
           getLabel={(s) => s.target_text}
           getScore={(s) => s.score}
@@ -682,7 +683,9 @@ export default function ShadowSpeakingScreen() {
             return (
               <View key={s} style={styles.stepItem}>
                 <View style={[styles.stepDot, step === s && styles.stepDotActive, done && styles.stepDotDone]}>
-                  <Text style={[styles.stepDotText, (step === s || done) && styles.stepDotTextActive]}>{done ? '✓' : i + 1}</Text>
+                  {done
+                    ? <Feather name="check" size={12} color="#fff" />
+                    : <Text style={[styles.stepDotText, step === s && styles.stepDotTextActive]}>{i + 1}</Text>}
                 </View>
                 <Text style={[styles.stepLabel, step === s && styles.stepLabelActive]}>
                   {s.charAt(0).toUpperCase() + s.slice(1)}
@@ -695,7 +698,7 @@ export default function ShadowSpeakingScreen() {
         {/* Step 1: Listen */}
         {step === 'listen' && (
           <View style={styles.stepCard}>
-            <Text style={styles.stepTitle}>🎧 Step 1: Listen to Native Speaker</Text>
+            <Text style={styles.stepTitle}>Step 1: Listen to Native Speaker</Text>
             <Text style={styles.stepDescription}>
               Play the audio and pay close attention to{' '}
               <Text style={styles.focusHighlight}>{selectedFragment.focus}</Text>.
@@ -730,7 +733,7 @@ export default function ShadowSpeakingScreen() {
                   <ActivityIndicator color="#fff" size="large" />
                 ) : (
                   <>
-                    <Text style={styles.playIcon}>{isPlayingAudio ? '⏸' : '▶'}</Text>
+                    <Feather name={isPlayingAudio ? 'pause' : 'play'} size={18} color="#fff" />
                     <Text style={styles.playBtnText}>
                       {isPlayingAudio ? 'Pause' : 'Play Audio'}
                     </Text>
@@ -751,7 +754,7 @@ export default function ShadowSpeakingScreen() {
         {/* Step 2: Record */}
         {step === 'record' && (
           <View style={styles.stepCard}>
-            <Text style={styles.stepTitle}>🎙 Step 2: Shadow it</Text>
+            <Text style={styles.stepTitle}>Step 2: Shadow it</Text>
             <Text style={styles.stepDescription}>
               Say the fragment out loud, matching the rhythm and natural flow you heard.
             </Text>
@@ -776,7 +779,7 @@ export default function ShadowSpeakingScreen() {
                     <ActivityIndicator color="#fff" size="large" />
                   ) : (
                     <>
-                      <Text style={styles.recordIcon}>{isRecording ? '⏹' : '🎙'}</Text>
+                      <Feather name={isRecording ? 'square' : 'mic'} size={18} color="#fff" />
                       <Text style={styles.recordBtnText}>
                         {isRecording ? 'Stop & Analyze' : 'Start Recording'}
                       </Text>
@@ -793,7 +796,7 @@ export default function ShadowSpeakingScreen() {
               )}
             </View>
 
-            {/* ── Upload alternative ─────────────────────────────────────── */}
+            {/* Upload alternative */}
             {!isRecording && (
               <>
                 <View style={styles.uploadDivider}>
@@ -819,11 +822,11 @@ export default function ShadowSpeakingScreen() {
                   disabled={loading}
                   activeOpacity={0.85}
                 >
-                  <Text style={styles.uploadBtnText}>📁  Upload a recording instead</Text>
+                  <Text style={styles.uploadBtnText}> Upload a recording instead</Text>
                 </TouchableOpacity>
 
                 {uploadedFileName && (
-                  <Text style={styles.uploadFileName} numberOfLines={1}>📎 {uploadedFileName}</Text>
+                  <Text style={styles.uploadFileName} numberOfLines={1}>{uploadedFileName}</Text>
                 )}
                 {Platform.OS !== 'web' && (
                   <Text style={styles.uploadHint}>Upload works in the web version.</Text>
@@ -834,7 +837,8 @@ export default function ShadowSpeakingScreen() {
             {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
             <TouchableOpacity style={styles.goBackStep} onPress={() => setStep('listen')}>
-              <Text style={styles.goBackStepText}>← Re-listen</Text>
+              <Feather name="chevron-left" size={15} color={Colors.light.textSecondary} />
+              <Text style={styles.goBackStepText}>Re-listen</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -1060,7 +1064,7 @@ const styles = StyleSheet.create({
   scrollContent: { paddingHorizontal: 20, paddingTop: 56 },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
-  backBtn: { paddingVertical: 6, paddingRight: 12 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
   backText: { color: Colors.light.tint, fontSize: 15, fontWeight: '600' },
   headerBadge: { fontSize: 13, fontWeight: '700', color: Colors.light.tint },
 
@@ -1253,7 +1257,7 @@ const styles = StyleSheet.create({
   recordingDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.light.error },
   recordingText: { color: Colors.light.error, fontSize: 13, fontWeight: '600' },
 
-  goBackStep: { alignItems: 'center', paddingVertical: 8 },
+  goBackStep: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 2, paddingVertical: 8 },
   goBackStepText: { color: Colors.light.textSecondary, fontSize: 13, fontWeight: '600' },
 
   // Upload alternative

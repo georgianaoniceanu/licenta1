@@ -6,7 +6,6 @@
  * The backend computes all 10 proficiency indicators and returns the baseline diagnosis.
  *
  * Research Foundation:
- * ─────────────────────────────────────────────────────────────────────────────
  * - Knoch (2009) / Alderson (2005): diagnostic tasks focus on specific abilities,
  *   not global impressions. The prompt is tailored to the learner's declared domain.
  * - Dimova (2022) / Fulcher (2003): performance-based task design — monologic
@@ -14,7 +13,6 @@
  * - Pallotti (2015) CAF: the 10 indicators cover Complexity, Accuracy, Fluency.
  * - Kolahi Ahari et al. (2025): lexical diversity, syntactic complexity, cohesion are
  *   the strongest predictors of L2 speaking proficiency.
- * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useState, useEffect } from 'react';
@@ -31,14 +29,12 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, BorderRadius } from '@/constants/theme';
+import { Feather } from '@expo/vector-icons';
+import { Colors, Spacing, BorderRadius, palette } from '@/constants/theme';
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 
-// ─────────────────────────────────────────────────────────────────────────────
 // TYPES
-// ─────────────────────────────────────────────────────────────────────────────
 
 interface IndicatorResult {
   name: string;
@@ -90,9 +86,7 @@ interface RomanianErrors {
   errors: Array<{ error_type: string; message: string; severity: number; occurrences: number }>;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // INDICATOR DISPLAY CONFIG
-// ─────────────────────────────────────────────────────────────────────────────
 
 const INDICATOR_LABELS: Record<string, string> = {
   lexical_diversity:        'Vocabulary Range',
@@ -114,9 +108,7 @@ const SEVERITY_COLOR: Record<string, string> = {
   '🟢 LOW':      '#10b981',
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
 // COMPONENT
-// ─────────────────────────────────────────────────────────────────────────────
 
 type Phase = 'prompt' | 'writing' | 'analyzing' | 'results';
 
@@ -285,11 +277,11 @@ export default function InitialDiagnosticScreen() {
     router.replace('/(tabs)');
   };
 
-  // ─── PHASE: PROMPT ─────────────────────────────────────────────────────────
+  // PHASE: PROMPT
   if (phase === 'prompt') {
     return (
-      <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <View style={[styles.container, { backgroundColor: BG }]}>
+        <StatusBar barStyle="light-content" backgroundColor={BG} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
           <View style={styles.topBadge}>
             <Text style={styles.badgeText}>Initial Diagnosis</Text>
@@ -307,7 +299,7 @@ export default function InitialDiagnosticScreen() {
               <Text style={styles.promptTitle}>{prompt.title}</Text>
               <Text style={styles.promptInstruction}>{prompt.instruction}</Text>
               <View style={styles.hintRow}>
-                <Text style={styles.hintIcon}>💡</Text>
+                <Feather name="info" size={14} color={TINT} />
                 <Text style={styles.hintText}>{prompt.hint}</Text>
               </View>
             </View>
@@ -315,13 +307,13 @@ export default function InitialDiagnosticScreen() {
 
           <View style={styles.infoGrid}>
             {[
-              { icon: '📊', label: '10 indicators', sub: 'measured from your text' },
-              { icon: '🎯', label: 'CEFR level', sub: 'predicted automatically' },
-              { icon: '🔍', label: 'Dual Diagnosis', sub: 'perception vs. measurement' },
-              { icon: '📋', label: 'Module plan', sub: 'personalised for you' },
+              { icon: 'bar-chart-2', label: '10 indicators', sub: 'measured from your text' },
+              { icon: 'target', label: 'CEFR level', sub: 'predicted automatically' },
+              { icon: 'search', label: 'Dual Diagnosis', sub: 'perception vs. measurement' },
+              { icon: 'clipboard', label: 'Module plan', sub: 'personalised for you' },
             ].map(item => (
               <View key={item.label} style={styles.infoCard}>
-                <Text style={styles.infoIcon}>{item.icon}</Text>
+                <Feather name={item.icon as any} size={20} color={TINT} style={{ marginBottom: 4 }} />
                 <Text style={styles.infoLabel}>{item.label}</Text>
                 <Text style={styles.infoSub}>{item.sub}</Text>
               </View>
@@ -340,17 +332,19 @@ export default function InitialDiagnosticScreen() {
     );
   }
 
-  // ─── PHASE: WRITING ────────────────────────────────────────────────────────
+  // PHASE: WRITING
   if (phase === 'writing') {
     return (
-      <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <View style={[styles.container, { backgroundColor: BG }]}>
+        <StatusBar barStyle="light-content" backgroundColor={BG} />
         <View style={styles.writingHeader}>
           <TouchableOpacity onPress={() => setPhase('prompt')} style={styles.backBtn}>
-            <Text style={styles.backBtnText}>←  Back</Text>
+            <Feather name="chevron-left" size={18} color={TINT} />
+            <Text style={styles.backBtnText}>Back</Text>
           </TouchableOpacity>
           <View style={[styles.wordCountBadge, wordCount >= 50 && styles.wordCountReady]}>
-            <Text style={styles.wordCountText}>{wordCount} words {wordCount >= 50 ? '✓' : '/ 50 min'}</Text>
+            <Text style={styles.wordCountText}>{wordCount} words{wordCount >= 50 ? '' : ' / 50 min'}</Text>
+            {wordCount >= 50 && <Feather name="check" size={12} color={TINT} style={{ marginLeft: 4 }} />}
           </View>
         </View>
 
@@ -387,11 +381,11 @@ export default function InitialDiagnosticScreen() {
     );
   }
 
-  // ─── PHASE: ANALYZING ─────────────────────────────────────────────────────
+  // PHASE: ANALYZING
   if (phase === 'analyzing') {
     return (
-      <View style={[styles.container, styles.centred, { backgroundColor: '#F8FAFC' }]}>
-        <StatusBar barStyle="dark-content" />
+      <View style={[styles.container, styles.centred, { backgroundColor: BG }]}>
+        <StatusBar barStyle="light-content" />
         <ActivityIndicator size="large" color={Colors.light.tint} />
         <Text style={styles.analyzingTitle}>Analysing your text...</Text>
         <Text style={styles.analyzingSubtitle}>
@@ -402,11 +396,11 @@ export default function InitialDiagnosticScreen() {
     );
   }
 
-  // ─── PHASE: RESULTS ────────────────────────────────────────────────────────
+  // PHASE: RESULTS
   if (phase === 'results' && diagnosis) {
     return (
-      <View style={[styles.container, { backgroundColor: '#F8FAFC' }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#F8FAFC" />
+      <View style={[styles.container, { backgroundColor: BG }]}>
+        <StatusBar barStyle="light-content" backgroundColor={BG} />
         <ScrollView contentContainerStyle={styles.scrollContent}>
 
           {/* Header */}
@@ -420,7 +414,7 @@ export default function InitialDiagnosticScreen() {
             <Text style={styles.scoreLabel}>Overall proficiency score</Text>
           </View>
 
-          {/* ── Second opinion: Ordinal LR + SVM ensemble ── */}
+          {/* Second opinion: Ordinal LR + SVM ensemble */}
           {diagnosis.rf_predicted_cefr && (() => {
             const agree      = diagnosis.rf_predicted_cefr === diagnosis.predicted_cefr;
             const conf       = diagnosis.rf_confidence ?? 0;
@@ -433,7 +427,7 @@ export default function InitialDiagnosticScreen() {
             return (
               <View style={styles.rfCard}>
                 <View style={styles.rfHeader}>
-                  <Text style={styles.rfEmoji}>🔍</Text>
+                  <Feather name="search" size={20} color={TINT} style={{ marginTop: 2 }} />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.rfTitle}>Cross-check · Ordinal model</Text>
                     <Text style={styles.rfSub}>
@@ -463,7 +457,7 @@ export default function InitialDiagnosticScreen() {
 
                 {/* Agreement chip */}
                 <View style={[styles.rfAgreePill, { backgroundColor: agree ? TINT + '15' : '#F59E0B15' }]}>
-                  <Text style={{ fontSize: 13 }}>{agree ? '✅' : '🤔'}</Text>
+                  <Feather name={agree ? 'check-circle' : 'help-circle'} size={14} color={agree ? TINT : '#B45309'} />
                   <Text style={[styles.rfAgreeMsg, { color: agree ? TINT : '#B45309' }]}>
                     {agree
                       ? 'Both analyses agree — you\'re at ' + diagnosis.predicted_cefr
@@ -474,7 +468,7 @@ export default function InitialDiagnosticScreen() {
             );
           })()}
 
-          {/* ── Exam Score Mapping (Cambridge CAE / TOEFL iBT / IELTS) ── */}
+          {/* Exam Score Mapping (Cambridge CAE / TOEFL iBT / IELTS) */}
           {diagnosis.exam_specific_scores && Object.keys(diagnosis.exam_specific_scores).length > 0 && (
             <View style={styles.examCard}>
               <Text style={styles.sectionTitle}>International Exam Mapping</Text>
@@ -550,7 +544,7 @@ export default function InitialDiagnosticScreen() {
               <Text style={styles.sectionTitle}>Focus Areas</Text>
               {diagnosis.critical_areas.slice(0, 3).map(area => (
                 <View key={area} style={styles.focusCard}>
-                  <Text style={styles.focusIcon}>⚠️</Text>
+                  <Feather name="alert-triangle" size={15} color="#ef4444" />
                   <Text style={styles.focusText}>{area}</Text>
                 </View>
               ))}
@@ -563,14 +557,14 @@ export default function InitialDiagnosticScreen() {
               <Text style={styles.sectionTitle}>Strengths</Text>
               {diagnosis.strengths.slice(0, 2).map(s => (
                 <View key={s} style={styles.strengthCard}>
-                  <Text style={styles.focusIcon}>✅</Text>
+                  <Feather name="check-circle" size={15} color="#10b981" />
                   <Text style={styles.focusText}>{s}</Text>
                 </View>
               ))}
             </>
           )}
 
-          {/* ── Learner Cluster Profile (Goldshtein et al. 2024) ── */}
+          {/* Learner Cluster Profile (Goldshtein et al. 2024) */}
           {learnerCluster && (
             <View style={[styles.enrichCard, styles.clusterCard]}>
               <View style={styles.clusterHeader}>
@@ -612,7 +606,7 @@ export default function InitialDiagnosticScreen() {
             </View>
           )}
 
-          {/* ── IDL — Index of Developmental Levels (Neumanova 2025) ── */}
+          {/* IDL — Index of Developmental Levels (Neumanova 2025) */}
           {idl != null && (
             <View style={styles.enrichCard}>
               <Text style={styles.enrichTitle}>Developmental Level (IDL)</Text>
@@ -625,7 +619,7 @@ export default function InitialDiagnosticScreen() {
             </View>
           )}
 
-          {/* ── EVP Vocabulary Profile ── */}
+          {/* EVP Vocabulary Profile */}
           {vocabProfile && (
             <View style={styles.enrichCard}>
               <Text style={styles.enrichTitle}>Vocabulary Level Distribution</Text>
@@ -658,7 +652,7 @@ export default function InitialDiagnosticScreen() {
             </View>
           )}
 
-          {/* ── Romanian L1 Interference Errors (Pungă & Pârlog 2015) ── */}
+          {/* Romanian L1 Interference Errors (Pungă & Pârlog 2015) */}
           {romanianErrors && romanianErrors.error_count > 0 && (
             <View style={styles.enrichCard}>
               <Text style={styles.enrichTitle}>Romanian L1 Interference</Text>
@@ -699,21 +693,21 @@ export default function InitialDiagnosticScreen() {
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // STYLES
-// ─────────────────────────────────────────────────────────────────────────────
 
-// VocaFlow brand palette (light theme) — matches login & rest of app
-const TINT = '#0FBA9A';
-const TINT_LIGHT = '#ECFDF5';
-const CARD = '#FFFFFF';
-const BORDER = '#E5E7EB';
-const BG = '#F8FAFC';
-const TEXT = '#0F172A';
-const TEXT_MUTED = '#64748B';
+// VocaFlow dark palette — single source of truth in theme.ts
+const TINT = palette.teal;
+const TINT_LIGHT = 'rgba(15,186,154,0.12)';
+const CARD = palette.card;
+const BORDER = palette.border;
+const BG = palette.bg;
+const TEXT = palette.text;
+const TEXT_MUTED = palette.textMuted;
+const TRACK = 'rgba(255,255,255,0.10)';   // progress/track backgrounds
+const SURFACE = palette.bgElevated;        // subtle raised surface
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: BG },
   centred: { justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 60 : 40, paddingBottom: 60 },
 
@@ -769,7 +763,7 @@ const styles = StyleSheet.create({
   vocabBars: { gap: 6 },
   vocabBarRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   vocabBarLabel: { fontSize: 11, fontWeight: '700', color: Colors.light.text, width: 24 },
-  vocabBarTrack: { flex: 1, height: 10, backgroundColor: '#E5E7EB', borderRadius: 5, overflow: 'hidden' },
+  vocabBarTrack: { flex: 1, height: 10, backgroundColor: TRACK, borderRadius: 5, overflow: 'hidden' },
   vocabBarFill: { height: 10, borderRadius: 5 },
   vocabBarPct: { fontSize: 11, color: Colors.light.textSecondary, width: 36, textAlign: 'right' },
   romanianRow: { flexDirection: 'row', alignItems: 'flex-start', gap: Spacing.md },
@@ -796,7 +790,7 @@ const styles = StyleSheet.create({
   cafChip: {
     flex: 1, alignItems: 'center', paddingVertical: 6,
     borderWidth: 1.5, borderRadius: BorderRadius.sm,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: SURFACE,
   },
   cafChipVal: { fontSize: 12, fontWeight: '800' },
   cafChipDim: { fontSize: 10, color: Colors.light.textSecondary, marginTop: 2, textTransform: 'capitalize' },
@@ -813,12 +807,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg, paddingTop: Platform.OS === 'ios' ? 56 : 40, paddingBottom: Spacing.sm,
   },
   backBtn: {
-    paddingHorizontal: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingLeft: 10,
+    paddingRight: 16,
     paddingVertical: 9,
     borderRadius: 11,
     borderWidth: 1.5,
     borderColor: TINT,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: CARD,
   },
   backBtnText: {
     color: TINT,
@@ -827,6 +825,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   wordCountBadge: {
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: BORDER, borderRadius: BorderRadius.round,
     paddingHorizontal: Spacing.md, paddingVertical: 4,
   },
@@ -880,7 +879,7 @@ const styles = StyleSheet.create({
   examArc: {
     width: 72, height: 72, borderRadius: 36,
     borderWidth: 3, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#F1F5F9',
+    backgroundColor: SURFACE,
   },
   examScore: { fontSize: 20, fontWeight: '800', lineHeight: 24 },
   examMax: { fontSize: 10, color: Colors.light.textSecondary, lineHeight: 13 },
@@ -910,7 +909,7 @@ const styles = StyleSheet.create({
 
   rfLevelRight: { flex: 1, gap: 6 },
   rfConfSub:    { fontSize: 12, color: Colors.light.text },
-  rfConfTrack:  { height: 8, backgroundColor: '#E5E7EB', borderRadius: 4, overflow: 'hidden' },
+  rfConfTrack:  { height: 8, backgroundColor: TRACK, borderRadius: 4, overflow: 'hidden' },
   rfConfFill:   { height: 8, backgroundColor: TINT, borderRadius: 4 },
   rfConfHint:   { fontSize: 11, color: Colors.light.textSecondary, fontStyle: 'italic' },
 

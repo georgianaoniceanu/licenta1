@@ -206,7 +206,7 @@ export const RomanianPhonemeHeatmap = () => {
           <View style={styles.detailHeader}>
             <Text style={styles.detailTitle}>{selectedPhoneme.phoneme}</Text>
             <Pressable onPress={() => setSelectedPhoneme(null)}>
-              <Text style={styles.closeButton}>✕</Text>
+              <Text style={styles.closeButton}></Text>
             </Pressable>
           </View>
 
@@ -226,7 +226,7 @@ export const RomanianPhonemeHeatmap = () => {
 
             <View style={styles.sourceNote}>
               <Text style={styles.sourceText}>
-                📚 Source: Măchiță, O.-M. (2021). The Acquisition of English Phonology by Romanian and French Learners of English. University of Bucharest.
+                Source: Măchiță, O.-M. (2021). The Acquisition of English Phonology by Romanian and French Learners of English. University of Bucharest.
               </Text>
             </View>
           </View>
@@ -240,28 +240,28 @@ export const RomanianPhonemeHeatmap = () => {
         </Text>
 
         <View style={styles.insightBox}>
-          <Text style={styles.insightHeading}>🎯 Vowel System (Tense-Lax)</Text>
+          <Text style={styles.insightHeading}>Vowel System (Tense-Lax)</Text>
           <Text style={styles.insightText}>
             Romanian lacks the tense-lax distinction found in English. Speakers merge /i:/ and /ɪ/, and critically, /u:/ and /ʊ/ - with NO Romanian reaching RP standard pronunciation.
           </Text>
         </View>
 
         <View style={styles.insightBox}>
-          <Text style={styles.insightHeading}>🎯 Missing Consonants</Text>
+          <Text style={styles.insightHeading}>Missing Consonants</Text>
           <Text style={styles.insightText}>
             Interdental fricatives /θ/ and /ð/ don't exist in Romanian. Speakers use STOPPING: /θ/→[t] and /ð/→[d] (think→tink, this→dis). Only 10% consistently produce /θ/ correctly.
           </Text>
         </View>
 
         <View style={styles.insightBox}>
-          <Text style={styles.insightHeading}>🎯 Alophone Constraints</Text>
+          <Text style={styles.insightHeading}>Alophone Constraints</Text>
           <Text style={styles.insightText}>
             50% of Romanian speakers add [g] after /ŋ/ (saying "doing-g") because Romanian treats [ŋ] as only appearing before /k,g/. This deep L1 pattern is hard to break.
           </Text>
         </View>
 
         <View style={styles.insightBox}>
-          <Text style={styles.insightHeading}>🎯 Over-Aspiration Issue</Text>
+          <Text style={styles.insightHeading}>Over-Aspiration Issue</Text>
           <Text style={styles.insightText}>
             70% of Romanian speakers over-aspirate /k/, exceeding English norms (VOT {'>'} 40ms). Meanwhile, aspirated [th] is produced extremely rarely.
           </Text>

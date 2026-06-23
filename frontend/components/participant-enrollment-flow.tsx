@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Linking,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useThemeColor } from '@/hooks/use-theme-color';
 
 interface ParticipantEnrollmentFlowProps {
@@ -82,7 +83,7 @@ export function ParticipantEnrollmentFlow({
       {/* Step 1: Welcome */}
       {currentStep === 'welcome' && (
         <View style={styles.step}>
-          <Text style={[styles.title, { color: textColor }]}>🎓 Join Our Study</Text>
+          <Text style={[styles.title, { color: textColor }]}>Join Our Study</Text>
           <Text style={[styles.subtitle, { color: textColor }]}>
             Help us validate the English diagnostic system for Romanian learners
           </Text>
@@ -98,19 +99,19 @@ export function ParticipantEnrollmentFlow({
             <Text style={[styles.heading, { color: textColor }]}>What will you do?</Text>
             <View style={styles.bulletList}>
               <Text style={[styles.bullet, { color: textColor }]}>
-                📝 <Text style={{ fontWeight: '600' }}>Week 1-2:</Text> Complete baseline assessment
+                <Text style={{ fontWeight: '600' }}>Week 1-2:</Text> Complete baseline assessment
                 (writing + speaking)
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                🎯 <Text style={{ fontWeight: '600' }}>Week 2-3:</Text> Randomized to treatment or
+                <Text style={{ fontWeight: '600' }}>Week 2-3:</Text> Randomized to treatment or
                 control group
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                ✏️ <Text style={{ fontWeight: '600' }}>Week 4-6:</Text> Treatment group uses modules
+                <Text style={{ fontWeight: '600' }}>Week 4-6:</Text> Treatment group uses modules
                 2-3 hrs/week (control: no access)
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                🏆 <Text style={{ fontWeight: '600' }}>Week 7:</Text> Take official IELTS/Cambridge/TOEFL
+                <Text style={{ fontWeight: '600' }}>Week 7:</Text> Take official IELTS/Cambridge/TOEFL
                 exam
               </Text>
             </View>
@@ -118,16 +119,16 @@ export function ParticipantEnrollmentFlow({
             <Text style={[styles.heading, { color: textColor }]}>Why participate?</Text>
             <View style={styles.bulletList}>
               <Text style={[styles.bullet, { color: textColor }]}>
-                ✨ Free personalized learning path
+                Free personalized learning path
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                📊 Detailed feedback on your English level
+                Detailed feedback on your English level
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                🎓 Contribute to English language learning research
+                Contribute to English language learning research
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                🌍 Help other Romanian learners
+                Help other Romanian learners
               </Text>
             </View>
           </View>
@@ -215,7 +216,10 @@ export function ParticipantEnrollmentFlow({
               style={[styles.button, styles.secondaryButton]}
               onPress={() => setCurrentStep('welcome')}
             >
-              <Text style={[styles.secondaryButtonText]}>← Back</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Feather name="chevron-left" size={16} color="#6b7280" />
+                <Text style={styles.secondaryButtonText}>Back</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.button, { backgroundColor: tintColor, flex: 1, marginLeft: 12 }]}
@@ -244,7 +248,7 @@ export function ParticipantEnrollmentFlow({
                     consent.purpose && { backgroundColor: tintColor, borderColor: tintColor },
                   ]}
                 >
-                  {consent.purpose && <Text style={styles.checkmark}>✓</Text>}
+                  {consent.purpose && <Text style={styles.checkmark}></Text>}
                 </View>
                 <Text style={[styles.consentText, { color: textColor }]}>
                   I understand the purpose of this study and what I'll be asked to do.
@@ -268,7 +272,7 @@ export function ParticipantEnrollmentFlow({
                     },
                   ]}
                 >
-                  {consent.timeCommitment && <Text style={styles.checkmark}>✓</Text>}
+                  {consent.timeCommitment && <Text style={styles.checkmark}></Text>}
                 </View>
                 <Text style={[styles.consentText, { color: textColor }]}>
                   I can commit 2-3 hours per week for 4-10 weeks, including the official test.
@@ -287,7 +291,7 @@ export function ParticipantEnrollmentFlow({
                     consent.withdrawal && { backgroundColor: tintColor, borderColor: tintColor },
                   ]}
                 >
-                  {consent.withdrawal && <Text style={styles.checkmark}>✓</Text>}
+                  {consent.withdrawal && <Text style={styles.checkmark}></Text>}
                 </View>
                 <Text style={[styles.consentText, { color: textColor }]}>
                   I understand I can withdraw from the study at any time without penalty.
@@ -306,7 +310,7 @@ export function ParticipantEnrollmentFlow({
                     consent.dataPrivacy && { backgroundColor: tintColor, borderColor: tintColor },
                   ]}
                 >
-                  {consent.dataPrivacy && <Text style={styles.checkmark}>✓</Text>}
+                  {consent.dataPrivacy && <Text style={styles.checkmark}></Text>}
                 </View>
                 <Text style={[styles.consentText, { color: textColor }]}>
                   I consent to the use of my assessment data for research purposes (anonymized).
@@ -326,7 +330,10 @@ export function ParticipantEnrollmentFlow({
               style={[styles.button, styles.secondaryButton]}
               onPress={() => setCurrentStep('info')}
             >
-              <Text style={styles.secondaryButtonText}>← Back</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                <Feather name="chevron-left" size={16} color="#6b7280" />
+                <Text style={styles.secondaryButtonText}>Back</Text>
+              </View>
             </TouchableOpacity>
             <TouchableOpacity
               disabled={!Object.values(consent).every(Boolean) || loading}
@@ -354,7 +361,7 @@ export function ParticipantEnrollmentFlow({
       {/* Step 4: Confirmation */}
       {currentStep === 'enrolled' && participantId && (
         <View style={styles.step}>
-          <Text style={[styles.successEmoji]}>🎉</Text>
+          <Feather name="check-circle" size={48} color="#0FBA9A" style={styles.successEmoji} />
           <Text style={[styles.title, { color: textColor }]}>Successfully Enrolled!</Text>
 
           <View style={[styles.successBox, { backgroundColor: '#d1fae5' }]}>
@@ -371,16 +378,16 @@ export function ParticipantEnrollmentFlow({
             <Text style={[styles.heading, { color: textColor }]}>Next Steps:</Text>
             <View style={styles.bulletList}>
               <Text style={[styles.bullet, { color: textColor }]}>
-                1️⃣ You'll receive an email with baseline assessment details
+                1⃣ You'll receive an email with baseline assessment details
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                2️⃣ Complete baseline (writing + speaking) by {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                2⃣ Complete baseline (writing + speaking) by {new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                3️⃣ We'll randomize you to treatment or control group
+                3⃣ We'll randomize you to treatment or control group
               </Text>
               <Text style={[styles.bullet, { color: textColor }]}>
-                4️⃣ Begin your study phase
+                4⃣ Begin your study phase
               </Text>
             </View>
 

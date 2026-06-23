@@ -2,9 +2,9 @@
  * Coverage Map — 3-circle Venn diagram showing the learner's
  * COCA subgenre coverage against three recommendation sources:
  *
- *   🔴 JOB    — subgenres essential for the learner's profession (O*NET → COCA)
- *   🔵 EXAM   — subgenres tied to their target exam (IELTS / Cambridge / etc.)
- *   🟡 GOAL   — subgenres aligned with their primary learning goal
+ *   JOB    — subgenres essential for the learner's profession (O*NET → COCA)
+ *   EXAM   — subgenres tied to their target exam (IELTS / Cambridge / etc.)
+ *   GOAL   — subgenres aligned with their primary learning goal
  *
  * Theoretical basis:
  *   Biber & Conrad (2019) "Register, Genre, Style" — registers cluster around
@@ -36,18 +36,19 @@ import {
   type Job,
 } from '@/constants/jobsDatabase';
 import { getSubgenreWords } from '@/constants/cocaSubgenreWords';
+import { palette } from '@/constants/theme';
 
-// ── Theme ────────────────────────────────────────────────────────────────────
-const BG     = '#060D1A';
-const CARD   = '#0F1B2D';
-const TEXT   = '#F0F6FF';
-const TEXT2  = '#64748B';
-const TEXT3  = '#94A3B8';
-const BORDER = 'rgba(255,255,255,0.08)';
+// Theme
+const BG     = palette.bg;
+const CARD   = palette.card;
+const TEXT   = palette.text;
+const TEXT2  = palette.textSubtle;
+const TEXT3  = palette.textMuted;
+const BORDER = palette.border;
 
-const C_JOB  = '#8B5CF6';  // purple — JOB
-const C_EXAM = '#C4B5FD';  // light purple — EXAM (distinguishable from JOB)
-const C_GOAL = '#0FBA9A';  // teal — GOAL
+const C_JOB  = palette.purple;  // purple — JOB
+const C_EXAM = palette.purpleSoft;  // light purple — EXAM (distinguishable from JOB)
+const C_GOAL = palette.teal;  // teal — GOAL
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const VENN_W = Math.min(SCREEN_W - 32, 360);
@@ -90,7 +91,7 @@ const GOAL_COVERAGE: Record<string, string[]> = {
   coherence:     ['ACAD:Humanities', 'NEWS:Editorial', 'MAG:News/Opin', 'Web:Acad', 'Blog:Arg', 'ACAD:Education'],
 };
 
-// ── Type definitions ────────────────────────────────────────────────────────
+// Type definitions
 type Bucket =
   | 'urgent'       // in JOB ∩ EXAM ∩ GOAL but not covered
   | 'priorityJE'   // in JOB ∩ EXAM, not covered
@@ -117,7 +118,7 @@ interface CoverageState {
   goalCodes: string[];
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// Helpers
 function classifySubgenre(
   code: string,
   st: CoverageState,
@@ -145,7 +146,7 @@ function classifySubgenre(
   return { bucket: 'goalOnly', sources };
 }
 
-// ── Venn diagram — three overlapping circles ──────────────────────────────────
+// Venn diagram — three overlapping circles
 function VennDiagram({
   jobCount, examCount, goalCount,
   jeCount, jgCount, egCount, allCount,
@@ -176,7 +177,7 @@ function VennDiagram({
 
   return (
     <View>
-      {/* ── Diagram ── */}
+      {/* Diagram */}
       <View style={{ width: VENN_W, height: VENN_H, alignSelf: 'center' }}>
         {circle(CC.exam, C_EXAM + '30', C_EXAM)}
         {circle(CC.goal, C_GOAL + '30', C_GOAL)}
@@ -216,7 +217,7 @@ function VennDiagram({
         </View>
       </View>
 
-      {/* ── Legend ── */}
+      {/* Legend */}
       <View style={styles.vennLegend}>
         <View style={styles.vennLegendRow}>
           <LegendItem color={C_JOB}  label="JOB only"       value={jobOnly}  />
@@ -259,7 +260,7 @@ function LegendItem({ color, label, value, dual }: {
   );
 }
 
-// ── Main screen ──────────────────────────────────────────────────────────────
+// Main screen
 export default function CoverageMapScreen() {
   const router = useRouter();
   const [state, setState] = useState<CoverageState>({
@@ -361,13 +362,13 @@ export default function CoverageMapScreen() {
     }
   })();
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // Render
   return (
     <View style={styles.screen}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="arrow-left" size={20} color={TEXT} />
+          <Feather name="chevron-left" size={22} color={TEXT} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.headerTitle}>Coverage Map</Text>
@@ -628,7 +629,7 @@ export default function CoverageMapScreen() {
   );
 }
 
-// ── Sub-components ──────────────────────────────────────────────────────────
+// Sub-components
 function InsightCard({
   icon, color, count, label, sub,
 }: { icon: any; color: string; count: number; label: string; sub: string }) {
@@ -656,7 +657,7 @@ function bucketColor(b: Bucket): string {
   }
 }
 
-// ── Styles ───────────────────────────────────────────────────────────────────
+// Styles
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
 

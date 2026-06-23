@@ -1,6 +1,5 @@
 /**
  * Re-Assessment Screen — Progress Measurement
- * ─────────────────────────────────────────────────────────────────────────────
  * Research Foundation:
  *   Norris & Ortega (2009): Syntactic complexity measurement validation —
  *   re-assessment must use the same 10 standardized indicators as baseline
@@ -14,7 +13,6 @@
  *
  *   Dimova (2022) / Fulcher (2003): Task domain must remain consistent across
  *   baseline and re-assessment for valid comparison.
- * ─────────────────────────────────────────────────────────────────────────────
  *
  * Flow:
  *   1. Load baseline diagnosis from AsyncStorage (saved at initial diagnostic)
@@ -42,19 +40,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '@/config/firebase';
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
+import { palette } from '@/constants/theme';
 
-// ── Theme ─────────────────────────────────────────────────────────────────────
-const BG    = '#060D1A';
-const CARD  = '#0F1B2D';
-const CARD2 = '#060D1A';
-const TEAL  = '#0FBA9A';
-const CORAL = '#8B5CF6';
-const AMBER = '#8B5CF6';
-const TEXT  = '#F0F6FF';
-const TEXT2 = '#94A3B8';
-const BORDER = 'rgba(255,255,255,0.08)';
+// Theme
+const BG    = palette.bg;
+const CARD  = palette.card;
+const CARD2 = palette.bg;
+const TEAL  = palette.teal;
+const CORAL = palette.purple;
+const AMBER = palette.purple;
+const TEXT  = palette.text;
+const TEXT2 = palette.textMuted;
+const BORDER = palette.border;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// Types
 type Phase = 'overview' | 'writing' | 'analyzing' | 'results';
 
 type Indicator = {
@@ -84,7 +83,7 @@ type ReassessResult = {
   progress_summary: string;
 };
 
-// ── Domain prompts ────────────────────────────────────────────────────────────
+// Domain prompts
 const DOMAINS = [
   { id: 'description',   label: 'Description',   prompt: 'Describe a place, person, or experience you know well. Be specific and detailed.' },
   { id: 'argumentation', label: 'Argumentation', prompt: 'Write your opinion on: Should social media be regulated by governments? Give reasons and examples.' },
@@ -94,7 +93,7 @@ const DOMAINS = [
 
 const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 
-// ── Delta Bar component ───────────────────────────────────────────────────────
+// Delta Bar component
 const DeltaBar = ({
   name,
   baseline,
@@ -182,7 +181,7 @@ const D = StyleSheet.create({
   pct: { fontSize: 11, fontWeight: '700', width: 28, textAlign: 'right' },
 });
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
+// Main Screen
 export default function AssessmentScreen() {
   const [phase,      setPhase]      = useState<Phase>('overview');
   const [baseline,   setBaseline]   = useState<Baseline | null>(null);
@@ -283,7 +282,7 @@ export default function AssessmentScreen() {
     }
   }, [text, domain, baseline]);
 
-  // ── PHASE: overview ────────────────────────────────────────────────────────
+  // PHASE: overview
   if (phase === 'overview') {
     const hasBl = baseline != null;
     const blCefrIdx = hasBl ? CEFR_ORDER.indexOf(baseline!.predicted_cefr) : -1;
@@ -386,7 +385,7 @@ export default function AssessmentScreen() {
     );
   }
 
-  // ── PHASE: writing ─────────────────────────────────────────────────────────
+  // PHASE: writing
   if (phase === 'writing') {
     const ready = wordCount >= 80;
     return (
@@ -397,7 +396,7 @@ export default function AssessmentScreen() {
         {/* Header */}
         <View style={S.writeHeader}>
           <TouchableOpacity onPress={() => setPhase('overview')} style={S.backBtn}>
-            <Feather name="arrow-left" size={20} color={TEXT} />
+            <Feather name="chevron-left" size={22} color={TEXT} />
           </TouchableOpacity>
           <Text style={S.writeTitle}>{domain.label} Task</Text>
           <View style={[S.wordBadge, ready && { backgroundColor: TEAL + '25', borderColor: TEAL + '50' }]}>
@@ -445,7 +444,7 @@ export default function AssessmentScreen() {
     );
   }
 
-  // ── PHASE: analyzing ───────────────────────────────────────────────────────
+  // PHASE: analyzing
   if (phase === 'analyzing') {
     return (
       <View style={[S.root, { justifyContent: 'center', alignItems: 'center', gap: 20 }]}>
@@ -458,7 +457,7 @@ export default function AssessmentScreen() {
     );
   }
 
-  // ── PHASE: results ─────────────────────────────────────────────────────────
+  // PHASE: results
   if (phase === 'results' && result && baseline) {
     const improved = result.overall_improvement_points > 0;
     const unchanged = Math.abs(result.overall_improvement_points) <= 1;
@@ -587,7 +586,7 @@ export default function AssessmentScreen() {
   return null;
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// Styles
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: BG },
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },

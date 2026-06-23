@@ -1,7 +1,9 @@
 import { Slot } from 'expo-router';
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import SidebarMenu from '@/components/sidebar-menu';
+import { palette } from '@/constants/theme';
 
 const { width } = Dimensions.get('window');
 
@@ -12,11 +14,14 @@ export default function TabLayout() {
     <View style={styles.container}>
       {/* Hamburger Button */}
       <View style={styles.headerBar}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.hamburgerBtn}
           onPress={() => setMenuOpen(!menuOpen)}
+          accessibilityRole="button"
+          accessibilityLabel="Menu"
+          accessibilityState={{ expanded: menuOpen }}
         >
-          <Text style={styles.hamburgerIcon}>☰</Text>
+          <Feather name="menu" size={24} color={palette.text} />
         </TouchableOpacity>
       </View>
 

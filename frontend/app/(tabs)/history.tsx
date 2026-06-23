@@ -21,8 +21,9 @@ import {
   isSpeechAvailable, warmupVoices, playRecordingOrTTS, stopAllPlayback,
 } from '@/utils/voiceProfiles';
 import { getDemoAudio } from '@/constants/demoAudio';
+import { palette } from '@/constants/theme';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// Types
 type ExamSession = {
   ts: number;
   ielts_overall: number;
@@ -42,11 +43,11 @@ type UnifiedSession =
   | { kind: 'genre';   ts: number; data: GenreSession }
   | { kind: 'shadow';  ts: number; data: ShadowSession };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-const TEAL   = '#0FBA9A';
-const PURPLE = '#8B5CF6';
-const CORAL  = '#8B5CF6';
-const AMBER  = '#8B5CF6';
+// Helpers
+const TEAL   = palette.teal;
+const PURPLE = palette.purple;
+const CORAL  = palette.purple;
+const AMBER  = palette.purple;
 
 const CEFR_COLOR: Record<string, string> = {
   A1: '#94A3B8', A2: '#64748B', B1: '#8B5CF6', B2: '#8B5CF6', C1: '#8B5CF6', C2: '#0FBA9A',
@@ -59,14 +60,14 @@ function formatDate(ts: number) {
   });
 }
 
-// ── Session cards ─────────────────────────────────────────────────────────────
+// Session cards
 function ExamCard({ data }: { data: ExamSession }) {
   const levelColor = CEFR_COLOR[data.cambridge_level] ?? '#8B5CF6';
   return (
     <View style={[S.card, { borderTopColor: TEAL }]}>
       <View style={S.cardRow}>
         <View style={[S.badge, { backgroundColor: TEAL + '20' }]}>
-          <Text style={[S.badgeText, { color: TEAL }]}>🎓 Exam Profile</Text>
+          <Text style={[S.badgeText, { color: TEAL }]}>Exam Profile</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
@@ -108,7 +109,7 @@ function CAFCard({ data }: { data: CAFEntry }) {
     <View style={[S.card, { borderTopColor: PURPLE }]}>
       <View style={S.cardRow}>
         <View style={[S.badge, { backgroundColor: PURPLE + '20' }]}>
-          <Text style={[S.badgeText, { color: PURPLE }]}>📐 CAF Profile</Text>
+          <Text style={[S.badgeText, { color: PURPLE }]}>CAF Profile</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
@@ -153,7 +154,7 @@ function GrammarCard({ data }: { data: GrammarSession }) {
     <View style={[S.card, { borderTopColor: AMBER }]}>
       <View style={S.cardRow}>
         <View style={[S.badge, { backgroundColor: AMBER + '20' }]}>
-          <Text style={[S.badgeText, { color: AMBER }]}>✏️ Grammar</Text>
+          <Text style={[S.badgeText, { color: AMBER }]}>Grammar</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
@@ -164,7 +165,7 @@ function GrammarCard({ data }: { data: GrammarSession }) {
         </View>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={S.grammarErrLabel}>
-            {data.error_count === 0 ? '✅ No errors detected' : `${data.error_count} error type${data.error_count !== 1 ? 's' : ''}`}
+            {data.error_count === 0 ? 'No errors detected' : `${data.error_count} error type${data.error_count !== 1 ? 's' : ''}`}
           </Text>
           {topCat && (
             <View style={[S.topCatBadge, { backgroundColor: AMBER + '20' }]}>
@@ -189,8 +190,8 @@ function GenreCard({ data }: { data: GenreSession }) {
     Web: 'Web', Blog: 'Blog', Mov: 'Movies', TV: 'TV',
   };
   const GENRE_ICON: Record<string, string> = {
-    SPOK: '🗣️', FIC: '📖', MAG: '📰', NEWS: '🗞️', ACAD: '🎓',
-    Web: '🌐', Blog: '✍️', Mov: '🎬', TV: '📺',
+    SPOK: '', FIC: '', MAG: '', NEWS: '', ACAD: '',
+    Web: '', Blog: '', Mov: '', TV: '',
   };
   const genreColor = data.dominant_genre ? GENRE_COLOR[data.dominant_genre] ?? '#8B5CF6' : '#8B5CF6';
   const cefrColor  = CEFR_COLOR[data.cefr_level] ?? '#8B5CF6';
@@ -199,21 +200,21 @@ function GenreCard({ data }: { data: GenreSession }) {
     <View style={[S.card, { borderTopColor: '#0FBA9A' }]}>
       <View style={S.cardRow}>
         <View style={[S.badge, { backgroundColor: '#0FBA9A20' }]}>
-          <Text style={[S.badgeText, { color: '#0FBA9A' }]}>🌐 Domain</Text>
+          <Text style={[S.badgeText, { color: '#0FBA9A' }]}>Domain</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
       <View style={[S.cardBody, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}>
         <View style={[S.genreIcon, { backgroundColor: genreColor + '20' }]}>
           <Text style={{ fontSize: 22 }}>
-            {data.dominant_genre ? GENRE_ICON[data.dominant_genre] ?? '📊' : '📊'}
+            {data.dominant_genre ? GENRE_ICON[data.dominant_genre] ?? '' : ''}
           </Text>
         </View>
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={[S.genreLabel, { color: genreColor }]}>
             {data.dominant_genre ? GENRE_LABEL[data.dominant_genre] ?? data.dominant_genre : 'Unknown'}
           </Text>
-          <Text style={S.genreMode}>{data.input_mode === 'speaking' ? '🎙️ Speaking' : '✍️ Writing'}</Text>
+          <Text style={S.genreMode}>{data.input_mode === 'speaking' ? 'Speaking' : 'Writing'}</Text>
           <View style={[S.cefrPill, { backgroundColor: cefrColor + '22', alignSelf: 'flex-start' }]}>
             <Text style={[S.cefrPillText, { color: cefrColor }]}>{data.cefr_level}</Text>
             <Text style={S.cefrExamName}>CEFR · {Math.round(data.cefr_score)}/100</Text>
@@ -224,7 +225,7 @@ function GenreCard({ data }: { data: GenreSession }) {
   );
 }
 
-const SKY = '#0EA5E9';
+const SKY = palette.info;
 const DIFF_COLORS: Record<string, string> = { B1: '#0FBA9A', B2: '#8B5CF6', C1: '#EF4444' };
 
 function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDemoPreset: string | null }) {
@@ -277,7 +278,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
     <View style={[S.card, { borderTopColor: SKY }]}>
       <View style={S.cardRow}>
         <View style={[S.badge, { backgroundColor: SKY + '20' }]}>
-          <Text style={[S.badgeText, { color: SKY }]}>🎙 Shadow Speaking</Text>
+          <Text style={[S.badgeText, { color: SKY }]}>Shadow Speaking</Text>
         </View>
         <Text style={S.dateText}>{formatDate(data.ts)}</Text>
       </View>
@@ -297,7 +298,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
         </View>
       </View>
 
-      {/* ── Recording playback bar ───────────────────────────────────────── */}
+      {/* Recording playback bar */}
       <View style={S.recordingBar}>
         <TouchableOpacity
           style={[S.playBtn, { backgroundColor: playing ? '#EF4444' : SKY }]}
@@ -355,7 +356,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
   );
 }
 
-// ── Firestore session expansion ───────────────────────────────────────────────
+// Firestore session expansion
 // Each Firestore "speaking" session has caf/exam/grammar/genre sub-objects.
 // Expand each into individual UnifiedSession entries matching the AsyncStorage format.
 function expandFirestoreSessions(sessions: any[]): UnifiedSession[] {
@@ -379,7 +380,7 @@ function expandFirestoreSessions(sessions: any[]): UnifiedSession[] {
   return result;
 }
 
-// ── Screen ────────────────────────────────────────────────────────────────────
+// Screen
 export default function HistoryScreen() {
   const router = useRouter();
   const [sessions, setSessions] = useState<UnifiedSession[]>([]);
@@ -392,7 +393,7 @@ export default function HistoryScreen() {
 
   const load = useCallback(async () => {
     try {
-      // ── 1. AsyncStorage (fast, works offline) ────────────────────────────
+      // 1. AsyncStorage (fast, works offline)
       const [rawExam, rawCaf, rawGrammar, rawGenre, rawShadow, rawDemo] = await Promise.all([
         AsyncStorage.getItem('vf_exam_sessions'),
         AsyncStorage.getItem('vf_caf_sessions'),
@@ -411,7 +412,7 @@ export default function HistoryScreen() {
         ...(rawShadow  ? (JSON.parse(rawShadow)  as ShadowSession[]).map(d => ({ kind: 'shadow'  as const, ts: d.ts, data: d })) : []),
       ];
 
-      // ── 2. Firestore (survives reinstall) ────────────────────────────────
+      // 2. Firestore (survives reinstall)
       let fromFirestore: UnifiedSession[] = [];
       try {
         const token = await getFreshToken();
@@ -428,7 +429,7 @@ export default function HistoryScreen() {
         // Firestore unreachable — continue with AsyncStorage only
       }
 
-      // ── 3. Merge: dedup by kind+ts, sort newest first ────────────────────
+      // 3. Merge: dedup by kind+ts, sort newest first
       const storageKeys = new Set(fromStorage.map(s => `${s.kind}:${s.ts}`));
       const merged = [
         ...fromStorage,
@@ -457,18 +458,19 @@ export default function HistoryScreen() {
       >
         <View style={S.header}>
           <TouchableOpacity style={S.backBtn} onPress={() => router.back()}>
-            <Text style={S.backText}>← Back</Text>
+            <Feather name="chevron-left" size={18} color={TEAL} />
+            <Text style={S.backText}>Back</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={S.pageTitle}>🕐 Session History</Text>
+        <Text style={S.pageTitle}>Session History</Text>
         <Text style={S.pageSubtitle}>All your practice sessions · pull to refresh</Text>
 
         {loading && <ActivityIndicator color={TEAL} size="large" style={{ marginTop: 40 }} />}
 
         {!loading && sessions.length === 0 && (
           <View style={S.empty}>
-            <Text style={S.emptyIcon}>📭</Text>
+            <Feather name="inbox" size={40} color="#475569" style={S.emptyIcon} />
             <Text style={S.emptyTitle}>No sessions yet</Text>
             <Text style={S.emptySubtitle}>
               Complete a Vocabulary speaking session to see your history here.
@@ -494,13 +496,13 @@ export default function HistoryScreen() {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────────────────────────
+// Styles
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.light.background },
   scroll: { paddingHorizontal: 20, paddingTop: 56 },
 
   header: { flexDirection: 'row', marginBottom: 20 },
-  backBtn: { paddingVertical: 6, paddingRight: 12 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
   backText: { color: TEAL, fontSize: 15, fontWeight: '600' },
 
   pageTitle: { color: Colors.light.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, marginBottom: 4 },

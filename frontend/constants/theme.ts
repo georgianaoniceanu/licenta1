@@ -91,6 +91,39 @@ const VocaFlowTheme = {
 
 export const Colors = VocaFlowTheme;
 
+/**
+ * Single source of truth for the app's (dark-only) colour palette.
+ * Screens import from here instead of re-declaring hex literals locally.
+ */
+export const palette = {
+  // Surfaces
+  bg:         '#060D1A', // app background (deepest navy)
+  bgElevated: '#0A1628', // raised surface / inset
+  card:       '#0F1B2D', // cards, rows, panels
+  border:     'rgba(255,255,255,0.08)',
+  borderSoft: 'rgba(255,255,255,0.04)',
+
+  // Text
+  text:       '#F0F6FF', // primary
+  textMuted:  '#94A3B8', // secondary
+  textSubtle: '#64748B', // tertiary
+  textFaint:  '#475569', // disabled / hints
+
+  // Brand accents
+  teal:       '#0FBA9A', // primary accent
+  tealDark:   '#0AA088',
+  purple:     '#8B5CF6', // secondary accent
+  purpleSoft: '#C4B5FD',
+
+  // Status
+  success:    '#0FBA9A',
+  warning:    '#F59E0B',
+  danger:     '#EF4444',
+  info:       '#0EA5E9',
+} as const;
+
+export type Palette = typeof palette;
+
 export const Gradients = {
   primary: ['#0FBA9A', '#0AA088'] as readonly string[],
   accent:  ['#8B5CF6', '#8B5CF6'] as readonly string[],

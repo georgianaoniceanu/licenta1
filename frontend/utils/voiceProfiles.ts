@@ -38,7 +38,7 @@ export interface VoiceProfile {
  *   - Personas: differentiate by RATE + GENDER + ACCENT for variety
  */
 export const USER_VOICES: Record<string, VoiceProfile> = {
-  // ── Level-based (existing 3 demos) ──────────────────────────────────────
+  // Level-based (existing 3 demos)
   weak:   { rate: 0.75, pitch: 1.05, preferredGender: 'female', accent: 'en-US',
             description: 'Slow, hesitant — A2 learner' },
   medium: { rate: 0.95, pitch: 1.00, preferredGender: 'male',   accent: 'en-US',
@@ -46,7 +46,7 @@ export const USER_VOICES: Record<string, VoiceProfile> = {
   strong: { rate: 1.10, pitch: 0.95, preferredGender: 'female', accent: 'en-GB',
             description: 'Confident, near-native rate — C1 learner' },
 
-  // ── Job personas (6 fictional users) ────────────────────────────────────
+  // Job personas (6 fictional users)
   ana:    { rate: 0.72, pitch: 1.18, preferredGender: 'female', accent: 'en-US',
             description: 'Young, hesitant — A1→A2 medical student' },
   mihai:  { rate: 1.00, pitch: 0.95, preferredGender: 'male',   accent: 'en-US',
@@ -61,7 +61,7 @@ export const USER_VOICES: Record<string, VoiceProfile> = {
             description: 'Crisp, professional — B2→C1 analyst' },
 };
 
-// ── Speech engine state ──────────────────────────────────────────────────────
+// Speech engine state
 
 let _voicesCache: SpeechSynthesisVoice[] = [];
 let _voicesReady = false;
@@ -92,7 +92,7 @@ export function isSpeechAvailable(): boolean {
   );
 }
 
-// ── Voice picking heuristics ────────────────────────────────────────────────
+// Voice picking heuristics
 
 const FEMALE_NAME_REGEX = /(female|woman|samantha|victoria|karen|moira|tessa|fiona|allison|ava|nicki|susan|veena|kate|amy|joanna|salli|kimberly|emma|amelia|libby|ivy|kendra)/i;
 const MALE_NAME_REGEX   = /(male|man|alex|daniel|david|fred|tom|aaron|rishi|oliver|arthur|sergei|brian|matthew|joey|justin|kevin|russell|geraint|liam)/i;
@@ -119,7 +119,7 @@ function pickVoice(profile: VoiceProfile): SpeechSynthesisVoice | undefined {
   return pool[0] ?? _voicesCache.find(v => v.lang.startsWith('en'));
 }
 
-// ── Public API ──────────────────────────────────────────────────────────────
+// Public API
 
 export interface SpeakOptions {
   text: string;
@@ -211,7 +211,7 @@ export function getVoiceProfile(preset?: string | null): VoiceProfile {
   return USER_VOICES.medium;
 }
 
-// ── Bundled audio playback (real recordings via expo-av) ─────────────────────
+// Bundled audio playback (real recordings via expo-av)
 
 let _currentSound: Audio.Sound | null = null;
 

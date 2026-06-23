@@ -9,12 +9,13 @@ import {
   TouchableOpacity, Animated, Dimensions, Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
 const { width: W } = Dimensions.get('window');
 const isTablet = W >= 760;
 
-// ── Dark theme — two accent colors only ───────────────────────────────────────
+// Dark theme — two accent colors only
 const D = {
   bg:     '#030711',
   bg2:    '#0A1628',
@@ -30,7 +31,7 @@ const D = {
 
 const WAVE_H = [10,32,50,22,58,16,44,28,54,14,40,26,48,18,36,24,46,34,12,42,20,38,56,16,28];
 
-// ── Components ─────────────────────────────────────────────────────────────────
+// Components
 
 function LiveWaveform({ accent = D.purple }: { accent?: string }) {
   const anims = useRef(WAVE_H.map(h => new Animated.Value(h * 0.2))).current;
@@ -73,8 +74,8 @@ function MicVisualization() {
     barAnims.forEach((anim, i) => {
       const loop = Animated.loop(
         Animated.sequence([
-          Animated.timing(anim, { toValue: 1,    duration: 280 + i * 60, useNativeDriver: true }),
-          Animated.timing(anim, { toValue: 0.10, duration: 280 + i * 60, useNativeDriver: true }),
+          Animated.timing(anim, { toValue: 1,    duration: 280 + i * 60, useNativeDriver: false }),
+          Animated.timing(anim, { toValue: 0.10, duration: 280 + i * 60, useNativeDriver: false }),
         ])
       );
       setTimeout(() => loop.start(), i * 75);
@@ -94,7 +95,7 @@ function MicVisualization() {
   return (
     <View style={{ alignItems: 'center' }}>
 
-      {/* ── Capsule body (rounded rectangle) ── */}
+      {/* Capsule body (rounded rectangle) */}
       <View style={{
         width: BODY_W, height: BODY_H,
         borderRadius: RADIUS,
@@ -142,7 +143,7 @@ function MicVisualization() {
         </View>
       </View>
 
-      {/* ── Connector ring ── */}
+      {/* Connector ring */}
       <View style={{
         width: BODY_W * 0.55, height: 10,
         backgroundColor: 'rgba(139,92,246,0.22)',
@@ -151,21 +152,21 @@ function MicVisualization() {
         marginTop: -1,
       }} />
 
-      {/* ── Neck ── */}
+      {/* Neck */}
       <View style={{
         width: 6, height: 28,
         backgroundColor: 'rgba(139,92,246,0.35)',
         borderRadius: 3,
       }} />
 
-      {/* ── Base arm ── */}
+      {/* Base arm */}
       <View style={{
         width: 52, height: 5,
         backgroundColor: 'rgba(139,92,246,0.25)',
         borderRadius: 3,
       }} />
 
-      {/* ── Foot ── */}
+      {/* Foot */}
       <View style={{
         width: 74, height: 6,
         backgroundColor: 'rgba(139,92,246,0.15)',
@@ -310,9 +311,9 @@ function ProgressVisual() {
                 target  ? { backgroundColor: 'rgba(15,186,154,0.10)',  borderColor: D.teal   } :
                 { backgroundColor: D.card, borderColor: D.border },
               ]}>
-                <Text style={{ fontSize: 8, fontWeight: '900', color: done ? '#fff' : current ? D.purple : target ? D.teal : D.dim }}>
-                  {done ? '✓' : l}
-                </Text>
+                {done
+                  ? <Feather name="check" size={9} color="#fff" />
+                  : <Text style={{ fontSize: 8, fontWeight: '900', color: current ? D.purple : target ? D.teal : D.dim }}>{l}</Text>}
               </View>
               <Text style={{ fontSize: 6, fontWeight: '800', letterSpacing: 0.4, color: current ? D.purple : target ? D.teal : D.bg }}>
                 {current ? 'NOW' : 'GOAL'}
@@ -350,7 +351,7 @@ const FEATURES = [
   { abbr: 'CEF', tag: 'APPENDIX D', title: 'CEFR Progress Tracking', tagColor: D.purple, desc: 'Every session updates your phoneme accuracy, vocabulary range and fluency — mapped to CEFR milestones with research citations behind every metric.', badge: 'CEFR · DeKeyser 2025', Visual: ProgressVisual },
 ];
 
-// ── Main screen ────────────────────────────────────────────────────────────────
+// Main screen
 export default function HomeShowcaseScreen() {
   const router = useRouter();
 
@@ -383,7 +384,7 @@ export default function HomeShowcaseScreen() {
         style={StyleSheet.absoluteFillObject}
       />
 
-      {/* ── Beta ticker ─────────────────────────────────────────────────────── */}
+      {/* Beta ticker */}
       <View style={S.ticker}>
         <View style={S.tickerDot} />
         <Text style={S.tickerText}>
@@ -396,7 +397,7 @@ export default function HomeShowcaseScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={S.scroll}
       >
-        {/* ── Nav ─────────────────────────────────────────────────────────── */}
+        {/* Nav */}
         <View style={S.nav}>
           <View style={S.brandRow}>
             <LinearGradient colors={[D.purple, D.teal]} style={S.logoBox}>
@@ -409,7 +410,7 @@ export default function HomeShowcaseScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ── Hero ────────────────────────────────────────────────────────── */}
+        {/* Hero */}
         <Animated.View style={[S.hero, { opacity: heroA, transform: [{ translateY: heroY }] }]}>
           <View style={S.eyebrow}>
             <View style={S.eyebrowDot} />
@@ -437,7 +438,7 @@ export default function HomeShowcaseScreen() {
           </View>
         </Animated.View>
 
-        {/* ── App preview ─────────────────────────────────────────────────── */}
+        {/* App preview */}
         <Animated.View style={[{ opacity: previewA, transform: [{ translateY: previewY }] }]}>
 
           {/* FIG. 01 — main preview card */}
@@ -469,7 +470,7 @@ export default function HomeShowcaseScreen() {
               </View>
             </View>
 
-            {/* ── Spectrogram ── */}
+            {/* Spectrogram */}
             <View style={S.spectroCard}>
               <View style={S.spectroHeader}>
                 <Text style={S.spectroTitle}>≡ SPECTROGRAM LIVE · /θ/ — "THINK"</Text>
@@ -487,7 +488,7 @@ export default function HomeShowcaseScreen() {
             </View>
           </View>
 
-          {/* ── Stats strip ── */}
+          {/* Stats strip */}
           <View style={S.statsRow}>
             {[
               { value: '1,247', label: 'ROMANIAN\nSPEAKERS', color: D.teal   },
@@ -501,7 +502,7 @@ export default function HomeShowcaseScreen() {
             ))}
           </View>
 
-          {/* ── Preview window (Accent DNA + Vocab Coach mini cards) ── */}
+          {/* Preview window (Accent DNA + Vocab Coach mini cards) */}
           <View style={S.previewCard}>
             <View style={S.previewCardHeader}>
               <Text style={S.previewFig}>■ FIG. 02 — AI FEEDBACK</Text>
@@ -563,7 +564,7 @@ export default function HomeShowcaseScreen() {
           </View>
         </Animated.View>
 
-        {/* ── Features section ─────────────────────────────────────────────── */}
+        {/* Features section */}
         <View style={FS.intro}>
           <Text style={FS.introEye}>WHAT MAKES VOCAFLOW DIFFERENT</Text>
           <Text style={FS.introTitle}>Built around the science{'\n'}of pronunciation.</Text>
@@ -598,7 +599,7 @@ export default function HomeShowcaseScreen() {
           );
         })}
 
-        {/* ── Footer ───────────────────────────────────────────────────────── */}
+        {/* Footer */}
         <View style={S.footer}>
           <Text style={S.footerText}>Built on academic research · IELTS · Cambridge · COCA · CEFR</Text>
         </View>
@@ -609,7 +610,7 @@ export default function HomeShowcaseScreen() {
   );
 }
 
-// ── Styles ─────────────────────────────────────────────────────────────────────
+// Styles
 const S = StyleSheet.create({
   scroll: {
     paddingBottom: 72,
