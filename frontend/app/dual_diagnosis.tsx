@@ -20,7 +20,10 @@ import {
   ActivityIndicator,
   Animated,
   Dimensions,
+  Image,
 } from 'react-native';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -411,7 +414,7 @@ export default function DualDiagnosisScreen() {
 
               {/* Pain points */}
               <View style={S.section}>
-                <Text style={S.sectionTitle}>Your Self-Reported Weaknesses</Text>
+                <SectionHeader art={Illustrations.obWeak} title="Your Self-Reported Weaknesses" />
                 <View style={S.chipRow}>
                   {result.pain_points.map((p) => (
                     <View key={p} style={S.chip}>
@@ -443,7 +446,7 @@ export default function DualDiagnosisScreen() {
               {/* Discrepancy bars */}
               {Object.keys(result.discrepancies).length > 0 && (
                 <View style={S.section}>
-                  <Text style={S.sectionTitle}>Detailed Comparison</Text>
+                  <SectionHeader art={Illustrations.predictiveAnalytics} title="Detailed Comparison" />
                   {Object.entries(result.discrepancies).map(([area, data], i) => (
                     <DiscrepancyBar key={area} area={area} data={data} index={i} />
                   ))}
@@ -491,7 +494,7 @@ export default function DualDiagnosisScreen() {
               {/* Priority focus */}
               {result.priority_focus.length > 0 && (
                 <View style={S.section}>
-                  <Text style={S.sectionTitle}>Priority Focus Areas</Text>
+                  <SectionHeader art={Illustrations.obDomain} title="Priority Focus Areas" />
                   {result.priority_focus.slice(0, 4).map((item, i) => (
                     <View key={i} style={S.focusRow}>
                       <View style={[S.focusNum, { backgroundColor: TEAL + '18' }]}>
@@ -529,12 +532,17 @@ export default function DualDiagnosisScreen() {
 }
 
 const S = StyleSheet.create({
+  cornerArtTR: { position: 'absolute', top: 60, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL: { position: 'absolute', bottom: 20, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   root: {
     flex: 1,
     backgroundColor: Colors.light.background,
   },
   scroll: {
     paddingBottom: 24,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   // Header (matches progress.tsx style)

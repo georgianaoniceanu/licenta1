@@ -34,7 +34,10 @@ import {
   Animated,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { Feather } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { auth } from '@/config/firebase';
@@ -295,6 +298,12 @@ export default function AssessmentScreen() {
         </View>
 
         <ScrollView contentContainerStyle={S.scroll} showsVerticalScrollIndicator={false}>
+
+          <SectionHero
+            art={Illustrations.steppingUp}
+            title="Re-Assessment"
+            subtitle="Measure your growth against your original baseline."
+          />
 
           {/* Baseline card */}
           {hasBl ? (
@@ -588,8 +597,10 @@ export default function AssessmentScreen() {
 
 // Styles
 const S = StyleSheet.create({
+  cornerArtTR: { position: 'absolute', top: 60, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL: { position: 'absolute', bottom: 24, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   root: { flex: 1, backgroundColor: BG },
-  scroll: { paddingHorizontal: 20, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   // Hero
   hero: { paddingTop: 18, paddingBottom: 18, paddingHorizontal: 20, backgroundColor: CARD, borderBottomWidth: 1, borderBottomColor: BORDER },

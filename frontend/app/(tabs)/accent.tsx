@@ -20,6 +20,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '../../constants/api';
 import { useLearnerProfile } from '../../context/LearnerProfile';
 import { Colors, Animations } from '../../constants/theme';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { speakPhoneme, warmupVoices, playAudioAsset, stopAudioAsset, stopAllPlayback } from '@/utils/voiceProfiles';
 import { getPhonemeAudio } from '@/constants/phonemeAudio';
 import { getDemoAudio } from '@/constants/demoAudio';
@@ -960,10 +962,11 @@ export default function AccentDNAScreen() {
           </View>
         </View>
 
-        <Text style={styles.pageTitle}>Accent DNA</Text>
-        <Text style={styles.pageSubtitle}>
-          Romanian-English phoneme interference training. Target your exact weak spots.
-        </Text>
+        <SectionHero
+          art={Illustrations.accent}
+          title="Accent DNA"
+          subtitle="Romanian-English phoneme interference training. Target your exact weak spots."
+        />
 
         {/* Phoneme globe — visual map of progress */}
         <PhonemeGlobe
@@ -1612,7 +1615,7 @@ export default function AccentDNAScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.light.background },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 56 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 56, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
@@ -1621,6 +1624,7 @@ const styles = StyleSheet.create({
 
   pageTitle: { color: Colors.light.text, fontSize: 26, fontWeight: '700', letterSpacing: -0.4, marginBottom: 6 },
   pageSubtitle: { color: Colors.light.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 20 },
+  moduleHero: { width: '88%', height: 165, alignSelf: 'center', marginBottom: 18 },
 
   heatmapToggleBtn: {
     flexDirection: 'row', alignItems: 'center',

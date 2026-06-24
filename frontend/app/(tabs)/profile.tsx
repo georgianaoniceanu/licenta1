@@ -11,9 +11,12 @@ import {
   Alert,
   Animated,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
@@ -486,7 +489,11 @@ export default function ProfileScreen() {
         {/* Learning profile */}
         {profile && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Learning Profile</Text>
+            <SectionHero
+              art={Illustrations.obLevel}
+              title="Learning Profile"
+              subtitle="Your goals, level and focus from onboarding."
+            />
             <View style={S.card}>
               {profile.target_exam && (
                 <InfoRow icon="" label="TARGET EXAM" value={profile.target_exam} />
@@ -510,7 +517,7 @@ export default function ProfileScreen() {
         {/* Self vs. Predicted */}
         {diagnosis && profile?.self_assessed_cefr && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Self vs. Predicted</Text>
+            <SectionHeader art={Illustrations.predictiveAnalytics} title="Self vs. Predicted" />
             <View style={S.dualCard}>
               <View style={S.dualCol}>
                 <Text style={S.dualMeta}>SELF-ASSESSED</Text>
@@ -545,7 +552,7 @@ export default function ProfileScreen() {
           };
           return (
             <View style={S.section}>
-              <Text style={S.sectionTitle}>Level check · Ordinal model</Text>
+              <SectionHeader art={Illustrations.aiResearch} title="Level check · Ordinal model" />
               <View style={S.rfCard}>
                 <View style={S.rfTopRow}>
                   <View style={S.rfTextCol}>
@@ -593,7 +600,7 @@ export default function ProfileScreen() {
         {/* Assessment History */}
         {assessmentHistory.length > 0 && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Assessment History</Text>
+            <SectionHeader art={Illustrations.progressTracking} title="Assessment History" />
             <View style={S.card}>
               {assessmentHistory.map((rec, i) => {
                 const c  = CEFR_COLORS[rec.cefr] ?? TEAL;
@@ -636,7 +643,7 @@ export default function ProfileScreen() {
         {/* Weakest indicators */}
         {criticalInds.length > 0 && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Weakest Indicators</Text>
+            <SectionHeader art={Illustrations.percentages} title="Weakest Indicators" />
             <View style={S.card}>
               {criticalInds.map((ind, i) => {
                 const color = SEVERITY_COLORS[ind.severity] ?? TEAL;
@@ -662,7 +669,7 @@ export default function ProfileScreen() {
         {/* Focus & Strengths */}
         {diagnosis && (diagnosis.critical_areas.length > 0 || diagnosis.strengths.length > 0) && (
           <View style={S.section}>
-            <Text style={S.sectionTitle}>Focus & Strengths</Text>
+            <SectionHeader art={Illustrations.goals} title="Focus & Strengths" />
             <View style={S.twoCol}>
               {diagnosis.critical_areas.length > 0 && (
                 <View style={[S.miniCard, S.alertMini]}>
@@ -692,7 +699,7 @@ export default function ProfileScreen() {
 
         {/* Quick links */}
         <View style={S.section}>
-          <Text style={S.sectionTitle}>Quick Links</Text>
+          <SectionHeader art={Illustrations.adventureMap} title="Quick Links" />
           <QuickLink icon="activity"    label="Take Assessment"  route="/(tabs)/assessment" color={TEAL}   />
           <QuickLink icon="bar-chart-2" label="View Progress"    route="/(tabs)/progress"   color={PURPLE} />
           <QuickLink icon="settings"    label="Settings"         route="/(tabs)/settings"   color={TEXT2}  />
@@ -714,8 +721,10 @@ export default function ProfileScreen() {
 
 const S = StyleSheet.create({
   root:    { flex: 1, backgroundColor: BG },
+  cornerArtTR: { position: 'absolute', top: 60, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL: { position: 'absolute', bottom: 24, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   loading: { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center' },
-  scroll:  { paddingHorizontal: 20, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   pageHeader: { paddingTop: 24, paddingBottom: 20 },
   pageTitle:  { fontSize: 34, fontWeight: '800', color: TEXT, letterSpacing: -1 },
@@ -762,6 +771,13 @@ const S = StyleSheet.create({
   // Sections
   section:      { marginBottom: 24 },
   sectionTitle: { fontSize: 16, fontWeight: '800', color: TEXT, marginBottom: 12 },
+  asideRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  asideArt: {
+    width: 150, height: 150,
+    backgroundColor: 'rgba(139,92,246,0.6)',
+    borderTopLeftRadius: 64, borderBottomRightRadius: 64,
+    borderTopRightRadius: 24, borderBottomLeftRadius: 24,
+  },
   card: {
     backgroundColor: CARD, borderRadius: 18,
     paddingHorizontal: 18, paddingVertical: 6,

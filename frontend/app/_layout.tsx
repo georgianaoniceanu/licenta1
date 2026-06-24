@@ -8,9 +8,20 @@ import { tickStreak } from '@/utils/streak';
 import { configureNotifications } from '@/utils/notifications';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  useFonts,
+  Fredoka_500Medium,
+  Fredoka_600SemiBold,
+  Fredoka_700Bold,
+} from '@expo-google-fonts/fredoka';
 
 function AppShell() {
   const router = useRouter();
+  const [fontsLoaded] = useFonts({
+    Fredoka_500Medium,
+    Fredoka_600SemiBold,
+    Fredoka_700Bold,
+  });
   useEffect(() => {
     // App is dark-only: set up the notification handler once on launch.
     configureNotifications();
@@ -33,6 +44,11 @@ function AppShell() {
     };
     checkAuth();
   }, [router]);
+
+  // Don't block the whole app on fonts — render immediately and let Fredoka
+  // swap in when ready (avoids a blank/unresponsive shell if the web font load
+  // stalls). `fontsLoaded` is referenced so the re-render fires on load.
+  void fontsLoaded;
 
   return (
     <ThemeProvider value={DarkTheme}>

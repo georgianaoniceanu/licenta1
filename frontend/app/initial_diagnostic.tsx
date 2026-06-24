@@ -26,6 +26,7 @@ import {
   ActivityIndicator,
   Platform,
   StatusBar,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -33,6 +34,7 @@ import { Feather } from '@expo/vector-icons';
 import { Colors, Spacing, BorderRadius, palette } from '@/constants/theme';
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
+import { Illustrations } from '@/constants/illustrations';
 
 // TYPES
 
@@ -292,6 +294,8 @@ export default function InitialDiagnosticScreen() {
             This short writing task lets us measure your current level across all 10 proficiency indicators.
             It takes about 10 minutes.
           </Text>
+
+          <Image source={Illustrations.diagnostic} style={styles.hero} resizeMode="contain" />
 
           {prompt && (
             <View style={styles.promptCard}>
@@ -682,6 +686,8 @@ export default function InitialDiagnosticScreen() {
             </View>
           )}
 
+          <Image source={Illustrations.celebration} style={styles.footerArt} resizeMode="contain" />
+
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: Spacing.xl }]} onPress={handleContinue} activeOpacity={0.8}>
             <Text style={styles.primaryBtnText}>Go to My Learning Plan</Text>
           </TouchableOpacity>
@@ -720,6 +726,8 @@ const styles = StyleSheet.create({
 
   mainTitle: { fontSize: 28, fontWeight: '700', color: Colors.light.text, marginBottom: Spacing.sm },
   mainSubtitle: { fontSize: 14, color: Colors.light.textSecondary, lineHeight: 20, marginBottom: Spacing.xl },
+  hero: { width: '88%', height: 170, alignSelf: 'center', marginBottom: Spacing.xl },
+  footerArt: { width: '78%', height: 150, alignSelf: 'center', marginTop: Spacing.lg },
 
   promptCard: {
     backgroundColor: CARD, borderRadius: BorderRadius.lg, padding: Spacing.lg,

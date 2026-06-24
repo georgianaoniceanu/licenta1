@@ -42,6 +42,7 @@ import {
   ActivityIndicator,
   Modal,
   Pressable,
+  Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -50,6 +51,12 @@ import { Colors, Spacing, BorderRadius, Typography, palette } from '@/constants/
 import { API_URL } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 import { INDUSTRIES, jobsByIndustry, type Industry } from '@/constants/jobsDatabase';
+import { Illustrations } from '@/constants/illustrations';
+
+const STEP_ART = [
+  Illustrations.obLevel, Illustrations.obJob, Illustrations.obGoal,
+  Illustrations.obDomain, Illustrations.obWeak, Illustrations.obTime,
+];
 
 // QUESTION DATA  (mirrors backend onboarding.py)
 
@@ -543,6 +550,9 @@ export default function OnboardingScreen() {
         >
           {/* Title block */}
           <View style={styles.titleBlock}>
+            {STEP_ART[currentStep] && (
+              <Image source={STEP_ART[currentStep]} style={styles.stepArt} resizeMode="contain" />
+            )}
             <Text style={styles.stepTitle}>{step.title}</Text>
             <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
           </View>
@@ -634,6 +644,7 @@ const styles = StyleSheet.create({
   titleBlock: {
     marginBottom: Spacing.xl,
   },
+  stepArt: { width: '74%', height: 140, alignSelf: 'center', marginBottom: Spacing.md },
   stepTitle: {
     fontSize: 26,
     fontWeight: '700',

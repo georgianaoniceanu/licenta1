@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Animated,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
@@ -17,6 +18,8 @@ import { Feather } from '@expo/vector-icons';
 import { Colors } from '../../constants/theme';
 import { VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import {
   isSpeechAvailable, warmupVoices, playRecordingOrTTS, stopAllPlayback,
 } from '@/utils/voiceProfiles';
@@ -463,14 +466,17 @@ export default function HistoryScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={S.pageTitle}>Session History</Text>
-        <Text style={S.pageSubtitle}>All your practice sessions · pull to refresh</Text>
+        <SectionHero
+          art={Illustrations.audioFiles}
+          title="Session History"
+          subtitle="All your practice sessions · pull to refresh."
+        />
 
         {loading && <ActivityIndicator color={TEAL} size="large" style={{ marginTop: 40 }} />}
 
         {!loading && sessions.length === 0 && (
           <View style={S.empty}>
-            <Feather name="inbox" size={40} color="#475569" style={S.emptyIcon} />
+            <Image source={Illustrations.emptyHistory} style={S.emptyArt} resizeMode="contain" />
             <Text style={S.emptyTitle}>No sessions yet</Text>
             <Text style={S.emptySubtitle}>
               Complete a Vocabulary speaking session to see your history here.
@@ -499,7 +505,7 @@ export default function HistoryScreen() {
 // Styles
 const S = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.light.background },
-  scroll: { paddingHorizontal: 20, paddingTop: 56 },
+  scroll: { paddingHorizontal: 20, paddingTop: 56, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
@@ -510,6 +516,9 @@ const S = StyleSheet.create({
 
   empty: { alignItems: 'center', paddingTop: 60, gap: 12 },
   emptyIcon: { fontSize: 48 },
+  emptyArt: { width: 250, height: 185, marginBottom: 4 },
+  cornerArtTR: { position: 'absolute', top: 60, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL: { position: 'absolute', bottom: 20, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   emptyTitle: { color: Colors.light.text, fontSize: 18, fontWeight: '700' },
   emptySubtitle: { color: Colors.light.textSecondary, fontSize: 14, textAlign: 'center', lineHeight: 20 },
   startBtn: { marginTop: 8, backgroundColor: TEAL, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 14 },

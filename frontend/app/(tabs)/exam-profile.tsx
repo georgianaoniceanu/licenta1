@@ -2,7 +2,10 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
   TextInput, ActivityIndicator, Alert, StatusBar, Platform,
+  Image,
 } from 'react-native';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader } from '@/components/section-header';
 import { Audio } from 'expo-av';
 import { Feather } from '@expo/vector-icons';
 import { auth } from '@/config/firebase';
@@ -213,8 +216,15 @@ export default function ExamProfileScreen() {
       recordingRef.current = null;
       const token = await getFreshToken();
       const formData = new FormData();
-      formData.append('file', { uri, type: 'audio/m4a', name: 'exam_speech.m4a' } as any);
-      if (token) formData.append('authorization', `Bearer ${token}`);
+      if (Platform.OS === 'web') {
+        // On web, getURI() returns a blob: URL — FastAPI needs a real Blob in
+        // the multipart body, not the RN { uri, type, name } shim (which yields 422).
+        const blob = await (await fetch(uri)).blob();
+        const ext = ((blob.type.split('/')[1] || 'webm').split(';')[0]) || 'webm';
+        formData.append('file', blob, `exam_speech.${ext}`);
+      } else {
+        formData.append('file', { uri, type: 'audio/m4a', name: 'exam_speech.m4a' } as any);
+      }
       const res = await fetch(VOCABULARY_ENDPOINTS.TRANSCRIBE, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
@@ -452,7 +462,7 @@ export default function ExamProfileScreen() {
           {/* Recommended Cambridge exam */}
           {camExam && (
             <View style={styles.camExamCard}>
-              <Text style={styles.sectionTitle}>Recommended Cambridge Exam</Text>
+              <SectionHeader art={Illustrations.certificate} title="Recommended Cambridge Exam" />
               <View style={styles.camExamRow}>
                 <View style={[styles.camBadge, { backgroundColor: cefrColor + '22' }]}>
                   <Text style={[styles.camBadgeText, { color: cefrColor }]}>{camExam.code}</Text>
@@ -500,7 +510,7 @@ export default function ExamProfileScreen() {
           {/* Cambridge ESOL Assessment */}
           {result.cambridge_assessment && (
             <View style={styles.camAssessCard}>
-              <Text style={styles.sectionTitle}>Cambridge ESOL Speaking Criteria</Text>
+              <SectionHeader art={Illustrations.onlineTest} title="Cambridge ESOL Speaking Criteria" />
               <Text style={styles.camAssessOverall}>
                 Overall:{' '}
                 <Text style={{ color: CEFR_COLOR[result.cambridge_assessment.overall_level] ?? TEAL, fontWeight: '800' }}>
@@ -535,7 +545,7 @@ export default function ExamProfileScreen() {
           {/* PTE Core estimate */}
           {result.pte_core && (
             <View style={styles.pteCard}>
-              <Text style={styles.sectionTitle}>PTE Core — Speaking Estimate</Text>
+              <SectionHeader art={Illustrations.contractSigned} title="PTE Core — Speaking Estimate" />
               <View style={styles.pteScoreRow}>
                 <View style={styles.pteScoreBubble}>
                   <Text style={styles.pteScoreNum}>{result.pte_core.speaking_score}</Text>

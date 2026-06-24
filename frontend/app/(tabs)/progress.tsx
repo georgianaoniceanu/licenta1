@@ -7,9 +7,12 @@ import {
   TouchableOpacity,
   Dimensions,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { useFocusEffect } from '@react-navigation/native';
 import { useLearnerProfile } from '../../context/LearnerProfile';
 import { Colors } from '../../constants/theme';
@@ -148,7 +151,7 @@ const CAF_META = [
 // Chart helpers (pure View/StyleSheet — no SVG or external libraries)
 // Each line segment is a View rotated with Math.atan2 to align between two points.
 // Positioned absolutely on a containing View sized to chartWidth × height.
-const CHART_W = width - 80; // screen width − (2×20 scroll pad + 2×20 card pad)
+const CHART_W = Math.min(width, 900) - 80; // capped to the 900px content column − (2×20 scroll pad + 2×20 card pad)
 
 function LineChart({
   data,
@@ -484,6 +487,12 @@ export default function ProgressScreen() {
               : <Text style={styles.exportBtnText}>Download PDF</Text>}
           </TouchableOpacity>
         </View>
+
+        <SectionHero
+          art={Illustrations.progressOverview}
+          title="Learning Progress"
+          subtitle="Track how your English has grown since the baseline."
+        />
 
         {/* Baseline vs. Now */}
         {/* Alderson (2005) diagnostic: measure from a known starting point */}
@@ -1509,10 +1518,15 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 12,
   },
+  cornerArtTR: { position: 'absolute', top: 64, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL: { position: 'absolute', bottom: 20, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   scrollContent: {
     paddingHorizontal: 20,
     paddingTop: 56,
     paddingBottom: 20,
+    maxWidth: 900,
+    width: '100%',
+    alignSelf: 'center',
   },
 
   header: {

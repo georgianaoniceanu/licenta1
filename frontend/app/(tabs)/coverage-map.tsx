@@ -20,7 +20,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Dimensions, Animated,
+  Image,
 } from 'react-native';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -380,6 +383,12 @@ export default function CoverageMapScreen() {
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
+        <SectionHero
+          art={Illustrations.map}
+          title="Coverage Map"
+          subtitle="Your COCA subgenre exposure vs. job, exam and goal targets."
+        />
+
         {/* Profile summary card */}
         <View style={styles.profileCard}>
           <View style={styles.profileRow}>
@@ -659,6 +668,9 @@ function bucketColor(b: Bucket): string {
 
 // Styles
 const styles = StyleSheet.create({
+  footerArt: { width: '74%', height: 140, alignSelf: 'center', marginTop: 8 },
+  vennArtLeft:  { position: 'absolute', left: -26, top: 6, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  vennArtRight: { position: 'absolute', right: -26, bottom: 6, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
   screen: { flex: 1, backgroundColor: BG },
 
   header: {
@@ -675,7 +687,7 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
   headerSub:   { fontSize: 12, color: TEXT2, marginTop: 1 },
 
-  scroll: { padding: 16 },
+  scroll: { padding: 16, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   // Profile summary
   profileCard: {
@@ -795,6 +807,7 @@ const styles = StyleSheet.create({
 
   // Venn
   vennWrap: {
+    position: 'relative', overflow: 'hidden', alignItems: 'center',
     backgroundColor: CARD, borderRadius: 16,
     borderWidth: 1, borderColor: BORDER,
     paddingTop: 14, paddingBottom: 16,
