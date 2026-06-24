@@ -23,13 +23,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity,
-  ActivityIndicator, TextInput, Platform, Alert,
+  ActivityIndicator, TextInput, Platform, Alert, Image,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { PRACTICE_ENDPOINTS, VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
+import { Illustrations } from '@/constants/illustrations';
 import {
   LOCAL_VOCAB_CARDS, buildVocabMCQ,
   pickReadingPassage, pickGrammarItem, GRAMMAR_CATEGORY_LABEL,
@@ -118,10 +119,10 @@ function pickCEFR(cafSessions: any[]): string {
 // Component
 export default function PracticeScreen() {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>('adaptive');
 
   return (
     <View style={styles.root}>
+      <View style={styles.phoneColumn}>
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
           <Feather name="chevron-left" size={18} color="#0FBA9A" />
@@ -130,37 +131,38 @@ export default function PracticeScreen() {
         <Text style={styles.title}>Practice Hub</Text>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabBarOuter}
-        contentContainerStyle={styles.tabBar}
-      >
-        {([
-          { k: 'adaptive',  label: 'Adaptive' },
-          { k: 'retention', label: 'Retention' },
-          { k: 'reading',   label: 'Reading' },
-          { k: 'grammar',   label: 'Grammar' },
-          { k: 'targeted',  label: 'Targeted' },
-        ] as { k: Mode; label: string }[]).map(t => (
-          <TouchableOpacity
-            key={t.k}
-            style={[styles.tab, mode === t.k && styles.tabActive]}
-            onPress={() => setMode(t.k)}
-            activeOpacity={0.85}
-          >
-            <Text style={[styles.tabText, mode === t.k && styles.tabTextActive]}>{t.label}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.sectionHead}>
+          <Image source={Illustrations.recording} style={styles.sectionArt} resizeMode="contain" />
+          <Text style={styles.sectionName}>Adaptive</Text>
+        </View>
+        <AdaptiveBlock />
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {mode === 'adaptive'  && <AdaptiveBlock />}
-        {mode === 'retention' && <RetentionBlock />}
-        {mode === 'reading'   && <ReadingBlock />}
-        {mode === 'grammar'   && <GrammarBlock />}
-        {mode === 'targeted'  && <TargetedBlock />}
+        <View style={styles.sectionHead}>
+          <Image source={Illustrations.audioFiles} style={styles.sectionArt} resizeMode="contain" />
+          <Text style={styles.sectionName}>Retention</Text>
+        </View>
+        <RetentionBlock />
+
+        <View style={styles.sectionHead}>
+          <Image source={Illustrations.vocabulary} style={styles.sectionArt} resizeMode="contain" />
+          <Text style={styles.sectionName}>Reading</Text>
+        </View>
+        <ReadingBlock />
+
+        <View style={styles.sectionHead}>
+          <Image source={Illustrations.emptyNotes} style={styles.sectionArt} resizeMode="contain" />
+          <Text style={styles.sectionName}>Grammar</Text>
+        </View>
+        <GrammarBlock />
+
+        <View style={styles.sectionHead}>
+          <Image source={Illustrations.obDomain} style={styles.sectionArt} resizeMode="contain" />
+          <Text style={styles.sectionName}>Targeted</Text>
+        </View>
+        <TargetedBlock />
       </ScrollView>
+      </View>
     </View>
   );
 }
@@ -987,7 +989,7 @@ function TargetedBlock() {
       {/* Done state */}
       {done && (
         <View style={styles.targetedDoneCard}>
-          <Feather name="check-circle" size={40} color="#0FBA9A" style={styles.targetedDoneEmoji} />
+          <Image source={Illustrations.celebration} style={styles.targetedDoneArt} resizeMode="contain" />
           <Text style={styles.targetedDoneTitle}>Set complete!</Text>
           <Text style={styles.targetedDoneSub}>
             You finished all {exercises.length} exercises targeting your{' '}
@@ -1113,25 +1115,24 @@ const styles = StyleSheet.create({
   backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   title: { fontSize: 24, fontWeight: '800', color: '#F0F6FF', letterSpacing: -0.4 },
 
-  tabBarOuter: { backgroundColor: '#060D1A' },
-  tabBar: {
-    flexDirection: 'row', gap: 6,
-    paddingHorizontal: 20, paddingVertical: 10,
+  sectionHead: {
+    flexDirection: 'row', alignItems: 'center', gap: 16,
+    marginTop: 28, marginBottom: 12,
   },
-  tab: {
-    minWidth: 86, paddingVertical: 10, paddingHorizontal: 10, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center',
+  sectionArt: {
+    width: 160, height: 160,
+    backgroundColor: 'rgba(139,92,246,0.6)',
+    borderTopLeftRadius: 80, borderBottomRightRadius: 80,
+    borderTopRightRadius: 32, borderBottomLeftRadius: 32,
   },
-  tabActive: {
-    backgroundColor: '#0FBA9A', borderColor: '#0FBA9A',
-    shadowColor: '#0FBA9A', shadowOpacity: 0.3, shadowRadius: 8,
-    shadowOffset: { width: 0, height: 3 }, elevation: 3,
+  sectionName: {
+    fontSize: 30, color: '#F0F6FF',
+    fontFamily: 'Fredoka_700Bold', letterSpacing: 0.3,
+    textShadowColor: 'rgba(139,92,246,0.9)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
-  tabText: { fontSize: 12, fontWeight: '700', color: '#94A3B8' },
-  tabTextActive: { color: '#fff', fontWeight: '800' },
 
   scroll: { paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 60 },
+  phoneColumn: { flex: 1, width: '100%', maxWidth: 900, alignSelf: 'center' },
 
   modeIntro: { fontSize: 13, color: '#94A3B8', lineHeight: 19, marginBottom: 14 },
   bold: { fontWeight: '800', color: '#F0F6FF' },
@@ -1333,6 +1334,17 @@ const styles = StyleSheet.create({
     alignItems: 'center', borderWidth: 1.5, borderColor: '#0FBA9A',
   },
   targetedDoneEmoji: { fontSize: 40, marginBottom: 8 },
+  targetedDoneArt: { width: 230, height: 165, marginBottom: 8 },
+  cloud: {
+    position: 'absolute', zIndex: 3, elevation: 3, pointerEvents: 'none',
+    backgroundColor: 'rgba(139,92,246,0.20)',
+    borderTopLeftRadius: 120, borderBottomRightRadius: 120,
+    borderTopRightRadius: 48, borderBottomLeftRadius: 48,
+  },
+  artL1: { top: 150,    left: 30, width: 260, height: 260 },
+  artL2: { bottom: 70,  left: 30, width: 250, height: 250 },
+  artR1: { top: 140,    right: 30, width: 270, height: 270 },
+  artR2: { bottom: 80,  right: 30, width: 250, height: 250 },
   targetedDoneTitle: { fontSize: 20, fontWeight: '900', color: '#F0F6FF', marginBottom: 6 },
   targetedDoneSub: { fontSize: 13, color: '#94A3B8', textAlign: 'center', lineHeight: 19 },
 

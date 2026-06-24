@@ -6,11 +6,12 @@
 import { useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, StatusBar,
-  TouchableOpacity, Animated, Dimensions, Platform,
+  TouchableOpacity, Animated, Dimensions, Platform, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Illustrations } from '@/constants/illustrations';
 
 const { width: W } = Dimensions.get('window');
 const isTablet = W >= 760;
@@ -345,10 +346,10 @@ function ProgressVisual() {
 }
 
 const FEATURES = [
-  { abbr: 'IPA', tag: 'APPENDIX A', title: 'Accent DNA Profiling',   tagColor: D.teal,   desc: 'Among 1,247 Romanian speakers assessed during beta, six phonemes consistently produced the lowest accuracy scores. Each can be mastered — but only if it is named.', badge: 'Phonetics · IPA', Visual: AccentVisual },
-  { abbr: 'EVP', tag: 'APPENDIX B', title: 'Smart Vocabulary Coach', tagColor: D.purple, desc: 'Every word is classified A1–C2 against the Cambridge EVP corpus — 6,345 corpus-verified entries. Instant level-upgrade suggestions for your exact profile.', badge: 'CEFR · Cambridge EVP', Visual: VocabVisual },
-  { abbr: 'SHD', tag: 'APPENDIX C', title: 'Shadow Speaking',        tagColor: D.teal,   desc: 'Record yourself shadowing native audio. The engine scores pitch envelope, stress pattern and rhythm against the target — each dimension independently.', badge: 'Prosody · Rhythm · Stress', Visual: ShadowVisual },
-  { abbr: 'CEF', tag: 'APPENDIX D', title: 'CEFR Progress Tracking', tagColor: D.purple, desc: 'Every session updates your phoneme accuracy, vocabulary range and fluency — mapped to CEFR milestones with research citations behind every metric.', badge: 'CEFR · DeKeyser 2025', Visual: ProgressVisual },
+  { abbr: 'IPA', tag: 'APPENDIX A', title: 'Accent DNA Profiling',   tagColor: D.teal,   desc: 'Among 1,247 Romanian speakers assessed during beta, six phonemes consistently produced the lowest accuracy scores. Each can be mastered — but only if it is named.', badge: 'Phonetics · IPA', Visual: AccentVisual, art: Illustrations.accent },
+  { abbr: 'EVP', tag: 'APPENDIX B', title: 'Smart Vocabulary Coach', tagColor: D.purple, desc: 'Every word is classified A1–C2 against the Cambridge EVP corpus — 6,345 corpus-verified entries. Instant level-upgrade suggestions for your exact profile.', badge: 'CEFR · Cambridge EVP', Visual: VocabVisual, art: Illustrations.vocabulary },
+  { abbr: 'SHD', tag: 'APPENDIX C', title: 'Shadow Speaking',        tagColor: D.teal,   desc: 'Record yourself shadowing native audio. The engine scores pitch envelope, stress pattern and rhythm against the target — each dimension independently.', badge: 'Prosody · Rhythm · Stress', Visual: ShadowVisual, art: Illustrations.shadow },
+  { abbr: 'CEF', tag: 'APPENDIX D', title: 'CEFR Progress Tracking', tagColor: D.purple, desc: 'Every session updates your phoneme accuracy, vocabulary range and fluency — mapped to CEFR milestones with research citations behind every metric.', badge: 'CEFR · DeKeyser 2025', Visual: ProgressVisual, art: Illustrations.progressData },
 ];
 
 // Main screen
@@ -461,12 +462,12 @@ export default function HomeShowcaseScreen() {
               <View style={[S.miniCard, { flex: 1 }]}>
                 <Text style={S.miniCardSup}>/ 71</Text>
                 <Text style={S.miniCardNum}>12</Text>
-                <Text style={S.miniCardLabel}>MINUTE · SESIUNE ZILNICĂ</Text>
+                <Text style={S.miniCardLabel}>MIN · DAILY SESSION</Text>
               </View>
               <View style={[S.miniCard, { flex: 1 }]}>
                 <View style={S.miniCardIcon} />
                 <Text style={S.miniCardNum}>6</Text>
-                <Text style={S.miniCardLabel}>FONEME ȚINTITE</Text>
+                <Text style={S.miniCardLabel}>PHONEMES TARGETED</Text>
               </View>
             </View>
 
@@ -482,7 +483,6 @@ export default function HomeShowcaseScreen() {
               <LiveWaveform accent={D.purple} />
               <View style={S.spectroFooter}>
                 <Text style={S.spectroFooterText}>00:03</Text>
-                <Text style={[S.spectroFooterText, { color: D.muted }]}>FRICATIVĂ DENTALĂ SURDĂ</Text>
                 <Text style={S.spectroFooterText}>00:23</Text>
               </View>
             </View>
@@ -585,8 +585,8 @@ export default function HomeShowcaseScreen() {
               {/* Body */}
               <View style={FS.cardBody}>
                 <View style={FS.titleRow}>
-                  <View style={[FS.iconBox, { backgroundColor: feat.tagColor + '1A', borderWidth: 1, borderColor: feat.tagColor + '33' }]}>
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: feat.tagColor, letterSpacing: 0.5 }}>{feat.abbr}</Text>
+                  <View style={FS.featArtWrap}>
+                    <Image source={feat.art} style={FS.featArt} resizeMode="contain" />
                   </View>
                   <Text style={FS.cardTitle}>{feat.title}</Text>
                 </View>
@@ -756,12 +756,12 @@ const FV = StyleSheet.create({
 
 const FS = StyleSheet.create({
   intro:    { marginTop: 8, marginBottom: 24 },
-  introEye: { fontSize: 10, fontWeight: '800', letterSpacing: 1.8, color: D.purple, marginBottom: 10 },
+  introEye: { fontSize: 13, fontFamily: 'Fredoka_600SemiBold', letterSpacing: 1.8, color: D.purple, marginBottom: 12 },
   introTitle: {
-    fontSize: isTablet ? 38 : 28, fontWeight: '900', color: D.text,
-    lineHeight: isTablet ? 48 : 36, letterSpacing: -1, marginBottom: 12,
+    fontSize: isTablet ? 60 : 40, fontFamily: 'Fredoka_700Bold', color: D.text,
+    lineHeight: isTablet ? 70 : 48, letterSpacing: -0.5, marginBottom: 16,
   },
-  introSub: { fontSize: 14, color: D.muted, lineHeight: 22, maxWidth: 400 },
+  introSub: { fontSize: 20, fontFamily: 'Fredoka_500Medium', color: D.muted, lineHeight: 30, maxWidth: 560 },
 
   card: {
     backgroundColor: D.card, borderRadius: 18, overflow: 'hidden', marginBottom: 16,
@@ -774,11 +774,17 @@ const FS = StyleSheet.create({
     borderBottomLeftRadius: 8, zIndex: 10,
   },
   cornerTagText: { fontSize: 8, fontWeight: '900', color: '#fff', letterSpacing: 1.2 },
-  cardBody:  { padding: 18, gap: 10 },
-  titleRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardBody:  { padding: 22, gap: 14 },
+  titleRow:  { flexDirection: 'row', alignItems: 'center', gap: 16 },
   iconBox:   { width: 42, height: 42, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  cardTitle: { fontSize: 17, fontWeight: '900', color: D.text, flex: 1, letterSpacing: -0.4 },
-  cardDesc:  { fontSize: 13, color: D.muted, lineHeight: 21 },
-  badge:     { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
-  badgeText: { fontSize: 10, fontWeight: '800', letterSpacing: 0.3 },
+  featArtWrap: {
+    width: 120, height: 120, borderRadius: 28,
+    backgroundColor: 'rgba(139,92,246,0.6)',
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  featArt: { width: 96, height: 96 },
+  cardTitle: { fontSize: 26, fontFamily: 'Fredoka_700Bold', color: D.text, flex: 1, letterSpacing: 0.2 },
+  cardDesc:  { fontSize: 18, fontFamily: 'Fredoka_500Medium', color: D.muted, lineHeight: 28 },
+  badge:     { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9 },
+  badgeText: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', letterSpacing: 0.3 },
 });

@@ -22,12 +22,15 @@ import {
   Alert,
   Modal,
   Pressable,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '@/constants/api';
@@ -616,10 +619,7 @@ export default function HomeScreen() {
           {/* Proficiency DNA */}
           {sortedInds.length > 0 && (
             <View style={S.section}>
-              <View style={S.sectionHead}>
-                <Text style={S.sectionTitle}>{tr('proficiencyDna', lang)}</Text>
-                <Text style={S.sectionMeta}>10 indicators · Lee (2021)</Text>
-              </View>
+              <SectionHeader art={Illustrations.diagnostic} title={tr('proficiencyDna', lang)} />
               <View style={S.dnaCard}>
                 {sortedInds.map((ind, i) => (
                   <IndicatorRow
@@ -667,12 +667,7 @@ export default function HomeScreen() {
 
           {/* Skill Training */}
           <View style={S.section}>
-            <View style={S.sectionHead}>
-              <Text style={S.sectionTitle}>{tr('skillTraining', lang)}</Text>
-              <View style={S.stepPill}>
-                <Text style={S.stepText}>{tr('step1', lang)}</Text>
-              </View>
-            </View>
+            <SectionHeader art={Illustrations.recording} title={tr('skillTraining', lang)} />
             {TRAINING_MODULES.map(m => (
               <ModuleRow
                 key={m.label}
@@ -687,9 +682,7 @@ export default function HomeScreen() {
 
           {/* Tools */}
           <View style={S.section}>
-            <View style={S.sectionHead}>
-              <Text style={[S.sectionTitle, { color: TEXT2, fontSize: 14 }]}>{tr('tools', lang)}</Text>
-            </View>
+            <SectionHeader art={Illustrations.adjustSettings} title={tr('tools', lang)} />
             {TOOL_MODULES.map(m => (
               <ModuleRow
                 key={m.label}
@@ -916,7 +909,9 @@ const S = StyleSheet.create({
   root:             { flex: 1, backgroundColor: BG },
   loadingContainer: { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText:      { fontSize: 14, color: TEXT2 },
-  scroll:           { paddingHorizontal: 20, paddingBottom: 24 },
+  scroll: { paddingHorizontal: 20, paddingBottom: 24, maxWidth: 900, width: '100%', alignSelf: 'center' },
+  cornerArtTR:      { position: 'absolute', top: 70, right: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
+  cornerArtBL:      { position: 'absolute', bottom: 20, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
 
   // Notification banner
   notifBanner: {

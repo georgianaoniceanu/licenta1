@@ -9,9 +9,12 @@ import {
   Switch,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -289,6 +292,23 @@ export default function SettingsScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
+        <SectionHero
+          art={
+            activeSection === 'general'       ? Illustrations.adjustSettings
+            : activeSection === 'learning'    ? Illustrations.goals
+            : activeSection === 'notifications' ? Illustrations.alarmClock
+            :                                   Illustrations.secureLogin
+          }
+          title={tr(
+            (activeSection === 'general' ? 'tabGeneral'
+            : activeSection === 'learning' ? 'tabLearning'
+            : activeSection === 'notifications' ? 'tabNotifications'
+            : 'tabAccount') as any,
+            lang,
+          )}
+          subtitle={tr('settingsTitle', lang)}
+        />
+
         {/* GENERAL SETTINGS */}
         {activeSection === 'general' && (
           <>
@@ -698,6 +718,7 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: '#060D1A' },
+  cornerArtBL: { position: 'absolute', bottom: 24, left: -26, width: 220, height: 220, opacity: 1, zIndex: 3, elevation: 3, backgroundColor: 'rgba(139,92,246,0.22)', borderTopLeftRadius: 110, borderBottomRightRadius: 110, borderTopRightRadius: 38, borderBottomLeftRadius: 38, pointerEvents: 'none' },
 
   header: {
     flexDirection: 'row',
@@ -725,7 +746,7 @@ const styles = StyleSheet.create({
   tabText:  { fontSize: 18 },
   tabLabel: { fontSize: 10, fontWeight: '600' },
 
-  contentContainer: { paddingHorizontal: 20, paddingTop: 20 },
+  contentContainer: { paddingHorizontal: 20, paddingTop: 20, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   section: { marginBottom: 28 },
   sectionTitle: { color: '#F0F6FF', fontSize: 16, fontWeight: '700', marginBottom: 14 },

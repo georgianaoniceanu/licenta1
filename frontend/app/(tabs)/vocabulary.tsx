@@ -12,11 +12,14 @@ import {
   Alert,
   Platform,
   Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import { Audio } from 'expo-av';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors, Spacing, Animations } from '@/constants/theme';
@@ -952,10 +955,14 @@ export default function VocabularyScreen() {
         <StatusBar barStyle="light-content" />
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Speaking Practice</Text>
-          <Text style={styles.headerSubtitle}>Choose a topic and speak freely for 60–90 seconds</Text>
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.promptsContainer}>
+          <SectionHero
+            art={Illustrations.vocabulary}
+            title="Speaking Practice"
+            subtitle="Choose a topic and speak freely for 60–90 seconds."
+          />
           {/* Previously practised answers — tap to open the full results */}
           <SavedSessions<VocabSession>
             storageKey="vf_vocab_sessions"
@@ -1582,6 +1589,7 @@ export default function VocabularyScreen() {
               </>
             ) : (
               <View style={styles.emptyTab}>
+                <Image source={Illustrations.emptyRecord} style={styles.emptyTabArt} resizeMode="contain" />
                 <Text style={styles.emptyTabText}>Record your speech to get pronunciation analysis.</Text>
               </View>
             )}
@@ -1689,6 +1697,7 @@ export default function VocabularyScreen() {
               </>
             ) : (
               <View style={styles.emptyTab}>
+                <Image source={Illustrations.emptyRecord} style={styles.emptyTabArt} resizeMode="contain" />
                 <Text style={styles.emptyTabText}>Record your speech to see phonetic breakdown and word family analysis.</Text>
               </View>
             )}
@@ -1729,6 +1738,7 @@ export default function VocabularyScreen() {
               </View>
             ) : (
               <View style={styles.emptyTab}>
+                <Image source={Illustrations.emptyRecord} style={styles.emptyTabArt} resizeMode="contain" />
                 <Text style={styles.emptyTabText}>Complete an analysis to get your personalized exercise.</Text>
               </View>
             )}
@@ -1898,6 +1908,7 @@ export default function VocabularyScreen() {
               );
             })() : (
               <View style={styles.emptyTab}>
+                <Image source={Illustrations.emptyRecord} style={styles.emptyTabArt} resizeMode="contain" />
                 <Text style={styles.emptyTabText}>
                   Record your speech to detect Romanian interference errors in your English.
                 </Text>
@@ -2185,6 +2196,7 @@ export default function VocabularyScreen() {
               );
             })() : (
               <View style={styles.emptyTab}>
+                <Image source={Illustrations.emptyRecord} style={styles.emptyTabArt} resizeMode="contain" />
                 <Text style={styles.emptyTabText}>
                   Record your speech to get your IELTS band estimate, CEFR level and Cambridge exam recommendation.
                 </Text>
@@ -2213,8 +2225,9 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.light.background,
   },
   headerTitle: { fontSize: 28, fontWeight: '700', color: Colors.light.text, marginBottom: 6, letterSpacing: -0.4 },
+  moduleHero: { width: '88%', height: 165, alignSelf: 'center', marginBottom: 14 },
   headerSubtitle: { fontSize: 14, color: Colors.light.textSecondary, lineHeight: 20 },
-  promptsContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 12 },
+  promptsContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 12, maxWidth: 900, width: '100%', alignSelf: 'center' },
   promptCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 16, padding: 16,
@@ -2448,7 +2461,7 @@ const styles = StyleSheet.create({
   tabBtnText: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
   tabBtnTextActive: { color: '#060D1A', fontWeight: '800' },
 
-  resultsContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
+  resultsContent: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20, maxWidth: 900, width: '100%', alignSelf: 'center' },
   tabSection: { gap: 16 },
 
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.light.text, marginBottom: 12 },
@@ -2631,6 +2644,7 @@ const styles = StyleSheet.create({
     padding: 32, alignItems: 'center',
     borderWidth: 1, borderColor: Colors.light.border,
   },
+  emptyTabArt: { width: 210, height: 155, marginBottom: 14 },
   emptyTabText: { fontSize: 14, color: Colors.light.textSecondary, textAlign: 'center', lineHeight: 21 },
 
   noSuggestions: { fontSize: 14, color: Colors.light.success, fontWeight: '600', textAlign: 'center', paddingVertical: Spacing.lg },

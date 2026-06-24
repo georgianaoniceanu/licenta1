@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Audio } from 'expo-av';
@@ -15,6 +16,8 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { Feather } from '@expo/vector-icons';
 import { API_URL } from '../../constants/api';
 import { Colors, Animations } from '../../constants/theme';
+import { Illustrations } from '@/constants/illustrations';
+import { SectionHeader, SectionHero } from '@/components/section-header';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLearnerProfile } from '../../context/LearnerProfile';
 import SavedSessions from '@/components/saved-sessions';
@@ -536,10 +539,11 @@ export default function ShadowSpeakingScreen() {
           <Text style={styles.headerBadge}>Shadow Speaking</Text>
         </View>
 
-        <Text style={styles.pageTitle}>Shadow Speaking</Text>
-        <Text style={styles.pageSubtitle}>
-          Listen to a native speaker, then mirror their rhythm and flow.
-        </Text>
+        <SectionHero
+          art={Illustrations.shadow}
+          title="Shadow Speaking"
+          subtitle="Listen to a native speaker, then mirror their rhythm and flow."
+        />
 
         {/* Previously practised fragments (saved sessions for this user) */}
         <SavedSessions<SavedShadow>
@@ -1061,7 +1065,7 @@ export default function ShadowSpeakingScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Colors.light.background },
-  scrollContent: { paddingHorizontal: 20, paddingTop: 56 },
+  scrollContent: { paddingHorizontal: 20, paddingTop: 56, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
@@ -1070,6 +1074,7 @@ const styles = StyleSheet.create({
 
   pageTitle: { color: Colors.light.text, fontSize: 26, fontWeight: '700', letterSpacing: -0.4, marginBottom: 6 },
   pageSubtitle: { color: Colors.light.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 16 },
+  moduleHero: { width: '88%', height: 165, alignSelf: 'center', marginBottom: 14 },
 
   sessionHistoryBar: {
     flexDirection: 'row',
