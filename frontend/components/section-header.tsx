@@ -67,7 +67,6 @@ const s = StyleSheet.create({
   title: {
     flex: 1, fontSize: 30, color: '#F0F6FF',
     fontFamily: 'Fredoka_700Bold', letterSpacing: 0.3,
-    textShadowColor: 'rgba(139,92,246,0.9)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
 
   // Hero
@@ -88,6 +87,5 @@ const s = StyleSheet.create({
   heroSub: {
     fontSize: 17, color: '#FFFFFF', marginTop: 6, lineHeight: 24,
     fontFamily: 'Fredoka_600SemiBold', letterSpacing: 0.4,
-    textShadowColor: 'rgba(15,186,154,0.95)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 7,
   },
 });

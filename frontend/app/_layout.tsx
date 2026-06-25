@@ -10,6 +10,8 @@ import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   useFonts,
+  Fredoka_300Light,
+  Fredoka_400Regular,
   Fredoka_500Medium,
   Fredoka_600SemiBold,
   Fredoka_700Bold,
@@ -18,6 +20,8 @@ import {
 function AppShell() {
   const router = useRouter();
   const [fontsLoaded] = useFonts({
+    Fredoka_300Light,
+    Fredoka_400Regular,
     Fredoka_500Medium,
     Fredoka_600SemiBold,
     Fredoka_700Bold,
@@ -56,7 +60,6 @@ function AppShell() {
         <Stack.Screen name="login" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="initial_diagnostic" options={{ headerShown: false }} />
-        <Stack.Screen name="dual_diagnosis" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'About VocaFlow', headerShown: true }} />
       </Stack>

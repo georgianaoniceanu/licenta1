@@ -66,12 +66,38 @@ import re
 import os
 import json
 import math
+import hashlib
 from typing import Dict, Optional, List
 from groq import Groq
 from dotenv import load_dotenv
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+# ── Cambridge EVP word-level CEFR data (for lexical sophistication) ────────────
+# evp_words.json maps 6,345 words to the CEFR level a learner is expected to know
+# them at (e.g. "abandon" -> "B2"). Used to measure real lexical rarity instead
+# of the crude "long word" proxy.
+_EVP_PATH = os.path.join(os.path.dirname(__file__), "evp_words.json")
+try:
+    with open(_EVP_PATH, encoding="utf-8") as _evp_f:
+        _EVP_LEVELS: Dict[str, str] = json.load(_evp_f)
+except Exception:
+    _EVP_LEVELS = {}
+_EVP_RANK = {"A1": 1.0, "A2": 2.0, "B1": 3.0, "B2": 4.0, "C1": 5.0, "C2": 6.0}
+
+
+def _evp_sophistication(words: List[str]) -> Optional[float]:
+    """Mean CEFR rank (A1=1 … C2=6) of the EVP-graded words in the text.
+    Higher = more advanced vocabulary. None if no graded word is present."""
+    ranks = [
+        _EVP_RANK[_EVP_LEVELS[w]]
+        for w in words
+        if w in _EVP_LEVELS and _EVP_LEVELS[w] in _EVP_RANK
+    ]
+    if not ranks:
+        return None
+    return round(sum(ranks) / len(ranks), 2)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # WORD LISTS
@@ -240,11 +266,13 @@ def analyze_text_indicators(
     # ── Indicator 1: Lexical Diversity (MTLD, Şahin Kızıl 2024) ──────────────
     lexical_diversity = compute_mtld(words)
 
-    # ── Indicator 2: Lexical Sophistication (1.0-6.0) ─────────────────────────
-    long_words = [w for w in words if len(w) >= 7]
-    long_word_ratio = len(long_words) / n_words
-    lexical_sophistication = round(5.8 - (long_word_ratio * 7.67), 2)
-    lexical_sophistication = max(1.0, min(6.0, lexical_sophistication))
+    # ── Indicator 2: Lexical Sophistication (1.0-6.0, higher = more advanced) ──
+    # Mean Cambridge EVP CEFR rank of the words used (A1=1 … C2=6). Falls back to
+    # the long-word ratio only when no EVP-graded word is present (very short input).
+    lexical_sophistication = _evp_sophistication(words)
+    if lexical_sophistication is None:
+        long_word_ratio = len([w for w in words if len(w) >= 7]) / n_words
+        lexical_sophistication = round(max(1.0, min(6.0, 1.0 + long_word_ratio * 5.0)), 2)
 
     # ── Indicator 3: Average Word Length ─────────────────────────────────────
     word_length = round(sum(len(w) for w in words) / n_words, 2)
@@ -311,15 +339,42 @@ def analyze_text_indicators(
     }
 
 
+# Cache estimates per text so the metric is reproducible within a run and we
+# don't pay for repeated API calls on identical input.
+_ACCURACY_CACHE: Dict[str, float] = {}
+
+
+def _deterministic_accuracy(text: str) -> float:
+    """Reproducible morphosyntactic-accuracy estimate from the rule-based
+    Romanian interference detector (severity_score: 0-100, higher = fewer
+    errors; Pungă & Pârlog 2015). Used when the LLM is unavailable so the
+    metric is never a fixed dummy value."""
+    try:
+        from app.services.romanian_error_detector import detect_romanian_errors
+        score = detect_romanian_errors(text).get("severity_score", 70.0)
+        return round(float(score), 1)
+    except Exception:
+        return 70.0
+
+
 def _estimate_accuracy_llm(text: str) -> float:
     """
-    Use Groq LLM to estimate morphosyntactic accuracy (EFC/C ratio).
+    Estimate morphosyntactic accuracy (EFC/C — Error-Free Clause ratio).
+
+    Primary  : Groq LLM holistic estimate (broad error coverage).
+    Fallback : deterministic rule-based detector (Pungă & Pârlog 2015) whenever
+               the LLM is unavailable — never a fixed dummy value.
+    Cached per text for reproducibility.
 
     Based on:
     - Zechner et al. (2009): amscore (language model score in SpeechRater)
     - Şahin Kızıl (2024): EFC/C = Error-Free Clause ratio
-    - Li & Shintani (2010): corrective feedback effectiveness requires accurate diagnosis
+    - Li & Shintani (2010): corrective feedback requires accurate diagnosis
     """
+    key = hashlib.sha1(text.strip().encode("utf-8")).hexdigest()
+    if key in _ACCURACY_CACHE:
+        return _ACCURACY_CACHE[key]
+
     try:
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
@@ -343,10 +398,14 @@ def _estimate_accuracy_llm(text: str) -> float:
             temperature=0.1,
         )
         result = json.loads(response.choices[0].message.content)
-        return float(result.get("accuracy_percent", 70.0))
+        val = float(result.get("accuracy_percent", _deterministic_accuracy(text)))
     except Exception as e:
-        print(f"LLM accuracy estimation failed: {e}")
-        return 70.0
+        print(f"LLM accuracy estimation failed ({e}); using deterministic fallback")
+        val = _deterministic_accuracy(text)
+
+    val = round(max(0.0, min(100.0, val)), 1)
+    _ACCURACY_CACHE[key] = val
+    return val
 
 
 def get_diagnostic_prompt(domain: str) -> Dict[str, str]:

@@ -1128,7 +1128,6 @@ const styles = StyleSheet.create({
   sectionName: {
     fontSize: 30, color: '#F0F6FF',
     fontFamily: 'Fredoka_700Bold', letterSpacing: 0.3,
-    textShadowColor: 'rgba(139,92,246,0.9)', textShadowOffset: { width: 0, height: 0 }, textShadowRadius: 8,
   },
 
   scroll: { paddingHorizontal: 20, paddingVertical: 14, paddingBottom: 60 },

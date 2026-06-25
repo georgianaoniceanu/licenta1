@@ -67,7 +67,7 @@ app.include_router(research_router)  # Includes /assessment/* routes for researc
 app.include_router(srs_router, prefix="/srs")
 app.include_router(health_router)  # /health and /health/cache/clear
 app.include_router(practice_router)  # /practice/adaptive, word-retention, reading, listening
-app.include_router(cefr_router, prefix="/cefr")  # /cefr/predict, /cefr/features (RF on S&I Corpus 2025)
+app.include_router(cefr_router, prefix="/cefr")  # /cefr/predict, /cefr/features (Ordinal LR + SVM, written Kaggle corpus)
 
 @app.on_event("startup")
 async def on_startup():

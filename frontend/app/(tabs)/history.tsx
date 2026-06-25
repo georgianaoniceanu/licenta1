@@ -21,7 +21,7 @@ import { getFreshToken } from '@/utils/auth';
 import { Illustrations } from '@/constants/illustrations';
 import { SectionHeader, SectionHero } from '@/components/section-header';
 import {
-  isSpeechAvailable, warmupVoices, playRecordingOrTTS, stopAllPlayback,
+  warmupVoices, playRecordingOrTTS, stopAllPlayback,
 } from '@/utils/voiceProfiles';
 import { getDemoAudio } from '@/constants/demoAudio';
 import { palette } from '@/constants/theme';
@@ -235,9 +235,8 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
   const scoreColor = data.score >= 80 ? '#0FBA9A' : data.score >= 60 ? '#8B5CF6' : '#EF4444';
   const [playing, setPlaying] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  // Only play real recordings bundled in assets/audio — never robotic TTS.
   const audioModule = getDemoAudio(data.audio_id);
-  // Playback is possible if there's a real recording OR speech synthesis is available
-  const canPlay = !!audioModule || isSpeechAvailable();
 
   // Waveform bars animation
   const waveAnims = useRef(Array.from({ length: 5 }, () => new Animated.Value(0.3))).current;
@@ -301,37 +300,38 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
         </View>
       </View>
 
-      {/* Recording playback bar */}
+      {/* Recording playback bar — only shown for real recordings in assets/audio */}
       <View style={S.recordingBar}>
-        <TouchableOpacity
-          style={[S.playBtn, { backgroundColor: playing ? '#EF4444' : SKY }]}
-          onPress={togglePlay}
-          disabled={!canPlay}
-          activeOpacity={0.8}
-        >
-          <Feather name={playing ? 'square' : 'play'} size={14} color="#fff" />
-        </TouchableOpacity>
-
-        {/* Waveform */}
-        <View style={S.waveform}>
-          {waveAnims.map((v, i) => (
-            <Animated.View
-              key={i}
-              style={[
-                S.waveBar,
-                {
-                  backgroundColor: playing ? SKY : 'rgba(255,255,255,0.06)',
-                  transform: [{ scaleY: v }],
-                },
-              ]}
-            />
-          ))}
-        </View>
-
         {audioModule && (
-          <View style={S.realBadge}>
-            <Text style={S.realBadgeText}>REC</Text>
-          </View>
+          <>
+            <TouchableOpacity
+              style={[S.playBtn, { backgroundColor: playing ? '#EF4444' : SKY }]}
+              onPress={togglePlay}
+              activeOpacity={0.8}
+            >
+              <Feather name={playing ? 'square' : 'play'} size={14} color="#fff" />
+            </TouchableOpacity>
+
+            {/* Waveform */}
+            <View style={S.waveform}>
+              {waveAnims.map((v, i) => (
+                <Animated.View
+                  key={i}
+                  style={[
+                    S.waveBar,
+                    {
+                      backgroundColor: playing ? SKY : 'rgba(255,255,255,0.06)',
+                      transform: [{ scaleY: v }],
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+
+            <View style={S.realBadge}>
+              <Text style={S.realBadgeText}>REC</Text>
+            </View>
+          </>
         )}
 
         <TouchableOpacity onPress={() => setExpanded(e => !e)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -340,12 +340,6 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
           </Text>
         </TouchableOpacity>
       </View>
-
-      {!canPlay && Platform.OS !== 'web' && (
-        <Text style={S.audioFallback}>
-          Audio playback is available in the web build.
-        </Text>
-      )}
 
       {expanded && (
         <View style={S.transcriptBox}>
@@ -508,7 +502,7 @@ const S = StyleSheet.create({
   scroll: { paddingHorizontal: 20, paddingTop: 56, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   header: { flexDirection: 'row', marginBottom: 20 },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11, borderWidth: 1.5, borderColor: TEAL, backgroundColor: '#0F1B2D' },
   backText: { color: TEAL, fontSize: 15, fontWeight: '600' },
 
   pageTitle: { color: Colors.light.text, fontSize: 26, fontWeight: '800', letterSpacing: -0.4, marginBottom: 4 },

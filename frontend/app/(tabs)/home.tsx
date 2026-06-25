@@ -400,12 +400,8 @@ export default function HomeShowcaseScreen() {
       >
         {/* Nav */}
         <View style={S.nav}>
-          <View style={S.brandRow}>
-            <LinearGradient colors={[D.purple, D.teal]} style={S.logoBox}>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: '#fff', letterSpacing: -0.5 }}>VF</Text>
-            </LinearGradient>
-            <Text style={S.brand}>Voca<Text style={{ color: D.purple }}>Flow</Text></Text>
-          </View>
+          <Image source={require('../../assets/images/logo.png')} style={{ width: 150, height: 50 }} resizeMode="contain" />
+
           <TouchableOpacity style={S.dashBtn} onPress={() => router.replace('/(tabs)')} activeOpacity={0.85}>
             <Text style={S.dashBtnText}>Dashboard →</Text>
           </TouchableOpacity>
@@ -756,7 +752,7 @@ const FV = StyleSheet.create({
 
 const FS = StyleSheet.create({
   intro:    { marginTop: 8, marginBottom: 24 },
-  introEye: { fontSize: 13, fontFamily: 'Fredoka_600SemiBold', letterSpacing: 1.8, color: D.purple, marginBottom: 12 },
+  introEye: { fontSize: 13, fontWeight: '800', letterSpacing: 1.8, color: D.purple, marginBottom: 12 },
   introTitle: {
     fontSize: isTablet ? 60 : 40, fontFamily: 'Fredoka_700Bold', color: D.text,
     lineHeight: isTablet ? 70 : 48, letterSpacing: -0.5, marginBottom: 16,
@@ -784,7 +780,7 @@ const FS = StyleSheet.create({
   },
   featArt: { width: 96, height: 96 },
   cardTitle: { fontSize: 26, fontFamily: 'Fredoka_700Bold', color: D.text, flex: 1, letterSpacing: 0.2 },
-  cardDesc:  { fontSize: 18, fontFamily: 'Fredoka_500Medium', color: D.muted, lineHeight: 28 },
+  cardDesc:  { fontSize: 18, color: D.muted, lineHeight: 28 },
   badge:     { alignSelf: 'flex-start', paddingHorizontal: 14, paddingVertical: 7, borderRadius: 9 },
-  badgeText: { fontSize: 14, fontFamily: 'Fredoka_600SemiBold', letterSpacing: 0.3 },
+  badgeText: { fontSize: 14, fontWeight: '800', letterSpacing: 0.3 },
 });

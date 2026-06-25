@@ -201,6 +201,18 @@ def predict_cefr(features: dict) -> dict:
     model_feats = bundle.get("features", FEATURES)
     cefr_labels = bundle.get("cefr_labels", CEFR_LABELS)
 
+    # Fail-fast: never silently predict from imputed means when real features
+    # are absent — that yields confident but meaningless output. Require every
+    # feature the model was trained on (after resolving legacy aliases).
+    provided = {_FEATURE_ALIASES.get(k, k) for k in features}
+    missing = [f for f in model_feats if f not in provided]
+    if missing:
+        raise ValueError(
+            "Cannot predict CEFR — missing required feature(s): "
+            + ", ".join(missing)
+            + ". All model features must be supplied (no silent imputation)."
+        )
+
     x_raw = _resolve_features(features, model_feats)     # (1, n_features)
     x_s   = scaler.transform(x_raw)                      # standardised
 

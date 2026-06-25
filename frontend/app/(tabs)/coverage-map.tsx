@@ -368,26 +368,18 @@ export default function CoverageMapScreen() {
   // Render
   return (
     <View style={styles.screen}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Feather name="chevron-left" size={22} color={TEXT} />
-        </TouchableOpacity>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Coverage Map</Text>
-          <Text style={styles.headerSub}>Your COCA subgenre exposure vs. recommendations</Text>
-        </View>
-      </View>
-
       <ScrollView
         contentContainerStyle={styles.scroll}
         showsVerticalScrollIndicator={false}
       >
-        <SectionHero
-          art={Illustrations.map}
-          title="Coverage Map"
-          subtitle="Your COCA subgenre exposure vs. job, exam and goal targets."
-        />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Feather name="chevron-left" size={18} color="#0FBA9A" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Coverage Map</Text>
+        </View>
+        <Text style={styles.headerSub}>Your COCA subgenre exposure vs. recommendations</Text>
 
         {/* Profile summary card */}
         <View style={styles.profileCard}>
@@ -675,19 +667,18 @@ const styles = StyleSheet.create({
 
   header: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
-    paddingHorizontal: 20, paddingTop: 52, paddingBottom: 14,
-    backgroundColor: CARD,
-    borderBottomWidth: 1, borderBottomColor: BORDER,
+    marginBottom: 6,
   },
   backBtn: {
-    width: 38, height: 38, borderRadius: 10,
-    backgroundColor: '#0F1B2D',
-    justifyContent: 'center', alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11,
+    borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#0F1B2D',
   },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
-  headerSub:   { fontSize: 12, color: TEXT2, marginTop: 1 },
+  backText:    { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  headerTitle: { fontSize: 24, fontWeight: '800', color: TEXT, letterSpacing: -0.3 },
+  headerSub:   { fontSize: 13, color: TEXT2, marginTop: 2, marginBottom: 10 },
 
-  scroll: { padding: 16, maxWidth: 900, width: '100%', alignSelf: 'center' },
+  scroll: { paddingHorizontal: 16, paddingTop: 46, paddingBottom: 24, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
   // Profile summary
   profileCard: {

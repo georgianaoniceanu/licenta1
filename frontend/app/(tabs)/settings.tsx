@@ -256,7 +256,7 @@ export default function SettingsScreen() {
           accessibilityRole="button"
           accessibilityLabel={tr('back', lang)}
         >
-          <Feather name="chevron-left" size={18} color="#8B5CF6" />
+          <Feather name="chevron-left" size={18} color="#0FBA9A" />
           <Text style={styles.backText}>{tr('back', lang)}</Text>
         </TouchableOpacity>
         <Text style={[styles.headerTitle, { color: T.text }]}>{tr('settingsTitle', lang)}</Text>
@@ -729,8 +729,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.08)',
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 1, paddingVertical: 6, paddingRight: 12 },
-  backText: { color: '#8B5CF6', fontSize: 15, fontWeight: '600' },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11, borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#0F1B2D' },
+  backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   headerTitle: { color: '#F0F6FF', fontSize: 18, fontWeight: '700' },
 
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },

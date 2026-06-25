@@ -953,14 +953,20 @@ export default function VocabularyScreen() {
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Speaking Practice</Text>
-        </View>
-
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.promptsContainer}>
+          <View style={styles.vHead}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+              <Feather name="chevron-left" size={18} color={Colors.light.tint} />
+              <Text style={styles.backBtnText}>Back</Text>
+            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Feather name="book-open" size={14} color={Colors.light.tint} />
+              <Text style={styles.vBadge}>Vocabulary Coach</Text>
+            </View>
+          </View>
           <SectionHero
             art={Illustrations.vocabulary}
-            title="Speaking Practice"
+            title="Vocabulary Coach"
             subtitle="Choose a topic and speak freely for 60–90 seconds."
           />
           {/* Previously practised answers — tap to open the full results */}
@@ -2227,7 +2233,9 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 28, fontWeight: '700', color: Colors.light.text, marginBottom: 6, letterSpacing: -0.4 },
   moduleHero: { width: '88%', height: 165, alignSelf: 'center', marginBottom: 14 },
   headerSubtitle: { fontSize: 14, color: Colors.light.textSecondary, lineHeight: 20 },
-  promptsContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 20, gap: 12, maxWidth: 900, width: '100%', alignSelf: 'center' },
+  promptsContainer: { paddingHorizontal: 20, paddingTop: 46, paddingBottom: 20, gap: 12, maxWidth: 900, width: '100%', alignSelf: 'center' },
+  vHead: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 6 },
+  vBadge: { fontSize: 13, fontWeight: '700', color: Colors.light.tint },
   promptCard: {
     backgroundColor: Colors.light.surface,
     borderRadius: 16, padding: 16,

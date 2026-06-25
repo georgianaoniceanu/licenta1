@@ -8,6 +8,7 @@ import { Illustrations } from '@/constants/illustrations';
 import { SectionHeader } from '@/components/section-header';
 import { Audio } from 'expo-av';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -171,6 +172,7 @@ function bandBar(band: number, color: string) {
 // Main component
 
 export default function ExamProfileScreen() {
+  const router = useRouter();
   const [mode, setMode] = useState<'speaking' | 'writing'>('speaking');
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -338,7 +340,13 @@ export default function ExamProfileScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Exam Profile</Text>
+        <View style={styles.headRow}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Feather name="chevron-left" size={18} color="#0FBA9A" />
+            <Text style={styles.backText}>Back</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Exam Profile</Text>
+        </View>
         <Text style={styles.headerSub}>IELTS Speaking band · Cambridge CEFR level</Text>
       </View>
 
@@ -654,7 +662,10 @@ export default function ExamProfileScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
-  content: { paddingHorizontal: 16, paddingBottom: 40 },
+  content: { paddingHorizontal: 16, paddingBottom: 40, paddingTop: 8, maxWidth: 900, width: '100%', alignSelf: 'center' },
+  headRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 6 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11, borderWidth: 1.5, borderColor: '#0FBA9A', backgroundColor: '#0F1B2D' },
+  backText: { color: '#0FBA9A', fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
 
   header: { paddingTop: 8, paddingBottom: 16 },
   headerTitle: { fontSize: 22, fontWeight: '800', color: NAVY, letterSpacing: -0.5 },
