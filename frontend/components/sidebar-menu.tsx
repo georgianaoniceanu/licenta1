@@ -8,6 +8,7 @@ import {
   Animated,
   Alert,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { signOut } from 'firebase/auth';
@@ -43,7 +44,7 @@ const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: stri
   { key: 'progress',      route: '/(tabs)/progress',      icon: 'trending-up', color: '#8B5CF6' },
   { key: 'examProfile',   route: '/(tabs)/exam-profile',  icon: 'award',       color: '#8B5CF6' },
   { key: 'history',       route: '/(tabs)/history',       icon: 'clock',       color: '#64748B' },
-  { key: 'dualDiagnosis', route: '/dual_diagnosis',       icon: 'bar-chart-2', color: TEAL      },
+  { key: 'dualDiagnosis', route: '/(tabs)/dual_diagnosis', icon: 'bar-chart-2', color: TEAL      },
   { key: 'coverageMap',   route: '/(tabs)/coverage-map',  icon: 'map',         color: '#8B5CF6' },
   { key: 'settings',      route: '/(tabs)/settings',      icon: 'settings',    color: '#64748B' },
   { key: 'about',         route: '/modal',                icon: 'info',        color: '#8B5CF6' },
@@ -196,13 +197,7 @@ export default function SidebarMenu({ onClose }: SidebarMenuProps) {
           <Feather name="x" size={18} color={palette.textMuted} />
         </TouchableOpacity>
         <View style={S.logoRow}>
-          <LinearGradient colors={[TEAL, '#00C49A']} style={S.logoBubble}>
-            <Text style={S.logoV}>V</Text>
-          </LinearGradient>
-          <View>
-            <Text style={S.title}>VocaFlow</Text>
-            <Text style={S.subtitle}>{tr('aiLanguageCoach', lang)}</Text>
-          </View>
+          <Image source={require('../assets/images/logo.png')} style={{ width: 210, height: 70 }} resizeMode="contain" />
         </View>
       </LinearGradient>
 

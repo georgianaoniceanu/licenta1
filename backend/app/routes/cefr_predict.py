@@ -2,8 +2,12 @@
 VocaFlow — /cefr/predict  endpoint
 ====================================
 POST /cefr/predict
-  Accepts 9 CAF indicator values and returns a CEFR level prediction
-  produced by the Random Forest model trained on the Cambridge S&I Corpus 2025.
+  Accepts CAF indicator values and returns a CEFR level prediction produced by
+  the deployed model: an Ordinal LR + SVM ensemble trained on the Kaggle CEFR
+  written-text corpus (Montgomery 2023, N=1,494). A Random Forest on the
+  Cambridge Speak & Improve spoken corpus was also studied (pilot_study/), but
+  cross-corpus validation showed a modality shift, so the written-text model is
+  used in production. See backend/metrics_results.md.
 
 POST /cefr/predict/batch
   Accepts a list of feature dicts; returns predictions for all of them.
@@ -26,29 +30,25 @@ router = APIRouter(tags=["CEFR Prediction"])
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
 
 class CefrFeatures(BaseModel):
-    """9 CAF indicator values extracted from a learner speech sample."""
+    """The 7 lexico-syntactic features the deployed Ordinal LR + SVM model uses."""
     lexical_diversity:    float = Field(..., ge=0, description="MTLD score (Malvern et al. 2004)")
-    speech_rate:          float = Field(..., ge=0, description="Words per minute (CTM timestamps)")
-    pause_frequency:      float = Field(..., ge=0, description="Pauses >250ms per minute")
-    filler_rate:          float = Field(..., ge=0, description="um/uh per 100 words")
+    lexical_sophistication: float = Field(..., ge=0, description="Word-frequency rarity, 1-6 inverse scale (Lee 2021)")
     word_length:          float = Field(..., ge=0, description="Mean characters per word")
-    subordination_ratio:  float = Field(..., ge=0, description="Subordinate clauses / T-unit (spaCy)")
+    sentence_complexity:  float = Field(..., ge=0, description="Mean Length of Sentence in words")
+    subordination_ratio:  float = Field(..., ge=0, description="Subordinate clauses / sentence")
     syntactic_complexity: float = Field(..., ge=0, description="Mean Length of Clause in words")
-    cohesion_score:       float = Field(..., ge=0, description="Connective density (0-100)")
-    sentence_complexity:  float = Field(..., ge=0, description="Mean Length of Utterance in words")
+    cohesion_score:       float = Field(..., ge=0, description="Discourse-marker density (0-100)")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "lexical_diversity":    62.3,
-                "speech_rate":          128.5,
-                "pause_frequency":      4.2,
-                "filler_rate":          2.1,
+                "lexical_sophistication": 4.3,
                 "word_length":          4.8,
-                "subordination_ratio":  0.45,
-                "syntactic_complexity": 7.2,
-                "cohesion_score":       18.5,
-                "sentence_complexity":  9.4,
+                "sentence_complexity":  15.0,
+                "subordination_ratio":  0.30,
+                "syntactic_complexity": 2.0,
+                "cohesion_score":       24.0,
             }
         }
 
@@ -74,22 +74,27 @@ class BatchResponse(BaseModel):
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/predict", response_model=CefrPrediction,
-             summary="Predict CEFR level from 9 CAF indicators")
+             summary="Predict CEFR level from 7 CAF indicators")
 def predict(features: CefrFeatures):
     """
-    Predict CEFR level (A2 / B1 / B2 / C1-C2) from 9 CAF indicator values.
+    Predict CEFR level (A2 / B1 / B2 / C1-C2) from CAF indicator values.
 
-    The Random Forest model was trained on 438 speakers from the Cambridge
-    Speak & Improve Corpus 2025 (Knill et al. 2025).
+    Served by the deployed Ordinal LR + SVM ensemble trained on the Kaggle CEFR
+    written-text corpus (Montgomery 2023, N=1,494): 5-fold CV ~76.7%, held-out
+    exact 75.3%, adjacent (±1 level) 97.7% (see backend/metrics_results.md).
 
-    **5-fold CV accuracy: 59% ± 5.3%** on 3-class problem (B1 / B2 / C1-C2).
-
-    A2 speakers were excluded from training (only 9 samples in corpus —
-    below minimum for reliable classification). VocaFlow targets B1+ learners.
+    Note: a Random Forest trained on the Cambridge Speak & Improve spoken corpus
+    (438 speakers) was evaluated as a spoken-domain alternative, but cross-corpus
+    validation revealed a modality shift (spoken transcripts lack punctuation →
+    inflated sentence-complexity), so the written-text model is used in
+    production. The spoken experiment lives in pilot_study/random_forest_sandi.py.
     """
     try:
         result = predict_cefr(features.model_dump())
         return result
+    except ValueError as exc:
+        # Missing/invalid features — clear 422 instead of a silent guess.
+        raise HTTPException(status_code=422, detail=str(exc))
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
@@ -113,23 +118,21 @@ def predict_batch(body: BatchRequest):
 @router.get("/features",
             summary="List expected feature names and descriptions")
 def list_features():
-    """Returns the 9 CAF features expected by the model, in order."""
+    """Returns the 7 lexico-syntactic features the deployed model expects."""
     descriptions = {
-        "lexical_diversity":    "MTLD — Measure of Textual Lexical Diversity (Malvern et al. 2004)",
-        "speech_rate":          "Words per minute from ASR timestamps (Cucchiarini et al. 2002)",
-        "pause_frequency":      "Within-utterance pauses >250ms per minute (Lennon 1990)",
-        "filler_rate":          "Disfluency markers (um/uh/er/ah) per 100 words",
-        "word_length":          "Mean number of characters per content word",
-        "subordination_ratio":  "Subordinate clauses per T-unit via spaCy dependency parsing",
-        "syntactic_complexity": "Mean Length of Clause in words (Ortega 2003)",
-        "cohesion_score":       "Connective density score 0-100 (Crossley & McNamara 2010)",
-        "sentence_complexity":  "Mean Length of Sentence / Utterance (Barrot & Agdeppa 2021; Lee 2021 Table 2)",
+        "lexical_diversity":      "MTLD — Measure of Textual Lexical Diversity (Malvern et al. 2004)",
+        "lexical_sophistication": "Word-frequency rarity, 1-6 inverse scale (Lee 2021; Laufer & Nation 1995)",
+        "word_length":            "Mean number of characters per word",
+        "sentence_complexity":    "Mean Length of Sentence in words (Barrot & Agdeppa 2021; Lee 2021 Table 2)",
+        "subordination_ratio":    "Subordinate clauses per sentence (Lee 2021; Bardovi-Harlig 1992)",
+        "syntactic_complexity":   "Mean Length of Clause in words (Ortega 2003)",
+        "cohesion_score":         "Discourse-marker density 0-100 (Crossley & McNamara 2010)",
     }
     return {
-        "features":    FEATURES,
+        "features":    list(descriptions.keys()),
         "descriptions": descriptions,
         "cefr_labels": CEFR_LABELS,
-        "model":       "RandomForest (n_estimators=300, class_weight=balanced)",
-        "corpus":      "Cambridge Speak & Improve Corpus 2025 — N=438 speakers",
-        "reference":   "Knill et al. (2025) arXiv:2412.11986",
+        "model":       "Ordinal LR (mord.LogisticAT) + SVM RBF ensemble",
+        "corpus":      "Kaggle CEFR Levelled English Texts (Montgomery 2023) — N=1,494 written texts",
+        "reference":   "Agresti (2002); Rennie & Srebro (2005)",
     }

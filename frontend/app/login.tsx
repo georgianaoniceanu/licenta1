@@ -7,7 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, StatusBar,
   KeyboardAvoidingView, Platform, TouchableOpacity,
-  Animated, TextInput, ActivityIndicator, Dimensions,
+  Animated, TextInput, ActivityIndicator, Dimensions, Image,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
@@ -528,11 +528,8 @@ export default function LoginScreen() {
 
           {/* Nav */}
           <View style={S.nav}>
-            <View style={S.brandRow}>
-              <LinearGradient colors={[C.teal, '#00C49A']} style={S.logoBox}>
-                <Feather name="mic" size={20} color="#0D3D30" />
-              </LinearGradient>
-              <Text style={S.brand}>Voca<Text style={{ color: C.teal }}>Flow</Text></Text>
+            <View style={{ backgroundColor: '#060D1A', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 7 }}>
+              <Image source={require('../assets/images/logo.png')} style={{ width: 132, height: 44 }} resizeMode="contain" />
             </View>
             <TouchableOpacity style={S.navBtn} onPress={() => openAuth(true)}>
               <Text style={S.navBtnText}>Log In</Text>

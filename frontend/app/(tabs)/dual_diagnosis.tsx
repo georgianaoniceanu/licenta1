@@ -366,18 +366,16 @@ export default function DualDiagnosisScreen() {
       <ScrollView contentContainerStyle={S.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Header */}
-        <View style={S.header}>
-          <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
-            <Feather name="chevron-left" size={22} color={Colors.light.text} />
-          </TouchableOpacity>
-          <View style={S.headerCenter}>
-            <View style={S.heroIcon}>
-              <Feather name="activity" size={24} color={TEAL} />
-            </View>
+        <View style={S.headWrap}>
+          <View style={S.header}>
+            <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+              <Feather name="chevron-left" size={18} color={TEAL} />
+              <Text style={S.backText}>Back</Text>
+            </TouchableOpacity>
             <Text style={S.pageTitle}>Dual Diagnosis</Text>
-            <Text style={S.pageSub}>Self-perception vs. system measurement</Text>
-            <Text style={S.pageResearch}>Alderson (2005) · Li &amp; Shintani (2010)</Text>
           </View>
+          <Text style={S.pageSub}>Self-perception vs. system measurement</Text>
+          <Text style={S.pageResearch}>Alderson (2005) · Li &amp; Shintani (2010)</Text>
         </View>
 
         <View style={S.body}>
@@ -546,26 +544,16 @@ const S = StyleSheet.create({
   },
 
   // Header (matches progress.tsx style)
+  headWrap: { paddingHorizontal: 20, paddingTop: 20 },
   header: {
-    backgroundColor: Colors.light.card,
-    paddingTop: 52,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.light.border,
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 6,
   },
   backBtn: {
-    position: 'absolute',
-    top: 52,
-    left: 16,
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: Colors.light.borderSoft,
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11,
+    borderWidth: 1.5, borderColor: TEAL, backgroundColor: '#0F1B2D',
   },
+  backText: { color: TEAL, fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
   headerCenter: {
     alignItems: 'center',
     gap: 4,
@@ -582,7 +570,7 @@ const S = StyleSheet.create({
     marginBottom: 6,
   },
   pageTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
     color: Colors.light.text,
     letterSpacing: -0.3,
@@ -590,13 +578,13 @@ const S = StyleSheet.create({
   pageSub: {
     fontSize: 13,
     color: Colors.light.textSecondary,
-    textAlign: 'center',
   },
   pageResearch: {
     fontSize: 11,
     color: Colors.light.textLight,
     fontStyle: 'italic',
     marginTop: 2,
+    marginBottom: 8,
   },
 
   body: {

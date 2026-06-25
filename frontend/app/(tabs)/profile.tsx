@@ -447,6 +447,10 @@ export default function ProfileScreen() {
       >
         {/* Page title */}
         <View style={S.pageHeader}>
+          <TouchableOpacity style={S.backBtn} onPress={() => router.back()} activeOpacity={0.7}>
+            <Feather name="chevron-left" size={18} color={TEAL} />
+            <Text style={S.backText}>Back</Text>
+          </TouchableOpacity>
           <Text style={S.pageTitle}>Profile</Text>
         </View>
 
@@ -726,8 +730,10 @@ const S = StyleSheet.create({
   loading: { flex: 1, backgroundColor: BG, justifyContent: 'center', alignItems: 'center' },
   scroll: { paddingHorizontal: 20, paddingBottom: 24, maxWidth: 900, width: '100%', alignSelf: 'center' },
 
-  pageHeader: { paddingTop: 24, paddingBottom: 20 },
-  pageTitle:  { fontSize: 34, fontWeight: '800', color: TEXT, letterSpacing: -1 },
+  pageHeader: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingTop: 24, paddingBottom: 16 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingLeft: 10, paddingRight: 16, paddingVertical: 9, borderRadius: 11, borderWidth: 1.5, borderColor: TEAL, backgroundColor: '#0F1B2D' },
+  backText: { color: TEAL, fontSize: 14, fontWeight: '700', letterSpacing: 0.2 },
+  pageTitle:  { fontSize: 28, fontWeight: '800', color: TEXT, letterSpacing: -0.5 },
 
   // Avatar card
   avatarCard: {
