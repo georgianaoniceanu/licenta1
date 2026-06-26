@@ -328,10 +328,16 @@ def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Opt
         logger.warning("CEFR predictor failed: %s", _cefr_err, exc_info=True)
         # fields remain None — frontend handles gracefully
 
+    # Headline CEFR = the validated Ordinal LR + SVM model (purely text-driven,
+    # discriminates A2–C1; metrics_results.md). The threshold-based workflow
+    # level is used only as a fallback when the model could not run, and still
+    # drives the per-indicator feedback below.
+    headline_cefr = rf_cefr or result.predicted_cefr
+
     response_payload = {
         "user_id": result.user_id,
         "domain": result.domain,
-        "predicted_cefr": result.predicted_cefr,
+        "predicted_cefr": headline_cefr,
         "overall_score": result.overall_score,
         "exam_scores": result.exam_specific_scores,
         "indicators": [
@@ -368,7 +374,7 @@ def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Opt
             _tok  = authorization.replace("Bearer ", "")
             _user = _vt(_tok)
             save_assessment(_user["uid"], {
-                "cefr":              result.predicted_cefr,
+                "cefr":              headline_cefr,
                 "overall_score":     result.overall_score,
                 "domain":            result.domain,
                 "rf_predicted_cefr": rf_cefr,
