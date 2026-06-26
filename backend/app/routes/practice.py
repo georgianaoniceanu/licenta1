@@ -66,6 +66,7 @@ from dotenv import load_dotenv
 
 from app.services.auth import verify_token
 from app.services.cache import cached
+from app.services.speaking_tasks import get_speaking_tasks
 
 # Optional TTS (ElevenLabs)
 try:
@@ -195,6 +196,29 @@ async def adaptive_exercises(payload: AdaptivePayload, authorization: str = Head
             "and IELTS criterion weakness."
         ),
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 1b. EXAM-FORMAT SPEAKING TASKS  (curated bank, original prompts)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/practice/speaking-tasks")
+async def speaking_tasks(
+    exam: str = "general",
+    level: Optional[str] = None,
+    authorization: str = Header(None),
+):
+    """
+    Return original speaking tasks laid out in the PUBLIC structure of the chosen
+    exam (IELTS / TOEFL / Cambridge FCE-CAE-CPE / PTE Core / general).
+
+    Only the test format (parts, timing, task types) comes from the exam boards'
+    public descriptions; every prompt is original, so no copyrighted item is
+    reproduced. This curated bank is the reproducible backbone alongside the
+    LLM adaptive generator (/practice/adaptive).
+    """
+    _require_user(authorization)
+    return {"success": True, "data": get_speaking_tasks(exam, level)}
 
 
 # ─────────────────────────────────────────────────────────────────────────────

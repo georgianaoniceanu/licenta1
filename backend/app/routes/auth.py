@@ -119,6 +119,8 @@ async def get_my_onboarding(authorization: str = Header(None)):
         profile = get_onboarding(user["uid"])
         if not profile:
             return {"onboarding_completed": False}
-        return {"onboarding_completed": True, "profile": profile}
+        # Return the profile FLAT (fields at top level) — every frontend consumer
+        # reads e.g. response.target_exam directly, not response.profile.target_exam.
+        return {"onboarding_completed": True, **profile}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

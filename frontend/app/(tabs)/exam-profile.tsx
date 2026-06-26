@@ -104,7 +104,7 @@ interface IeltsResult {
   fluency_coherence: number;
   lexical_resource: number;
   grammatical_accuracy: number;
-  pronunciation: number;
+  pronunciation: number | null;
   overall: number;
   band_label: string;
 }
@@ -189,6 +189,8 @@ export default function ExamProfileScreen() {
   const [transcribeStatus, setTranscribeStatus] = useState('');
   const recordingRef = useRef<Audio.Recording | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioUriRef = useRef<string | null>(null);   // kept so we can score pronunciation
+  const speechDurationRef = useRef(0);               // seconds spoken — for real WPS
 
   const startRecording = async () => {
     try {
@@ -196,11 +198,16 @@ export default function ExamProfileScreen() {
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
       const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
       recordingRef.current = recording;
+      audioUriRef.current = null;
+      recordingTimeRef.current = 0;
       setIsRecording(true);
       setRecordingTime(0);
       setTranscribeStatus('');
       setText('');
-      timerRef.current = setInterval(() => setRecordingTime(t => t + 1), 1000);
+      timerRef.current = setInterval(() => {
+        recordingTimeRef.current += 1;
+        setRecordingTime(recordingTimeRef.current);
+      }, 1000);
     } catch {
       Alert.alert('Error', 'Could not start recording. Check microphone permissions.');
     }
@@ -216,6 +223,8 @@ export default function ExamProfileScreen() {
       await recordingRef.current.stopAndUnloadAsync();
       const uri = recordingRef.current.getURI()!;
       recordingRef.current = null;
+      audioUriRef.current = uri;                          // keep for pronunciation scoring
+      speechDurationRef.current = recordingTimeRef.current; // seconds spoken → real WPS
       const token = await getFreshToken();
       const formData = new FormData();
       if (Platform.OS === 'web') {
@@ -290,11 +299,52 @@ export default function ExamProfileScreen() {
         ? (fillers.length / Math.max(words.length, 1)) * 100
         : 0;
 
+      // Real articulation rate (words per second) from the actual recording,
+      // instead of a hardcoded estimate. Falls back only if duration is unknown.
+      const durationSec = speechDurationRef.current;
+      const realWps = mode === 'speaking'
+        ? (durationSec > 0 ? words.length / durationSec : 1.5)
+        : 0;
+
+      // Pronunciation: send the recorded audio to the Accent ADN engine and use
+      // its acoustic phoneme score. The target is the Whisper transcription
+      // itself (free speech has no fixed reference). We only trust the score
+      // when the real acoustic engine (wav2vec2) ran — the local text-PER tier
+      // compares text-to-text and would trivially return ~100% here, so in that
+      // case we mark pronunciation as not measured and drop it from the band.
+      let pronScore = 0;
+      let pronMeasured = false;
+      if (mode === 'speaking' && audioUriRef.current) {
+        try {
+          const fd = new FormData();
+          const uri = audioUriRef.current;
+          if (Platform.OS === 'web') {
+            const blob = await (await fetch(uri)).blob();
+            const ext = ((blob.type.split('/')[1] || 'webm').split(';')[0]) || 'webm';
+            fd.append('audio', blob, `exam_speech.${ext}`);
+          } else {
+            fd.append('audio', { uri, type: 'audio/m4a', name: 'exam_speech.m4a' } as any);
+          }
+          fd.append('target_text', trimmed);
+          const accRes = await fetch(`${API_URL}/accent/analyze`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: fd,
+          });
+          const accData = await accRes.json();
+          if (accData?.engine_tier === 'colab-wav2vec2' && typeof accData.accuracy_score === 'number') {
+            pronScore = accData.accuracy_score;
+            pronMeasured = true;
+          }
+        } catch { /* pronunciation stays unmeasured → excluded from band */ }
+      }
+
       // Round 2: Exam profile
       const examResp = await post(VOCABULARY_ENDPOINTS.EXAM_PROFILE, {
         text: trimmed,
-        pronunciation_score: 0,    // no audio in standalone mode
-        wps: mode === 'speaking' ? 1.5 : 0,  // neutral estimate for text-only
+        pronunciation_score: pronScore,
+        pronunciation_measured: mode === 'speaking' ? pronMeasured : false,
+        wps: parseFloat(realWps.toFixed(2)),
         filler_rate: fillerRate,
         mls: parseFloat(mls.toFixed(1)),
         cefr_distribution: distribution,
@@ -407,7 +457,7 @@ export default function ExamProfileScreen() {
               <Text style={styles.transcribedPreview}>{text}</Text>
               <View style={styles.wordCountRow}>
                 <Text style={styles.wordCount}>{text.trim().split(/\s+/).length} words</Text>
-                <TouchableOpacity onPress={() => { setText(''); setTranscribeStatus(''); setResult(null); }}>
+                <TouchableOpacity onPress={() => { setText(''); setTranscribeStatus(''); setResult(null); audioUriRef.current = null; speechDurationRef.current = 0; }}>
                   <Text style={styles.clearBtn}>Clear</Text>
                 </TouchableOpacity>
               </View>
@@ -494,10 +544,11 @@ export default function ExamProfileScreen() {
               </View>
             </View>
 
-            {/* 4 criteria bars */}
+            {/* criteria bars (pronunciation hidden for writing or when not measured) */}
             {IELTS_CRITERIA.map(({ key, label, color }) => {
-              const val: number = result.ielts[key as keyof IeltsResult] as number;
-              if (key === 'pronunciation' && mode === 'writing') return null;
+              const raw = result.ielts[key as keyof IeltsResult];
+              if (key === 'pronunciation' && (mode === 'writing' || raw == null)) return null;
+              const val = raw as number;
               return (
                 <View key={key} style={styles.criterionRow}>
                   <View style={styles.criterionLabelRow}>
@@ -509,6 +560,13 @@ export default function ExamProfileScreen() {
                 </View>
               );
             })}
+
+            {mode === 'speaking' && result.ielts.pronunciation == null && (
+              <Text style={styles.pronNote}>
+                Pronunciation not scored — the acoustic phoneme engine (wav2vec2) was
+                offline for this recording, so the overall band is based on 3 criteria.
+              </Text>
+            )}
 
             <Text style={styles.ieltsSource}>
               Source: IELTS Band Descriptors — British Council / Cambridge ESOL / IDP (2024)
@@ -768,6 +826,7 @@ const styles = StyleSheet.create({
   bandBarFill: { height: '100%', borderRadius: 4 },
 
   ieltsSource: { fontSize: 10, color: SLATE, marginTop: 12, fontStyle: 'italic', lineHeight: 14 },
+  pronNote: { fontSize: 11, color: '#8B5CF6', marginTop: 10, fontStyle: 'italic', lineHeight: 15 },
 
   // Cambridge ESOL assessment
   camAssessCard: {

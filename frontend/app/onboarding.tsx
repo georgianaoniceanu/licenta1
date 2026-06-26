@@ -43,6 +43,7 @@ import {
   Modal,
   Pressable,
   Image,
+  Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
@@ -215,7 +216,13 @@ export default function OnboardingScreen() {
 
       if (!response.ok) {
         const err = await response.text();
-        throw new Error(err);
+        throw new Error(`HTTP ${response.status} — ${err || 'no body'}`);
+      }
+
+      // Confirm the server actually persisted it (not just returned 200)
+      const saved = await response.json().catch(() => null);
+      if (!saved || saved.status !== 'completed') {
+        throw new Error(`Server did not confirm save: ${JSON.stringify(saved)}`);
       }
 
       await AsyncStorage.multiSet([
@@ -230,16 +237,27 @@ export default function OnboardingScreen() {
         ['userIntensity',       String(answers.daily_study_minutes)],
       ]);
       router.replace('/initial_diagnostic');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Onboarding submit error:', error);
-      // Still navigate — onboarding can be retried later
+      // Make the failure VISIBLE instead of pretending it saved. The local
+      // cache is still written so the app stays usable, but the user (and we)
+      // now see the real reason the server save failed.
+      Alert.alert(
+        'Onboarding not saved on the server',
+        `Your answers are kept on this device, but saving to your account failed:\n\n${error?.message || error}\n\nBackend: ${API_URL}`,
+        [{ text: 'Continue anyway', onPress: () => router.replace('/initial_diagnostic') }],
+      );
       await AsyncStorage.multiSet([
         ['onboardingCompleted', 'true'],
         ['userTargetExam',      answers.target_exam],
+        ['userPrimaryGoal',     answers.primary_goal],
         ['userJob',             answers.profession],
         ['userIndustry',        answers.industry],
+        ['userCurrentCEFR',     answers.self_assessed_cefr],
+        ['userDomain',          answers.target_domain],
+        ['userWeaknesses',      JSON.stringify(answers.perceived_weak_areas)],
+        ['userIntensity',       String(answers.daily_study_minutes)],
       ]);
-      router.replace('/initial_diagnostic');
     } finally {
       setSaving(false);
     }
