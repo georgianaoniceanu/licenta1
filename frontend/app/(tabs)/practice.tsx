@@ -31,6 +31,7 @@ import { Feather } from '@expo/vector-icons';
 import { PRACTICE_ENDPOINTS, VOCABULARY_ENDPOINTS } from '@/constants/api';
 import { getFreshToken } from '@/utils/auth';
 import { Illustrations } from '@/constants/illustrations';
+import { ExamSpeakingPractice } from '@/components/exam-speaking-practice';
 import {
   LOCAL_VOCAB_CARDS, buildVocabMCQ,
   pickReadingPassage, pickGrammarItem, GRAMMAR_CATEGORY_LABEL,
@@ -131,37 +132,14 @@ export default function PracticeScreen() {
         <Text style={styles.title}>Practice Hub</Text>
       </View>
 
-      <ScrollView style={{ flex: 1, width: '100%' }} contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={styles.sectionHead}>
-          <Image source={Illustrations.recording} style={styles.sectionArt} resizeMode="contain" />
-          <Text style={styles.sectionName}>Adaptive</Text>
-        </View>
-        <AdaptiveBlock />
-
-        <View style={styles.sectionHead}>
-          <Image source={Illustrations.audioFiles} style={styles.sectionArt} resizeMode="contain" />
-          <Text style={styles.sectionName}>Retention</Text>
-        </View>
-        <RetentionBlock />
-
-        <View style={styles.sectionHead}>
-          <Image source={Illustrations.vocabulary} style={styles.sectionArt} resizeMode="contain" />
-          <Text style={styles.sectionName}>Reading</Text>
-        </View>
-        <ReadingBlock />
-
-        <View style={styles.sectionHead}>
-          <Image source={Illustrations.emptyNotes} style={styles.sectionArt} resizeMode="contain" />
-          <Text style={styles.sectionName}>Grammar</Text>
-        </View>
-        <GrammarBlock />
-
-        <View style={styles.sectionHead}>
-          <Image source={Illustrations.obDomain} style={styles.sectionArt} resizeMode="contain" />
-          <Text style={styles.sectionName}>Targeted</Text>
-        </View>
-        <TargetedBlock />
-      </ScrollView>
+      {/* Practice Hub is exam-driven: shows only the exam the user chose at
+          onboarding, in that exam's real structure. The previous blocks
+          (AdaptiveBlock / RetentionBlock / ReadingBlock / GrammarBlock /
+          TargetedBlock) remain defined below but are not rendered — restore by
+          re-adding them here if needed. */}
+      <View style={[styles.scroll, { flex: 1, width: '100%' }]}>
+        <ExamSpeakingPractice />
+      </View>
       </View>
     </View>
   );
@@ -852,6 +830,7 @@ function TargetedBlock() {
   const [cefrLevel, setCefrLevel]       = useState<string | null>(null);
   const [weakestLabel, setWeakestLabel] = useState<string>('');
   const [criterion, setCriterion]       = useState<string>('lexical_resource');
+  const [targetExam, setTargetExam]     = useState<string>('general');
   const [noDiag, setNoDiag]             = useState(false);
 
   const [loading, setLoading]     = useState(false);
@@ -890,6 +869,12 @@ function TargetedBlock() {
     })();
   }, []);
 
+  // Load the exam chosen at onboarding so exercises are generated for it
+  // (the backend prompt already weights generation by target_exam).
+  useEffect(() => {
+    AsyncStorage.getItem('userTargetExam').then(v => { if (v) setTargetExam(v); });
+  }, []);
+
   const fetchExercises = async () => {
     if (!cefrLevel) return;
     setLoading(true);
@@ -908,7 +893,7 @@ function TargetedBlock() {
           cefr_level:        cefrLevel,
           weakest_category:  'collocations',
           weakest_criterion: criterion,
-          target_exam:       'general',
+          target_exam:       targetExam,
         }),
       });
       if (!r.ok) throw new Error(`Backend ${r.status}`);
@@ -967,6 +952,13 @@ function TargetedBlock() {
           <View style={[styles.targetedTag, styles.targetedTagCefr]}>
             <Text style={[styles.targetedTagText, { color: '#4338CA' }]}>
               Level: {cefrLevel}
+            </Text>
+          </View>
+        )}
+        {targetExam !== 'general' && (
+          <View style={[styles.targetedTag, styles.targetedTagExam]}>
+            <Text style={[styles.targetedTagText, { color: '#0FBA9A' }]}>
+              Exam: {targetExam.replace(/_/g, ' ').toUpperCase()}
             </Text>
           </View>
         )}
@@ -1319,6 +1311,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: 'rgba(15,186,154,0.35)',
   },
   targetedTagCefr: { backgroundColor: 'rgba(139,92,246,0.15)', borderColor: 'rgba(139,92,246,0.35)' },
+  targetedTagExam: { backgroundColor: 'rgba(15,186,154,0.18)', borderColor: 'rgba(15,186,154,0.45)' },
   targetedTagText: { fontSize: 11, fontWeight: '700', color: '#0FBA9A' },
 
   targetedLoadingBox: {

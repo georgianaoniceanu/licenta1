@@ -683,6 +683,7 @@ def compute_exam_profile(
     mls: float,
     cefr_distribution: Dict[str, float],
     input_mode: str = 'speaking',
+    pronunciation_measured: bool = True,
 ) -> Dict[str, Any]:
     """
     Full exam profile: text indicators + IELTS bands + Cambridge CEFR.
@@ -737,8 +738,15 @@ def compute_exam_profile(
         fc = _band_fluency(wps, filler_rate)
         lr = _band_lexical(mtld_val, b2plus_pct, lex_density)
         gr = _band_grammar(mls, sub_index, ser)
-        pr = _band_pronunciation(pronunciation_score)
-        overall = round((fc + lr + gr + pr) / 4 * 2) / 2
+        if pronunciation_measured:
+            pr = _band_pronunciation(pronunciation_score)
+            overall = round((fc + lr + gr + pr) / 4 * 2) / 2
+        else:
+            # No real acoustic pronunciation score (wav2vec2 engine offline for
+            # this free-speech recording). Be honest: drop pronunciation from the
+            # average rather than fabricate a band from a placeholder score.
+            pr = None
+            overall = round((fc + lr + gr) / 3 * 2) / 2
         fc_label = 'Fluency & Coherence'
 
     band_label = _BAND_LABELS.get(round(overall), 'Limited user')
@@ -749,7 +757,7 @@ def compute_exam_profile(
     # Only meaningful for speaking input; for writing we still compute it but
     # label pronunciation_fluency as "(not applicable)".
     cambridge_assessment = _compute_cambridge_assessment(
-        pron_score=pronunciation_score if not is_writing else 70.0,  # neutral default for writing
+        pron_score=pronunciation_score if (not is_writing and pronunciation_measured) else 70.0,  # neutral default when pron not measured
         filler_rate=filler_rate,
         wps=wps if not is_writing else 2.0,
         mtld=mtld_val,
@@ -767,6 +775,14 @@ def compute_exam_profile(
             'descriptor': 'Not applicable for written input. Cambridge Writing '
                           'uses Content, Communicative Achievement, Organisation, '
                           'and Language (different rubric).',
+        }
+    elif not pronunciation_measured:
+        cambridge_assessment['criteria']['pronunciation_fluency'] = {
+            'level': '—',
+            'descriptor': 'Pronunciation not scored — the acoustic phoneme engine '
+                          '(wav2vec2) was unavailable for this recording, so the '
+                          'overall level is based on Language Resource and '
+                          'Discourse Management only.',
         }
 
     sources = [

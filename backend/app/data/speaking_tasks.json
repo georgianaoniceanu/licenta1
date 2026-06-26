@@ -1,0 +1,320 @@
+{
+  "_meta": {
+    "description": "Curated bank of speaking tasks, organised by the PUBLIC structure of each exam. All prompts are ORIGINAL — no copyrighted official items are reproduced. Only the test FORMAT (number/type/timing of parts) is used, which is public information published by the exam boards.",
+    "structure_sources": {
+      "ielts": "IELTS Speaking test format, 3 parts, 11-14 min (IDP / British Council, public).",
+      "toefl_ibt": "TOEFL iBT Speaking format, 4 tasks (1 independent + 3 integrated) (ETS, public).",
+      "cambridge_fce": "B2 First Speaking, 4 parts, ~14 min (Cambridge Assessment English, public).",
+      "cambridge_cae": "C1 Advanced Speaking, 4 parts, ~15 min (Cambridge Assessment English, public).",
+      "cambridge_cpe": "C2 Proficiency Speaking, 3 parts, ~16 min (Cambridge Assessment English, public).",
+      "pte_core": "PTE Core Speaking, individual AI-scored item types (Pearson, public).",
+      "general": "Free conversational practice, not exam-specific."
+    },
+    "note": "Cambridge Parts that are normally paired/interactive (collaborative tasks, photo comparison) are adapted here to a solo, recordable monologue form so the app's recording-and-scoring pipeline can use them; the underlying skill (comparing, speculating, reaching a decision) is preserved."
+  },
+
+  "ielts_academic": {
+    "exam_name": "IELTS Speaking",
+    "total_time": "11-14 minutes",
+    "shared_with": ["ielts_general"],
+    "parts": [
+      {
+        "id": "part1",
+        "name": "Part 1 — Introduction & interview",
+        "description": "General questions about yourself and familiar topics. Answer naturally and extend each answer with a reason or example.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 45,
+        "tasks": [
+          { "id": "ielts_p1_hometown", "level": "B1", "topic": "Hometown", "prompt": "Let's talk about where you live. Where is your hometown and what is it like?", "follow_ups": ["What do you like most about it?", "Has it changed much in recent years?", "Would you recommend it to a visitor? Why?"], "tip": "Give a reason or example for each answer — don't reply in one sentence." },
+          { "id": "ielts_p1_work_study", "level": "B1", "topic": "Work or studies", "prompt": "Do you work or are you a student? Tell me about what you do.", "follow_ups": ["What do you enjoy most about it?", "What is the most difficult part?", "What would you like to do in the future?"], "tip": "Use present tenses accurately and add detail about why." },
+          { "id": "ielts_p1_technology", "level": "B2", "topic": "Technology", "prompt": "How often do you use a smartphone, and what do you mainly use it for?", "follow_ups": ["Has technology changed how you communicate with friends?", "Are there any downsides to using it so much?"], "tip": "Bring in a contrast (on the one hand / on the other hand)." },
+          { "id": "ielts_p1_food", "level": "B1", "topic": "Food", "prompt": "What kind of food do you enjoy eating, and do you prefer eating at home or in restaurants?", "follow_ups": ["Did your eating habits change as you got older?", "Is cooking a popular activity where you live?"], "tip": "Use comparatives (more / less / better than)." }
+        ]
+      },
+      {
+        "id": "part2",
+        "name": "Part 2 — Individual long turn (cue card)",
+        "description": "You have 1 minute to prepare, then speak for up to 2 minutes on the topic. Cover all the bullet points.",
+        "format": "cue_card",
+        "prep_seconds": 60,
+        "speak_seconds": 120,
+        "tasks": [
+          { "id": "ielts_p2_skill", "level": "B2", "topic": "A skill", "prompt": "Describe a skill you would like to learn.", "bullets": ["what the skill is", "why you would like to learn it", "how you would learn it", "and explain how it would change your life"], "follow_up": "Do you think it is ever too late to learn a new skill?", "tip": "Use your prep minute to note 4 short points — one per bullet — and keep talking for the full 2 minutes." },
+          { "id": "ielts_p2_journey", "level": "B2", "topic": "A journey", "prompt": "Describe a memorable journey you have taken.", "bullets": ["where you went", "who you travelled with", "what happened during the journey", "and explain why it was memorable"], "follow_up": "How has travel changed compared to the past?", "tip": "Tell it as a story with a beginning, middle and end — that naturally fills 2 minutes." },
+          { "id": "ielts_p2_person", "level": "C1", "topic": "An influential person", "prompt": "Describe a person who has had a strong influence on your life.", "bullets": ["who the person is", "how you know them", "what they are like", "and explain how they have influenced you"], "follow_up": "Do you think people are more influenced by family or by friends?", "tip": "Use a range of adjectives to describe character, not just 'nice' or 'good'." }
+        ]
+      },
+      {
+        "id": "part3",
+        "name": "Part 3 — Two-way discussion",
+        "description": "More abstract questions connected to the Part 2 topic. Express, justify and develop your opinions.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "tasks": [
+          { "id": "ielts_p3_learning", "level": "C1", "topic": "Learning & society", "prompt": "Some people say schools should focus more on practical skills than on academic subjects. To what extent do you agree?", "follow_ups": ["Whose responsibility is it to teach life skills — schools or families?", "How might education change in the next twenty years?"], "tip": "Take a clear position, then support it with two reasons and an example." },
+          { "id": "ielts_p3_travel", "level": "B2", "topic": "Travel & culture", "prompt": "Why do you think people enjoy travelling to other countries?", "follow_ups": ["Does tourism always benefit local communities?", "Is it better to travel independently or in an organised group?"], "tip": "Speculate using modal verbs (might, could, tends to)." }
+        ]
+      }
+    ]
+  },
+
+  "ielts_general": {
+    "exam_name": "IELTS Speaking (General Training)",
+    "total_time": "11-14 minutes",
+    "alias_of": "ielts_academic",
+    "note": "The Speaking test is identical for IELTS Academic and General Training; the same tasks apply."
+  },
+
+  "toefl_ibt": {
+    "exam_name": "TOEFL iBT Speaking",
+    "total_time": "~17 minutes (4 tasks)",
+    "parts": [
+      {
+        "id": "task1",
+        "name": "Task 1 — Independent speaking",
+        "description": "State and defend a personal opinion or preference. You get 15 seconds to prepare and 45 seconds to speak.",
+        "format": "monologue",
+        "prep_seconds": 15,
+        "speak_seconds": 45,
+        "tasks": [
+          { "id": "toefl_t1_online_class", "level": "B2", "topic": "Education", "prompt": "Some students prefer studying online, while others prefer attending classes in person. Which do you prefer, and why? Include specific reasons and details.", "tip": "State your choice in the first sentence, then give two clear reasons with an example. Watch the 45-second limit." },
+          { "id": "toefl_t1_city_country", "level": "B1", "topic": "Lifestyle", "prompt": "Do you think it is better to live in a big city or in the countryside? Use details and examples to explain your answer.", "tip": "Structure: opinion → reason 1 → reason 2 → quick conclusion." },
+          { "id": "toefl_t1_technology", "level": "C1", "topic": "Technology & society", "prompt": "Some people believe smartphones have improved communication; others think they have damaged it. What is your opinion?", "tip": "Concede the other side briefly, then defend your position — this shows range." }
+        ]
+      },
+      {
+        "id": "task_integrated",
+        "name": "Tasks 2-4 — Integrated speaking",
+        "description": "In the real test these combine reading and/or listening with speaking. They require a passage and an audio clip, so they are practised here as summary-style monologues from a short prompt.",
+        "format": "monologue",
+        "prep_seconds": 30,
+        "speak_seconds": 60,
+        "requires_passage": true,
+        "tasks": [
+          { "id": "toefl_int_summary", "level": "C1", "topic": "Summarise & synthesise", "prompt": "Imagine you have just read a short article arguing that universities should make internships compulsory, and heard a student who disagrees. Summarise both views and explain the student's reasons.", "tip": "Integrated tasks reward accurate reporting, not your own opinion — paraphrase what each source said." }
+        ]
+      }
+    ]
+  },
+
+  "cambridge_fce": {
+    "exam_name": "Cambridge B2 First (FCE) — Speaking",
+    "total_time": "~14 minutes",
+    "parts": [
+      {
+        "id": "part1",
+        "name": "Part 1 — Interview",
+        "description": "The examiner asks general questions about you. Give extended answers.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 40,
+        "tasks": [
+          { "id": "fce_p1_freetime", "level": "B2", "topic": "Free time", "prompt": "What do you usually do in your free time, and who do you spend it with?", "follow_ups": ["Have your free-time activities changed in the last few years?", "Would you like to try a new hobby? Which one?"], "tip": "Avoid one-word answers; add a reason every time." }
+        ]
+      },
+      {
+        "id": "part2",
+        "name": "Part 2 — Long turn (compare and speculate)",
+        "description": "In the real exam you compare two photographs for about 1 minute and answer a question about them. Here the two situations are described in words — compare them and speculate.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "image_based_in_exam": true,
+        "tasks": [
+          { "id": "fce_p2_studying", "level": "B2", "topic": "Ways of studying", "prompt": "Compare these two situations and say why the people might have chosen each way of studying: (1) a student studying alone in a quiet library; (2) a group of students studying together in a noisy cafe.", "follow_up": "Which way of studying would you prefer?", "tip": "Use language of speculation: 'they might…', 'perhaps because…', 'it looks as if…'. Don't just describe — compare." },
+          { "id": "fce_p2_celebrating", "level": "B2", "topic": "Celebrations", "prompt": "Compare these two ways of celebrating an achievement and say how the people might be feeling: (1) a large noisy party with many friends; (2) a quiet dinner with one or two close people.", "follow_up": "How do you prefer to celebrate?", "tip": "Spend most of the minute comparing and speculating about feelings, not listing details." }
+        ]
+      },
+      {
+        "id": "part3",
+        "name": "Part 3 — Collaborative task (decision)",
+        "description": "Normally done with a partner. Here, talk through the options yourself, weigh them, and reach a decision.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 90,
+        "tasks": [
+          { "id": "fce_p3_school_trip", "level": "B2", "topic": "Reaching a decision", "prompt": "A school wants to make learning more enjoyable. Talk about how well each of these ideas might work, then decide which is best: more group projects · outdoor lessons · using games and apps · inviting guest speakers · shorter lessons.", "tip": "Discuss at least three options ('one advantage of… but the problem is…') before deciding. The decision matters less than the discussion." }
+        ]
+      },
+      {
+        "id": "part4",
+        "name": "Part 4 — Discussion",
+        "description": "Broader questions linked to the Part 3 topic. Develop and justify your views.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "tasks": [
+          { "id": "fce_p4_learning", "level": "B2", "topic": "Education", "prompt": "Do you think learning should always be enjoyable, or is some difficulty necessary?", "follow_ups": ["Is technology making students lazier or more capable?", "Should students have a say in what they learn?"], "tip": "Give a balanced answer, then say which side you lean towards." }
+        ]
+      }
+    ]
+  },
+
+  "cambridge_cae": {
+    "exam_name": "Cambridge C1 Advanced (CAE) — Speaking",
+    "total_time": "~15 minutes",
+    "parts": [
+      {
+        "id": "part1",
+        "name": "Part 1 — Interview",
+        "description": "General questions. At C1, give precise, well-organised answers with a range of vocabulary.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 45,
+        "tasks": [
+          { "id": "cae_p1_ambitions", "level": "C1", "topic": "Ambitions", "prompt": "What are your main ambitions for the next few years, and what is driving them?", "follow_ups": ["How do you stay motivated when progress is slow?", "Do you think ambition is always a positive quality?"], "tip": "Use precise vocabulary and complex structures, not just 'I want to…'." }
+        ]
+      },
+      {
+        "id": "part2",
+        "name": "Part 2 — Long turn (compare & speculate)",
+        "description": "Compare situations and respond to an abstract question for about 1 minute. (Image-based in the exam; described in words here.)",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "image_based_in_exam": true,
+        "tasks": [
+          { "id": "cae_p2_work", "level": "C1", "topic": "Working environments", "prompt": "Compare these two working situations and speculate about the challenges each person might face: (1) someone working remotely from home; (2) someone working in a busy open-plan office.", "follow_up": "Why might people have different preferences about where they work?", "tip": "At C1, prioritise speculation and abstraction over description. Use hedging: 'it could well be that…', 'one imagines…'." }
+        ]
+      },
+      {
+        "id": "part3",
+        "name": "Part 3 — Collaborative task",
+        "description": "Evaluate options and negotiate towards a decision. Talk through them yourself here.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 120,
+        "tasks": [
+          { "id": "cae_p3_city", "level": "C1", "topic": "Improving a city", "prompt": "A city council has limited funds. Evaluate how effectively each option could improve quality of life, then decide on the top priority: better public transport · more green spaces · affordable housing · cultural events · cleaner streets.", "tip": "Build an argument: weigh trade-offs explicitly, then justify your final priority." }
+        ]
+      },
+      {
+        "id": "part4",
+        "name": "Part 4 — Discussion",
+        "description": "Abstract questions extending the Part 3 theme.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "tasks": [
+          { "id": "cae_p4_society", "level": "C1", "topic": "Society & priorities", "prompt": "Should governments prioritise economic growth or environmental protection when the two conflict?", "follow_ups": ["Can individuals make a real difference, or is it up to governments?", "Are people today too focused on short-term comfort?"], "tip": "Structure a mini-argument: claim, reasoning, counter-point, conclusion." }
+        ]
+      }
+    ]
+  },
+
+  "cambridge_cpe": {
+    "exam_name": "Cambridge C2 Proficiency (CPE) — Speaking",
+    "total_time": "~16 minutes",
+    "parts": [
+      {
+        "id": "part1",
+        "name": "Part 1 — Interview",
+        "description": "General questions. At C2, aim for near-native precision, idiom and fluency.",
+        "format": "qa",
+        "prep_seconds": 0,
+        "speak_seconds": 45,
+        "tasks": [
+          { "id": "cpe_p1_change", "level": "C2", "topic": "Change", "prompt": "How well do you tend to cope with major changes in your life?", "follow_ups": ["Is our society too obsessed with constant change and novelty?", "To what extent is resistance to change a rational response?"], "tip": "Reach for precise, sophisticated phrasing and natural idiom — but keep it fluent." }
+        ]
+      },
+      {
+        "id": "part2",
+        "name": "Part 2 — Collaborative task",
+        "description": "Normally a discussion around visual prompts. Here, talk through the ideas yourself and develop a nuanced view.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 120,
+        "tasks": [
+          { "id": "cpe_p2_progress", "level": "C2", "topic": "Measuring progress", "prompt": "Consider different ways a society might measure 'progress' — economic wealth, citizens' wellbeing, scientific advancement, equality, environmental health. Discuss the merits and limitations of each and argue for the most meaningful measure.", "tip": "Synthesise rather than list — connect ideas and qualify your claims precisely." }
+        ]
+      },
+      {
+        "id": "part3",
+        "name": "Part 3 — Long turn & discussion",
+        "description": "Speak at length (about 2 minutes) on a written prompt, then discuss it further.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 120,
+        "tasks": [
+          { "id": "cpe_p3_knowledge", "level": "C2", "topic": "Knowledge", "prompt": "'In the age of the internet, knowing how to find information matters more than knowing facts.' How far do you agree?", "follow_up": "Does easy access to information make us more or less capable of deep thinking?", "tip": "Develop a genuine line of argument with nuance, examples and counter-arguments — avoid clichés." }
+        ]
+      }
+    ]
+  },
+
+  "pte_core": {
+    "exam_name": "PTE Core — Speaking",
+    "total_time": "varies (AI-scored items)",
+    "ai_scored": true,
+    "parts": [
+      {
+        "id": "read_aloud",
+        "name": "Read aloud",
+        "description": "A short text appears; you have time to prepare, then read it aloud clearly. Scored on pronunciation and oral fluency.",
+        "format": "read_aloud",
+        "prep_seconds": 35,
+        "speak_seconds": 40,
+        "tasks": [
+          { "id": "pte_ra_climate", "level": "B2", "topic": "Read aloud", "prompt": "Renewable energy sources, such as solar and wind power, are becoming increasingly affordable. As costs continue to fall, many experts believe they will soon replace fossil fuels as the main source of electricity worldwide.", "tip": "Pace yourself, group words into phrases, and don't stop if you stumble — keep a steady rhythm." },
+          { "id": "pte_ra_health", "level": "B1", "topic": "Read aloud", "prompt": "Regular physical activity has well-documented benefits for both the body and the mind. Even a short daily walk can improve mood, increase energy levels, and reduce the risk of several common diseases.", "tip": "Clear pronunciation and natural intonation score higher than speed." }
+        ]
+      },
+      {
+        "id": "describe_image",
+        "name": "Describe image",
+        "description": "An image (often a chart or graph) appears; you describe it in detail. Here the image is described in words for you to talk about.",
+        "format": "describe_image",
+        "prep_seconds": 25,
+        "speak_seconds": 40,
+        "image_based_in_exam": true,
+        "tasks": [
+          { "id": "pte_di_chart", "level": "B2", "topic": "Describe image", "prompt": "Describe the following as if it were a bar chart: 'Coffee was the most popular drink (45%), followed by tea (30%), water (15%) and juice (10%).' State the main trend and the key figures.", "tip": "Open with what the image shows, then give the highest and lowest values, then a closing remark." }
+        ]
+      },
+      {
+        "id": "respond_situation",
+        "name": "Respond to a situation",
+        "description": "A short everyday situation is described; you respond appropriately, as you would in real life.",
+        "format": "monologue",
+        "prep_seconds": 10,
+        "speak_seconds": 40,
+        "tasks": [
+          { "id": "pte_rs_late", "level": "B1", "topic": "Respond to a situation", "prompt": "You arranged to meet a friend but you are going to be 30 minutes late. Call them, apologise, explain why, and suggest what to do.", "tip": "Sound natural and polite — appropriacy and fluency are what's scored." }
+        ]
+      },
+      {
+        "id": "short_question",
+        "name": "Answer short question",
+        "description": "Answer a simple general-knowledge question in one or a few words.",
+        "format": "monologue",
+        "prep_seconds": 3,
+        "speak_seconds": 10,
+        "tasks": [
+          { "id": "pte_sq_set", "level": "B1", "topic": "Short answers", "prompt": "Answer each briefly: 'What do you call the person who teaches students at a school?' · 'What is frozen water called?' · 'How many days are there in a week?'", "tip": "Answer immediately and clearly — these test quick comprehension." }
+        ]
+      }
+    ]
+  },
+
+  "general": {
+    "exam_name": "General English — conversation practice",
+    "total_time": "open",
+    "parts": [
+      {
+        "id": "conversation",
+        "name": "Everyday speaking",
+        "description": "Open prompts to build fluency and confidence. No exam pressure.",
+        "format": "monologue",
+        "prep_seconds": 0,
+        "speak_seconds": 60,
+        "tasks": [
+          { "id": "gen_weekend", "level": "B1", "topic": "Daily life", "prompt": "Tell me about a typical weekend for you. What do you enjoy doing and why?", "tip": "Just keep talking naturally — aim for a steady flow without long pauses." },
+          { "id": "gen_opinion", "level": "B2", "topic": "Opinions", "prompt": "What is something you have changed your mind about recently, and what made you reconsider?", "tip": "Tell it as a short story: what you used to think, what happened, what you think now." },
+          { "id": "gen_future", "level": "C1", "topic": "The future", "prompt": "How do you think daily life will be different in twenty years' time?", "tip": "Speculate using a range of future forms (will, is likely to, could well, may end up)." }
+        ]
+      }
+    ]
+  }
+}

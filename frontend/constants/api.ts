@@ -131,4 +131,5 @@ export const PRACTICE_ENDPOINTS = {
   READING:            `${API_URL}/practice/reading`,
   LISTENING_GENERATE: `${API_URL}/practice/listening/generate`,
   LISTENING_SCORE:    `${API_URL}/practice/listening/score`,
+  SPEAKING_TASKS:     `${API_URL}/practice/speaking-tasks`,
 };

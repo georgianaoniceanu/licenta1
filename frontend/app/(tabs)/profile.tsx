@@ -512,7 +512,13 @@ export default function ProfileScreen() {
                 <InfoRow icon="" label="DAILY GOAL" value={`${profile.daily_study_minutes} min / day`} />
               )}
               {!profile.target_exam && !profile.target_domain && !profile.primary_goal && !profile.daily_study_minutes && (
-                <Text style={S.emptyNote}>Complete onboarding to fill this section.</Text>
+                <View style={{ alignItems: 'center' }}>
+                  <Text style={S.emptyNote}>Set your target exam, level and focus to personalise the app.</Text>
+                  <TouchableOpacity style={S.onboardBtn} onPress={() => router.push('/onboarding')} activeOpacity={0.85}>
+                    <Text style={S.onboardBtnText}>Complete onboarding</Text>
+                    <Feather name="arrow-right" size={16} color="#fff" />
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           </View>
@@ -789,7 +795,9 @@ const S = StyleSheet.create({
     paddingHorizontal: 18, paddingVertical: 6,
     borderWidth: 1, borderColor: BORDER,
   },
-  emptyNote: { fontSize: 13, color: TEXT3, textAlign: 'center', paddingVertical: 16 },
+  emptyNote: { fontSize: 13, color: TEXT3, textAlign: 'center', paddingTop: 16, paddingBottom: 12 },
+  onboardBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: TEAL, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 22, marginBottom: 8 },
+  onboardBtnText: { color: '#fff', fontSize: 14, fontWeight: '800' },
 
   // Self vs. Predicted
   dualCard: {

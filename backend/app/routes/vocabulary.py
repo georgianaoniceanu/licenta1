@@ -97,6 +97,7 @@ class SaveSessionPayload(BaseModel):
 class ExamProfilePayload(BaseModel):
     text: str
     pronunciation_score: float = 0.0
+    pronunciation_measured: bool = True  # False → no acoustic score, drop pronunciation from band
     wps: float = 0.0
     filler_rate: float = 0.0
     mls: float = 0.0
@@ -649,6 +650,7 @@ async def get_exam_profile(
         profile = compute_exam_profile(
             text=payload.text,
             pronunciation_score=payload.pronunciation_score,
+            pronunciation_measured=payload.pronunciation_measured,
             wps=payload.wps,
             filler_rate=payload.filler_rate,
             mls=payload.mls,
