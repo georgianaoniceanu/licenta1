@@ -29,7 +29,6 @@ from app.routes.vocabulary import router as vocabulary_router
 from app.routes.auth import router as auth_router
 from app.routes.accent import router as accent_router
 from app.routes.shadow import router as shadow_router
-from app.routes.conversation import router as conversation_router
 from app.routes.adaptive import router as adaptive_router
 from app.routes.assessment import router as assessment_router
 from app.routes.research_assessment import router as research_router
@@ -60,7 +59,6 @@ app.include_router(vocabulary_router, prefix="/vocabulary")
 app.include_router(auth_router, prefix="/auth")
 app.include_router(accent_router, prefix="/accent")
 app.include_router(shadow_router, prefix="/shadow")
-app.include_router(conversation_router, prefix="/conversation")
 app.include_router(adaptive_router, prefix="/adaptive")
 app.include_router(assessment_router, prefix="/assessment")
 app.include_router(research_router)  # Includes /assessment/* routes for research modules
