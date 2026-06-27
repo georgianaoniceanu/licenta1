@@ -29,6 +29,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import Svg, { Circle, Text as SvgText, Defs, RadialGradient, Stop } from 'react-native-svg';
 
 import {
   COCA_MAIN_BY_KEY,
@@ -166,27 +167,59 @@ function VennDiagram({
   const jg = jgCount - allCount;
   const eg = egCount - allCount;
 
-  const circle = (c: { cx: number; cy: number }, fill: string, border: string) => (
-    <View style={[styles.vennCircle, {
-      left: c.cx - R, top: c.cy - R,
-      width: R * 2, height: R * 2, borderRadius: R,
-      backgroundColor: fill, borderColor: border,
-    }]} pointerEvents="none" />
-  );
-
-  const num = (x: number, y: number, value: number) => (
-    <Text style={[styles.vennCount, { left: x - 18, top: y - 12 }]}>{value}</Text>
-  );
+  const emptyTriple  = allCount === 0;                     // nothing in all 3 (normal)
+  const fullyCovered = allCount > 0 && coveredAll >= allCount;
+  // Neutral when the triple overlap is empty; red only for REAL uncovered gaps.
+  const priorityColor = emptyTriple ? TEXT3 : (fullyCovered ? C_GOAL : '#EF4444');
+  const GRADS: [string, string, { cx: number; cy: number }][] = [
+    ['j', C_JOB, CC.job], ['e', C_EXAM, CC.exam], ['g', C_GOAL, CC.goal],
+  ];
+  const regionNums: [number, number, number][] = [
+    [CX,                               JOB_CY - R * 0.44, jobOnly],
+    [CC.exam.cx - R * 0.46,            LOW_CY + R * 0.30, examOnly],
+    [CC.goal.cx + R * 0.46,            LOW_CY + R * 0.30, goalOnly],
+    [(CX + CC.exam.cx) / 2 - R * 0.08, (JOB_CY + LOW_CY) / 2, je],
+    [(CX + CC.goal.cx) / 2 + R * 0.08, (JOB_CY + LOW_CY) / 2, jg],
+    [CX,                               LOW_CY + R * 0.42, eg],
+  ];
 
   return (
     <View>
       {/* Diagram */}
       <View style={{ width: VENN_W, height: VENN_H, alignSelf: 'center' }}>
-        {circle(CC.exam, C_EXAM + '30', C_EXAM)}
-        {circle(CC.goal, C_GOAL + '30', C_GOAL)}
-        {circle(CC.job,  C_JOB  + '30', C_JOB)}
+        <Svg width={VENN_W} height={VENN_H}>
+          <Defs>
+            {GRADS.map(([id, col, c]) => (
+              <RadialGradient key={id} id={`venn_${id}`} cx={c.cx} cy={c.cy} r={R} gradientUnits="userSpaceOnUse">
+                <Stop offset="0" stopColor={col} stopOpacity={0.5} />
+                <Stop offset="1" stopColor={col} stopOpacity={0.1} />
+              </RadialGradient>
+            ))}
+          </Defs>
 
-        {/* Labels */}
+          <Circle cx={CC.exam.cx} cy={CC.exam.cy} r={R} fill="url(#venn_e)" stroke={C_EXAM} strokeWidth={2} />
+          <Circle cx={CC.goal.cx} cy={CC.goal.cy} r={R} fill="url(#venn_g)" stroke={C_GOAL} strokeWidth={2} />
+          <Circle cx={CC.job.cx}  cy={CC.job.cy}  r={R} fill="url(#venn_j)" stroke={C_JOB}  strokeWidth={2} />
+
+          {/* triple-overlap priority halo — the max-ROI study target */}
+          <Circle cx={CX} cy={CENTROID_Y} r={R * 0.4} fill={priorityColor} fillOpacity={0.16}
+                  stroke={priorityColor} strokeWidth={1.5} strokeDasharray="4 3" />
+
+          {regionNums.map(([x, y, v], i) => (
+            <React.Fragment key={i}>
+              {/* dark halo for contrast on the gradient fills */}
+              <SvgText x={x} y={y + 7} fontSize={20} fontWeight="bold" textAnchor="middle"
+                       fill="none" stroke="#060D1A" strokeWidth={4} strokeLinejoin="round">
+                {String(v)}
+              </SvgText>
+              <SvgText x={x} y={y + 7} fontSize={20} fontWeight="bold" textAnchor="middle" fill="#FFFFFF">
+                {String(v)}
+              </SvgText>
+            </React.Fragment>
+          ))}
+        </Svg>
+
+        {/* Labels (overlay pills) */}
         <View style={[styles.vennPill, { left: CX - 28, top: JOB_CY - R - BAND + 2, borderColor: C_JOB }]}>
           <View style={[styles.vennPillDot, { backgroundColor: C_JOB }]} />
           <Text style={[styles.vennPillText, { color: C_JOB }]}>JOB</Text>
@@ -200,23 +233,17 @@ function VennDiagram({
           <Text style={[styles.vennPillText, { color: C_GOAL }]}>GOAL</Text>
         </View>
 
-        {/* Solo region numbers */}
-        {num(CX,                         JOB_CY - R * 0.44, jobOnly)}
-        {num(CC.exam.cx - R * 0.46,      LOW_CY + R * 0.30, examOnly)}
-        {num(CC.goal.cx + R * 0.46,      LOW_CY + R * 0.30, goalOnly)}
-
-        {/* Pairwise numbers */}
-        {num((CX + CC.exam.cx) / 2 - R * 0.08, (JOB_CY + LOW_CY) / 2, je)}
-        {num((CX + CC.goal.cx) / 2 + R * 0.08, (JOB_CY + LOW_CY) / 2, jg)}
-        {num(CX,                                LOW_CY + R * 0.40, eg)}
-
-        {/* Centre */}
-        <View style={[styles.vennCenter, { left: CX - 28, top: CENTROID_Y - 20 }]}>
+        {/* Centre hero — JOB ∩ EXAM ∩ GOAL */}
+        <View style={[styles.vennCenter, { left: CX - 40, top: CENTROID_Y - 22, width: 80 }]} pointerEvents="none">
           <Text style={styles.vennCenterCount}>{allCount}</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-            <Feather name="check" size={9} color={C_GOAL} />
-            <Text style={styles.vennCenterCovered}>{coveredAll}/{allCount}</Text>
-          </View>
+          {emptyTriple ? (
+            <Text style={[styles.vennCenterCovered, { color: TEXT3 }]}>in all 3</Text>
+          ) : (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+              <Feather name={fullyCovered ? 'check' : 'target'} size={9} color={priorityColor} />
+              <Text style={[styles.vennCenterCovered, { color: priorityColor }]}>{coveredAll}/{allCount} done</Text>
+            </View>
+          )}
         </View>
       </View>
 

@@ -352,39 +352,52 @@ class AssessmentWorkflowEngine:
             if not indicator:
                 continue
             
-            user_score_10 = 7  # Default: user perceives as problem (7/10)
-            system_measured = measured_indicators.get(indicator, 50)  # 0-100 normalized
-            
-            # Calculate gap
-            user_score_100 = user_score_10 * 10  # Convert to 0-100
-            gap = user_score_100 - system_measured
-            
-            # Classify discrepancy
+            # A flagged pain point means the learner believes they are WEAK here,
+            # so their perceived proficiency is LOW (~4/10), not high.
+            user_score_10 = 4
+            user_score_100 = user_score_10 * 10  # perceived proficiency, 0-100
+            # Normalise the raw indicator (MTLD, articulation rate, etc. are in
+            # different units) to a 0-100 score before comparing to the learner's
+            # 0-100 self-perception — otherwise raw values like articulation_rate
+            # ≈ 2.0 read as "2%" and every sound-related area looks mismeasured.
+            raw_val = measured_indicators.get(indicator)
+            if raw_val is None:
+                system_measured = 50.0
+            else:
+                system_measured = self.calc.evaluate_indicator(indicator, raw_val)["normalized_score"]
+
+            # Gap = system − self. Positive → the system rates you higher than you rate yourself.
+            gap = system_measured - user_score_100
+
             if abs(gap) <= 20:
                 status = "aligned"
                 aligned.append(pain)
-                interpretation = f"Your self-assessment matches measurement: both at ~{system_measured:.0f}%"
+                interpretation = (f"Confirmed: the system measures ~{system_measured:.0f}%, close to "
+                                  f"how you rate yourself — a real area to focus on.")
             elif gap > 20:
-                status = "overestimate"
+                status = "overestimates_problem"
                 user_overestimates.append(pain)
-                interpretation = f"You worry more than needed: perceive {user_score_100:.0f}% vs. measured {system_measured:.0f}%. Strength you may not recognize."
+                interpretation = (f"Better than you think: measured {system_measured:.0f}% vs your "
+                                  f"~{user_score_100:.0f}% self-rating — a relative strength, less urgent.")
             else:
-                status = "underestimate"
+                status = "underestimates_problem"
                 user_underestimates.append(pain)
-                interpretation = f"System detected lower performance: perceive {user_score_100:.0f}% vs. measured {system_measured:.0f}%. Priority area."
-            
+                interpretation = (f"Weaker than you think: measured {system_measured:.0f}% vs your "
+                                  f"~{user_score_100:.0f}% self-rating — high priority.")
+
             discrepancies[pain] = {
                 "user_score_10": user_score_10,
-                "system_score_100": system_measured,
-                "gap_points": gap,
+                "system_score_100": round(system_measured, 1),
+                "gap_points": round(gap, 1),
                 "status": status,
                 "interpretation": interpretation
             }
         
-        # Priority focus areas
-        priority_focus = [(area, "System detected < 40%") for area in user_underestimates]
-        if len(priority_focus) == 0:
-            priority_focus = [(area, "User concern + medium system score") for area in pain_points[:2]]
+        # Priority focus areas: weaker-than-expected first, then confirmed weaknesses.
+        priority_focus = [(area, "System measured lower than you expected — top priority") for area in user_underestimates]
+        priority_focus += [(area, "Confirmed weakness — focus here") for area in aligned]
+        if not priority_focus:
+            priority_focus = [(area, "Relative strength — maintain") for area in user_overestimates[:2]]
         
         research_justification = (
             "Dual diagnosis identifies discrepancies between user perception and system measurement "
@@ -402,95 +415,6 @@ class AssessmentWorkflowEngine:
             aligned_areas=aligned,
             priority_focus=priority_focus,
             research_justification=research_justification
-        )
-
-    def run_reassessment(
-        self,
-        user_id: str,
-        baseline_overall: float,
-        baseline_cefr: str,
-        baseline_indicators: Dict[str, float],
-        current_indicators: Dict[str, float],
-        target_exam: Optional[ExamType] = None
-    ) -> ReassessmentResult:
-        """
-        Calculate progress from baseline to current assessment.
-        
-        Args:
-            user_id: Learner ID
-            baseline_overall: Overall score at baseline
-            baseline_cefr: CEFR at baseline
-            baseline_indicators: Baseline indicator dict {indicator_name: score}
-            current_indicators: Current indicator dict
-            target_exam: For exam-specific weights
-        
-        Returns:
-            Progress report with improvements and remaining critical areas
-        """
-        # Calculate improvements
-        improvements = {}
-        for ind_name, current_score in current_indicators.items():
-            baseline_score = baseline_indicators.get(ind_name, current_score)
-            improvements[ind_name] = current_score - baseline_score
-        
-        # Overall progress
-        current_overall = sum(current_indicators.values()) / len(current_indicators) if current_indicators else baseline_overall
-        overall_improvement = current_overall - baseline_overall
-        
-        # Predict current CEFR
-        if current_overall < 25:
-            current_cefr = "A1"
-        elif current_overall < 40:
-            current_cefr = "A2"
-        elif current_overall < 55:
-            current_cefr = "B1"
-        elif current_overall < 70:
-            current_cefr = "B2"
-        elif current_overall < 85:
-            current_cefr = "C1"
-        else:
-            current_cefr = "C2"
-        
-        cefr_advanced = (baseline_cefr != current_cefr)
-        
-        # Exam-specific improvements
-        exam_improvements = {}
-        baseline_exam_scores = {ExamType.CAMBRIDGE_CAE: 60.0, ExamType.TOEFL_iBT: 55.0}  # Placeholder baselines
-        for exam_type in [ExamType.CAMBRIDGE_CAE, ExamType.TOEFL_iBT]:
-            baseline = baseline_exam_scores.get(exam_type, baseline_overall)
-            current_exam = self.calc.calculate_overall_score(
-                {IndicatorType.LEXICAL_DIVERSITY: current_indicators.get("lexical_diversity", 50)},
-                exam_type
-            )
-            exam_improvements[exam_type.value] = round(current_exam - baseline, 1)
-        
-        # Top improvements
-        sorted_improvements = sorted(improvements.items(), key=lambda x: x[1], reverse=True)
-        most_improved = [x[0] for x in sorted_improvements[:3] if x[1] > 0]
-        still_critical = [x[0] for x in sorted_improvements if x[1] < 0 and current_indicators.get(x[0], 50) < 40]
-        
-        progress_summary = (
-            f"Overall: {baseline_overall:.1f} → {current_overall:.1f} ({overall_improvement:+.1f}%); "
-            f"CEFR: {baseline_cefr} → {current_cefr}. "
-            f"Most improved: {', '.join(most_improved[:2] or ['(none yet)'])}. "
-            f"Li & Shintani (2010) study shows typical 0.48 effect size from targeted intervention over 12 weeks."
-        )
-        
-        return ReassessmentResult(
-            user_id=user_id,
-            baseline_assessment_id=0,  # placeholder
-            reassessment_date=datetime.utcnow(),
-            indicator_improvements={k: round(v, 1) for k, v in improvements.items()},
-            baseline_overall=round(baseline_overall, 1),
-            current_overall=round(current_overall, 1),
-            overall_improvement=round(overall_improvement, 1),
-            baseline_cefr=baseline_cefr,
-            current_cefr=current_cefr,
-            cefr_advanced=cefr_advanced,
-            exam_improvements=exam_improvements,
-            most_improved_areas=most_improved,
-            still_critical_areas=still_critical,
-            progress_summary=progress_summary
         )
 
     def generate_full_report(

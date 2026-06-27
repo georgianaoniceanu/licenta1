@@ -39,7 +39,6 @@ const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: stri
   { key: 'vocabulary',    route: '/(tabs)/vocabulary',    icon: 'book-open',   color: '#8B5CF6' },
   { key: 'accentDna',     route: '/(tabs)/accent',        icon: 'mic',         color: CORAL     },
   { key: 'shadowSpeak',   route: '/(tabs)/shadow',        icon: 'headphones',  color: '#0FBA9A' },
-  { key: 'assessment',    route: '/(tabs)/assessment',    icon: 'clipboard',   color: '#8B5CF6' },
   { key: 'practiceHub',   route: '/(tabs)/practice',      icon: 'zap',         color: '#0FBA9A' },
   { key: 'progress',      route: '/(tabs)/progress',      icon: 'trending-up', color: '#8B5CF6' },
   { key: 'examProfile',   route: '/(tabs)/exam-profile',  icon: 'award',       color: '#8B5CF6' },

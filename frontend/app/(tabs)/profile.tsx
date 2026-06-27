@@ -14,6 +14,7 @@ import {
   Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Illustrations } from '@/constants/illustrations';
 import { SectionHeader, SectionHero } from '@/components/section-header';
@@ -399,7 +400,10 @@ export default function ProfileScreen() {
     }
   }, []);
 
-  useEffect(() => { warmupVoices(); loadData(); return () => { stopAllPlayback(); }; }, [loadData]);
+  useEffect(() => { warmupVoices(); return () => { stopAllPlayback(); }; }, []);
+  // Reload on focus so exiting demo mode (done from Home) immediately reflects
+  // the real account — name, voice profile, diagnosis — instead of stale demo data.
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -469,8 +473,11 @@ export default function ProfileScreen() {
           )}
         </LinearGradient>
 
-        {/* Voice Profile card */}
-        <VoiceProfileCard preset={activeDemoPreset} displayName={displayName} jobId={userJobId} />
+        {/* Voice Profile card — demo-only (it shows a sample persona voice, not a
+            real analysis of the user's voice, so it's hidden for real accounts). */}
+        {activeDemoPreset && (
+          <VoiceProfileCard preset={activeDemoPreset} displayName={displayName} jobId={userJobId} />
+        )}
 
         {/* 3-stat strip */}
         {diagnosis && (
@@ -710,7 +717,7 @@ export default function ProfileScreen() {
         {/* Quick links */}
         <View style={S.section}>
           <SectionHeader art={Illustrations.adventureMap} title="Quick Links" />
-          <QuickLink icon="activity"    label="Take Assessment"  route="/(tabs)/assessment" color={TEAL}   />
+          <QuickLink icon="activity"    label="Take Diagnostic"  route="/initial_diagnostic" color={TEAL}   />
           <QuickLink icon="bar-chart-2" label="View Progress"    route="/(tabs)/progress"   color={PURPLE} />
           <QuickLink icon="settings"    label="Settings"         route="/(tabs)/settings"   color={TEXT2}  />
         </View>

@@ -63,6 +63,9 @@ type GrammarSession = {
   categories: Record<string, number>;
 };
 
+type AccentSession = { ts: number; accuracy_score: number };
+type ShadowSession = { ts: number; score: number };
+
 type CocaGroup = 'SPOK' | 'FIC' | 'MAG' | 'NEWS' | 'ACAD' | 'Web' | 'Blog' | 'Mov' | 'TV';
 
 type GenreSession = {
@@ -301,6 +304,8 @@ export default function ProgressScreen() {
   const [baseline, setBaseline] = useState<BaselineDiagnosis | null>(null);
   const [originalBaseline, setOriginalBaseline] = useState<BaselineDiagnosis | null>(null);
   const [grammarSessions, setGrammarSessions] = useState<GrammarSession[]>([]);
+  const [accentSessions, setAccentSessions] = useState<AccentSession[]>([]);
+  const [shadowSessions, setShadowSessions] = useState<ShadowSession[]>([]);
   const [genreSessions, setGenreSessions] = useState<GenreSession[]>([]);
   const [srsState, setSrsState] = useState<SRSState | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -369,6 +374,16 @@ export default function ProgressScreen() {
       try {
         const rawGn = await AsyncStorage.getItem('vf_genre_sessions');
         if (rawGn) { localGenre = JSON.parse(rawGn); setGenreSessions(localGenre); }
+      } catch {}
+
+      // Accent ADN + Shadow Speaking sessions (stored newest-first in each module)
+      try {
+        const rawAcc = await AsyncStorage.getItem('vf_accent_sessions');
+        if (rawAcc) setAccentSessions(JSON.parse(rawAcc));
+      } catch {}
+      try {
+        const rawSh = await AsyncStorage.getItem('vf_shadow_sessions');
+        if (rawSh) setShadowSessions(JSON.parse(rawSh));
       } catch {}
 
       // Firestore merge (survives reinstall — same /sessions endpoint)
@@ -1215,6 +1230,47 @@ export default function ProgressScreen() {
               </>
             );
           })()}
+        </View>
+
+        {/* Speaking Practice Trend — Accent ADN + Shadow Speaking */}
+        <View style={styles.grammarTrendCard}>
+          <Text style={styles.cardTitle}>Speaking Practice Trend</Text>
+          <Text style={styles.cardDescription}>
+            Accuracy over time from your Accent ADN (pronunciation) and Shadow Speaking (fluency) sessions.
+          </Text>
+
+          {accentSessions.length === 0 && shadowSessions.length === 0 ? (
+            <Text style={styles.rtNoData}>
+              Practise in Accent ADN or Shadow Speaking to see your trend here.
+            </Text>
+          ) : (
+            <>
+              {accentSessions.length > 0 && (() => {
+                const series = [...accentSessions].reverse().map(s => s.accuracy_score);
+                const avg = Math.round(series.slice(-5).reduce((a, v) => a + v, 0) / Math.min(series.length, 5));
+                return (
+                  <View style={styles.chartSection}>
+                    <Text style={styles.chartTitle}>Accent ADN — pronunciation accuracy (avg {avg}%)</Text>
+                    {series.length > 1
+                      ? <LineChart data={series} color="#8B5CF6" minY={0} maxY={100} showGrid />
+                      : <Text style={styles.chartNote}>One session so far — practise more to see a trend.</Text>}
+                  </View>
+                );
+              })()}
+              {shadowSessions.length > 0 && (() => {
+                const series = [...shadowSessions].reverse().map(s => s.score);
+                const avg = Math.round(series.slice(-5).reduce((a, v) => a + v, 0) / Math.min(series.length, 5));
+                return (
+                  <View style={styles.chartSection}>
+                    <Text style={styles.chartTitle}>Shadow Speaking — fluency accuracy (avg {avg}%)</Text>
+                    {series.length > 1
+                      ? <LineChart data={series} color="#0FBA9A" minY={0} maxY={100} showGrid />
+                      : <Text style={styles.chartNote}>One session so far — practise more to see a trend.</Text>}
+                  </View>
+                );
+              })()}
+            </>
+          )}
         </View>
 
         {/* SM-2 Vocabulary Progress */}

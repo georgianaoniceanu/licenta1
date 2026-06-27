@@ -62,7 +62,6 @@ export const VOCABULARY_ENDPOINTS = {
   
   // Analyze pronunciation with emotion & confidence detection
   // Returns: pronunciation score, emotion analysis, speech quality metrics
-  ANALYZE_PRONUNCIATION_WITH_EMOTION: `${API_URL}/vocabulary/analyze-pronunciation-with-emotion`,
   
   // Generate phonetic breakdown using IPA
   // Shows exact phoneme differences between target and user pronunciation

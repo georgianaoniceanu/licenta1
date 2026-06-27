@@ -377,7 +377,6 @@ export default function HomeScreen() {
   const TOOL_MODULES = [
     { label: tr('modPractice', lang),   subtitle: tr('modPracticeSub', lang),   icon: 'zap',         route: '/(tabs)/practice',   color: '#0FBA9A' },
     { label: tr('modProgress', lang),   subtitle: tr('modProgressSub', lang),   icon: 'bar-chart-2', route: '/(tabs)/progress',   color: '#8B5CF6' },
-    { label: tr('modAssessment', lang), subtitle: tr('modAssessmentSub', lang), icon: 'clipboard',   route: '/(tabs)/assessment', color: '#0FBA9A' },
   ];
 
   const [diagnosis,       setDiagnosis]       = useState<BaselineDiagnosis | null>(null);
@@ -387,6 +386,7 @@ export default function HomeScreen() {
   const [streak,          setStreak]          = useState<StreakData>({ current: 0, best: 0 });
   const [showNotifBanner, setShowNotifBanner] = useState(false);
   const [demoLoading,     setDemoLoading]     = useState<AnyPreset | null>(null);
+  const [activeDemoPreset, setActiveDemoPreset] = useState<string | null>(null);
   const [infoIndicator,   setInfoIndicator]   = useState<string | null>(null);
   const [pickedUser,      setPickedUser]      = useState<{
     name: string; avatar: string; jobTitle: string; range: string; color: string;
@@ -401,15 +401,17 @@ export default function HomeScreen() {
 
   const loadData = useCallback(async () => {
     try {
-      const [storedDiagnosis, originalDiagnosis, token, streakData, settingsRaw] = await Promise.all([
+      const [storedDiagnosis, originalDiagnosis, token, streakData, settingsRaw, demoPreset] = await Promise.all([
         AsyncStorage.getItem('baselineDiagnosis'),
         AsyncStorage.getItem('baselineDiagnosisOriginal'),
         getFreshToken(),
         getStreak(),
         AsyncStorage.getItem('app_settings'),
+        AsyncStorage.getItem('active_demo_preset'),
       ]);
 
       setStreak(streakData);
+      setActiveDemoPreset(demoPreset);
 
       // In-app notification banners
       const appSettings = settingsRaw ? JSON.parse(settingsRaw) : null;
@@ -498,6 +500,31 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Animated.View style={{ opacity: fadeAnim }}>
+
+          {/* Demo-mode banner — only while viewing a sample profile */}
+          {activeDemoPreset && (
+            <View style={S.demoBanner}>
+              <Feather name="user" size={15} color="#8B5CF6" />
+              <Text style={S.demoBannerText}>Demo mode — viewing a sample profile</Text>
+              <TouchableOpacity
+                style={S.demoBannerExit}
+                activeOpacity={0.85}
+                onPress={async () => {
+                  try {
+                    await clearDemoData();
+                    setActiveDemoPreset(null);
+                    setPickedUser(null);
+                    await loadData();
+                  } catch (e: any) {
+                    Alert.alert('Error', String(e?.message || e));
+                  }
+                }}
+              >
+                <Feather name="log-out" size={13} color="#fff" />
+                <Text style={S.demoBannerExitText}>Exit demo</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Notification banner */}
           {showNotifBanner && (
@@ -929,6 +956,19 @@ const S = StyleSheet.create({
     gap: 8,
   },
   notifBannerText: { flex: 1, fontSize: 13, color: TEAL, fontWeight: '600' },
+  demoBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: 'rgba(139,92,246,0.12)', borderRadius: 12,
+    paddingHorizontal: 14, paddingVertical: 10,
+    borderWidth: 1, borderColor: 'rgba(139,92,246,0.35)',
+    marginTop: 12, marginBottom: 4,
+  },
+  demoBannerText: { flex: 1, fontSize: 13, color: '#8B5CF6', fontWeight: '700' },
+  demoBannerExit: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: '#8B5CF6', borderRadius: 9, paddingHorizontal: 12, paddingVertical: 6,
+  },
+  demoBannerExitText: { color: '#fff', fontSize: 12, fontWeight: '800' },
 
   // Header
   header: {

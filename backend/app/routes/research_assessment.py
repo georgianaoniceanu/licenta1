@@ -40,7 +40,7 @@ from app.services.assessment_indicators import (
     assessment_calculator, AssessmentIndicatorsCalculator, IndicatorType, ExamType
 )
 from app.services.assessment_workflow import (
-    assessment_engine, InitialAssessmentResult, DualDiagnosisResult, ReassessmentResult
+    assessment_engine, InitialAssessmentResult, DualDiagnosisResult
 )
 from datetime import datetime
 
@@ -484,92 +484,6 @@ def run_dual_diagnosis(payload: DualDiagnosisRequest):
         "aligned_areas": result.aligned_areas,
         "priority_focus": [f"{area}: {reason}" for area, reason in result.priority_focus],
         "research_justification": result.research_justification
-    }
-
-
-# ============================================================================
-# STEP 3: RE-ASSESSMENT (progress tracking)
-# ============================================================================
-
-class ReassessmentRequest(BaseModel):
-    """Request to measure progress from baseline"""
-    user_id: str
-    baseline_overall: float
-    baseline_cefr: str
-    target_exam: Optional[str] = None
-    # Current measurements (same 10 indicators)
-    lexical_diversity: float = 50.0
-    lexical_sophistication: float = 50.0
-    word_length: float = 4.5
-    sentence_complexity: float = 12.0
-    subordination_ratio: float = 0.8
-    syntactic_complexity: float = 1.6
-    articulation_rate: float = 2.0
-    pause_frequency: float = 0.3
-    cohesion_score: float = 60.0
-    morphosyntactic_accuracy: float = 70.0
-
-
-@router.post("/reassess")
-def run_reassessment(payload: ReassessmentRequest):
-    """
-    STEP 3: Measure progress from baseline assessment.
-    
-    Returns:
-    - Indicator-by-indicator improvements
-    - Overall progress percentage
-    - CEFR advancement (if any)
-    - Exam-specific improvements
-    - Still-critical areas requiring continued focus
-    
-    Research: Typical effect size d=0.48 from targeted intervention (Li & Shintani, 2010)
-    """
-    exam_enum = None
-    if payload.target_exam:
-        exam_map = {
-            "Cambridge CAE": ExamType.CAMBRIDGE_CAE,
-            "TOEFL iBT": ExamType.TOEFL_iBT,
-            "IELTS": ExamType.IELTS_ACADEMIC,
-        }
-        exam_enum = exam_map.get(payload.target_exam)
-    
-    current_indicators = {
-        "lexical_diversity": payload.lexical_diversity,
-        "lexical_sophistication": payload.lexical_sophistication,
-        "word_length": payload.word_length,
-        "sentence_complexity": payload.sentence_complexity,
-        "subordination_ratio": payload.subordination_ratio,
-        "syntactic_complexity": payload.syntactic_complexity,
-        "articulation_rate": payload.articulation_rate,
-        "pause_frequency": payload.pause_frequency,
-        "cohesion_score": payload.cohesion_score,
-        "morphosyntactic_accuracy": payload.morphosyntactic_accuracy,
-    }
-    
-    baseline_indicators = {k: v for k, v in current_indicators.items()}  # Placeholder
-    
-    result = assessment_engine.run_reassessment(
-        user_id=payload.user_id,
-        baseline_overall=payload.baseline_overall,
-        baseline_cefr=payload.baseline_cefr,
-        baseline_indicators=baseline_indicators,
-        current_indicators=current_indicators,
-        target_exam=exam_enum
-    )
-    
-    return {
-        "user_id": result.user_id,
-        "baseline_overall": result.baseline_overall,
-        "current_overall": result.current_overall,
-        "overall_improvement_points": result.overall_improvement,
-        "baseline_cefr": result.baseline_cefr,
-        "current_cefr": result.current_cefr,
-        "cefr_advanced": result.cefr_advanced,
-        "indicator_improvements": result.indicator_improvements,
-        "exam_improvements": result.exam_improvements,
-        "most_improved_areas": result.most_improved_areas,
-        "still_critical_areas": result.still_critical_areas,
-        "progress_summary": result.progress_summary
     }
 
 

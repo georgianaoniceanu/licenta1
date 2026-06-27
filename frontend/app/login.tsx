@@ -21,21 +21,21 @@ const { width: W } = Dimensions.get('window');
 const isTablet = W >= 760;
 
 const C = {
-  text:    '#0A1628',
-  muted:   '#475569',
-  lite:    '#94A3B8',
-  card:    '#FFFFFF',
-  border:  '#E2E8F0',
+  text:    '#F0F6FF',
+  muted:   '#8BA0B8',
+  lite:    '#64748B',
+  card:    '#0F1B2D',
+  border:  'rgba(255,255,255,0.10)',
   teal:    '#0FBA9A',
   tealD:   '#0AA088',
   coral:   '#E8713A',
   amber:   '#F59E0B',
-  amberBg: '#FEF3C7',
-  purple:  '#7C3AED',
+  amberBg: 'rgba(245,158,11,0.15)',
+  purple:  '#8B5CF6',
   red:     '#EF4444',
   green:   '#10B981',
-  greenL:  '#D1FAE5',
-  navy:    '#0F1F3A',
+  greenL:  'rgba(16,185,129,0.18)',
+  navy:    '#7C3AED',   // repurposed as the primary CTA colour on the dark theme
 };
 
 // Deterministic waveform heights
@@ -161,10 +161,10 @@ function VocabVisual() {
       <Text style={FV.vizLabel}>VOCABULARY UPGRADES · CAMBRIDGE EVP</Text>
       <View style={{ gap: 7, marginTop: 10 }}>
         {upgrades.map((u, i) => (
-          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.03)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderLeftWidth: 3, borderLeftColor: u.c }}>
+          <View key={i} style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 10, paddingHorizontal: 12, paddingVertical: 9, gap: 8, borderLeftWidth: 3, borderLeftColor: u.c }}>
             <Text style={{ fontSize: 11, color: '#94A3B8', textDecorationLine: 'line-through', flex: 1 }}>{u.from}</Text>
             <Feather name="arrow-right" size={14} color="#CBD5E1" />
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E293B', flex: 1.4 }}>{u.to}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#CBD5E1', flex: 1.4 }}>{u.to}</Text>
             <View style={{ backgroundColor: u.c + '1A', paddingHorizontal: 6, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: u.c + '35' }}>
               <Text style={{ fontSize: 9, fontWeight: '900', color: u.c }}>{u.fromLvl}→{u.toLvl}</Text>
             </View>
@@ -219,7 +219,7 @@ function ShadowVisual() {
         ].map(d => (
           <View key={d.lbl} style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: d.c + '12', borderRadius: 20, paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: d.c + '30' }}>
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: d.c }} />
-            <Text style={{ fontSize: 11, fontWeight: '700', color: '#334155' }}>{d.lbl}</Text>
+            <Text style={{ fontSize: 11, fontWeight: '700', color: '#94A3B8' }}>{d.lbl}</Text>
             <Text style={{ fontSize: 11, fontWeight: '900', color: d.c }}>{d.pct}%</Text>
           </View>
         ))}
@@ -253,9 +253,9 @@ function ProgressVisual() {
               <View style={[
                 { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center', borderWidth: 2 },
                 done    ? { backgroundColor: '#10B981', borderColor: '#10B981' }               :
-                current ? { backgroundColor: '#FFFBEB', borderColor: '#D97706' }               :
+                current ? { backgroundColor: 'rgba(245,158,11,0.15)', borderColor: '#D97706' }               :
                 target  ? { backgroundColor: 'rgba(15,186,154,0.10)', borderColor: '#0FBA9A' } :
-                { backgroundColor: 'rgba(0,0,0,0.04)', borderColor: '#E2E8F0' },
+                { backgroundColor: 'rgba(255,255,255,0.05)', borderColor: 'rgba(255,255,255,0.12)' },
               ]}>
                 {done
                   ? <Feather name="check" size={11} color="#fff" />
@@ -267,7 +267,7 @@ function ProgressVisual() {
             </View>
           );
           if (i < levels.length - 1) {
-            return [node, <View key={`c${i}`} style={{ flex: 1, height: 2, marginBottom: 14, backgroundColor: done ? '#10B981' : '#E2E8F0' }} />];
+            return [node, <View key={`c${i}`} style={{ flex: 1, height: 2, marginBottom: 14, backgroundColor: done ? '#10B981' : 'rgba(255,255,255,0.12)' }} />];
           }
           return [node];
         })}
@@ -277,10 +277,10 @@ function ProgressVisual() {
         {skills.map(s => (
           <View key={s.lbl} style={{ gap: 3 }}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-              <Text style={{ fontSize: 10, fontWeight: '600', color: '#475569' }}>{s.lbl}</Text>
+              <Text style={{ fontSize: 10, fontWeight: '600', color: '#8BA0B8' }}>{s.lbl}</Text>
               <Text style={{ fontSize: 10, fontWeight: '800', color: s.c }}>{s.pct}%</Text>
             </View>
-            <View style={{ height: 6, backgroundColor: 'rgba(0,0,0,0.07)', borderRadius: 3, overflow: 'hidden' }}>
+            <View style={{ height: 6, backgroundColor: 'rgba(255,255,255,0.07)', borderRadius: 3, overflow: 'hidden' }}>
               <View style={{ width: `${s.pct}%` as any, height: '100%', backgroundColor: s.c, borderRadius: 3 }} />
             </View>
           </View>
@@ -480,7 +480,7 @@ export default function LoginScreen() {
 
         {/* Background gradient */}
         <LinearGradient
-          colors={['#B8E8DF', '#CCF0E9', '#E8F5F2', '#F5EEE8', '#F0D0BC']}
+          colors={['#060D1A', '#0A1628', '#0F1B2D', '#0A1426', '#0B1020']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFillObject}
@@ -618,7 +618,7 @@ export default function LoginScreen() {
               {/* Accent DNA */}
               <View style={S.featureCard}>
                 <View style={S.featureRow}>
-                  <View style={[S.featureIcon, { backgroundColor: '#ECFDF5' }]}>
+                  <View style={[S.featureIcon, { backgroundColor: 'rgba(15,186,154,0.15)' }]}>
                     <Feather name="mic" size={18} color={C.coral} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -648,7 +648,7 @@ export default function LoginScreen() {
               {/* Vocabulary Coach */}
               <View style={S.featureCard}>
                 <View style={S.featureRow}>
-                  <View style={[S.featureIcon, { backgroundColor: '#FFF7ED' }]}>
+                  <View style={[S.featureIcon, { backgroundColor: 'rgba(232,113,58,0.15)' }]}>
                     <Feather name="cpu" size={18} color={C.purple} />
                   </View>
                   <View style={{ flex: 1 }}>
@@ -726,6 +726,11 @@ export default function LoginScreen() {
                   <Feather name="x" size={20} color={C.muted} />
                 </TouchableOpacity>
               </View>
+              <Image
+                source={require('../assets/icons/undraw_secure-login_m11a-removebg-preview.png')}
+                style={S.authArt}
+                resizeMode="contain"
+              />
               <View style={S.tabs}>
                 {(['login', 'signup'] as const).map((mode) => {
                   const active = (mode === 'login') === isLogin;
@@ -851,6 +856,7 @@ const S = StyleSheet.create({
 
   // Hero
   hero: { marginTop: 16, marginBottom: 36 },
+  authArt: { width: 190, height: 130, alignSelf: 'center', marginTop: 6, marginBottom: 10 },
 
   eyebrow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 18 },
   eyebrowDot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: C.teal },
@@ -926,7 +932,7 @@ const S = StyleSheet.create({
   // Title bar
   titleBar: {
     flexDirection: 'row', alignItems: 'center',
-    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(0,0,0,0.055)',
+    paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)',
   },
   trafficDot: { width: 10, height: 10, borderRadius: 5 },
   titleBarLabel: { flex: 1, marginLeft: 12, fontSize: 12, fontWeight: '700', color: C.muted },
@@ -941,8 +947,8 @@ const S = StyleSheet.create({
 
   // Wave card
   waveCard: {
-    backgroundColor: '#F8FAFA', borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.045)', gap: 10,
+    backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 14, padding: 14,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', gap: 10,
   },
   waveHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   waveLabel:  { fontSize: 10, fontWeight: '800', color: C.muted, letterSpacing: 1.5 },
@@ -960,7 +966,7 @@ const S = StyleSheet.create({
   // Feature cards
   featureCard: {
     backgroundColor: C.card, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: 'rgba(0,0,0,0.048)', gap: 12,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', gap: 12,
   },
   featureRow:  { flexDirection: 'row', alignItems: 'center', gap: 12 },
   featureIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
@@ -972,7 +978,7 @@ const S = StyleSheet.create({
   phonemeRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   phonemeCol: { flex: 1, alignItems: 'center', gap: 6 },
   phonemeBarBg: {
-    width: '100%', height: 60, borderRadius: 8, backgroundColor: '#F1F5F9',
+    width: '100%', height: 60, borderRadius: 8, backgroundColor: 'rgba(255,255,255,0.06)',
     overflow: 'hidden', justifyContent: 'flex-end',
   },
   phonemeBarFill: { width: '100%', borderRadius: 8 },
@@ -1002,7 +1008,7 @@ const S = StyleSheet.create({
   // Auth form
   authCard: {
     backgroundColor: C.card, borderRadius: 20, padding: 24,
-    borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 36,
+    borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', marginBottom: 36,
     shadowColor: '#0F172A', shadowOpacity: 0.10, shadowRadius: 30,
     shadowOffset: { width: 0, height: 14 }, elevation: 6,
   },
@@ -1010,7 +1016,7 @@ const S = StyleSheet.create({
   authTitle:  { fontSize: 20, fontWeight: '800', color: C.text },
   authClose:  { fontSize: 18, color: C.lite, padding: 4 },
 
-  tabs: { flexDirection: 'row', backgroundColor: '#F1F5F9', borderRadius: 10, padding: 4, marginBottom: 20 },
+  tabs: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 10, padding: 4, marginBottom: 20 },
   tab:  { flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 7 },
   tabActive: {
     backgroundColor: C.card,
@@ -1022,7 +1028,7 @@ const S = StyleSheet.create({
   field: { marginBottom: 16 },
   label: { fontSize: 12, fontWeight: '700', color: C.muted, marginBottom: 6, letterSpacing: 0.3 },
   input: {
-    borderWidth: 1.5, borderColor: '#E2E8F0', borderRadius: 10,
+    borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.12)', borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 13,
     fontSize: 15, color: C.text, backgroundColor: C.card,
   },
@@ -1083,7 +1089,7 @@ const FS = StyleSheet.create({
     elevation: 8,
   },
   featureHeader: {
-    backgroundColor: '#FAFCFB',
+    backgroundColor: 'rgba(255,255,255,0.04)',
     borderBottomWidth: 1,
     overflow: 'hidden',
   },
