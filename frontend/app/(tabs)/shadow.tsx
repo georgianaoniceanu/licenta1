@@ -187,6 +187,8 @@ export default function ShadowSpeakingScreen() {
   const [audioLoading, setAudioLoading] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<Speed>(1.0);
   const [listenCount, setListenCount] = useState(0);
+  const [liveShadow, setLiveShadow] = useState(false);   // simultaneous mode (needs headphones)
+  const [cueActive, setCueActive] = useState(false);     // "Repeat now!" cue after native ends
   const [sessionScores, setSessionScores] = useState<SessionEntry[]>([]);
 
   const feedbackOpacity = useRef(new Animated.Value(0)).current;
@@ -319,6 +321,7 @@ export default function ShadowSpeakingScreen() {
 
   const stopAndAnalyze = async () => {
     setIsRecording(false);
+    setCueActive(false);
     setLoading(true);
 
     try {
@@ -404,9 +407,10 @@ export default function ShadowSpeakingScreen() {
     setStep('listen');
     setListenCount(0);
     setUploadedFileName(null);
+    setCueActive(false);
   };
 
-  const playFragmentAudio = async () => {
+  const playFragmentAudio = async (onEnd?: () => void, keepRecMode = false) => {
     setAudioLoading(true);
     try {
       if (Platform.OS === 'web') {
@@ -434,6 +438,7 @@ export default function ShadowSpeakingScreen() {
         audio.onended = () => {
           setIsPlayingAudio(false);
           setListenCount(c => c + 1);
+          if (onEnd) onEnd();
         };
         audioPlayerRef.current = audio;
         audio.src = audioUrl;
@@ -479,7 +484,8 @@ export default function ShadowSpeakingScreen() {
         }
 
         if (audioRef.current) await audioRef.current.unloadAsync();
-        await Audio.setAudioModeAsync({ allowsRecordingIOS: false, playsInSilentModeIOS: true });
+        // In live mode keep recording enabled so mic + playback run together.
+        await Audio.setAudioModeAsync({ allowsRecordingIOS: keepRecMode, playsInSilentModeIOS: true });
         const { sound } = await Audio.Sound.createAsync({ uri: fileUri });
         audioRef.current = sound;
         await sound.setRateAsync(playbackSpeed, true);
@@ -489,6 +495,7 @@ export default function ShadowSpeakingScreen() {
           if (status.isLoaded && !status.isPlaying && status.didJustFinish) {
             setIsPlayingAudio(false);
             setListenCount(c => c + 1);
+            if (onEnd) onEnd();
           }
         });
       }
@@ -508,6 +515,23 @@ export default function ShadowSpeakingScreen() {
       await audioRef.current.setPositionAsync(0);
     }
     setIsPlayingAudio(false);
+  };
+
+  // One-tap shadowing flow.
+  //  • Delayed (default): play the model, then auto-start recording the instant
+  //    it ends, with a "Repeat now!" cue — the native rhythm is fresh in mind.
+  //  • Live (headphones): record WHILE the model plays, then auto-analyse on end.
+  const playAndShadow = async () => {
+    setError('');
+    setFeedback(null);
+    setCueActive(false);
+    setStep('record');
+    if (liveShadow) {
+      await startRecording();
+      await playFragmentAudio(() => { stopAndAnalyze(); }, true);
+    } else {
+      await playFragmentAudio(() => { setCueActive(true); startRecording(); });
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -727,10 +751,26 @@ export default function ShadowSpeakingScreen() {
               </View>
             </View>
 
+            {/* Live shadow toggle — simultaneous mode (needs headphones) */}
+            <TouchableOpacity style={styles.liveToggleRow} onPress={() => setLiveShadow(v => !v)} activeOpacity={0.7}>
+              <Feather name="headphones" size={16} color={liveShadow ? '#0FBA9A' : '#8BA0B8'} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.liveToggleLabel}>Live shadow (speak along)</Text>
+                <Text style={styles.liveToggleHint}>
+                  {liveShadow
+                    ? 'Use headphones — otherwise the mic records the model too and the score is wrong.'
+                    : 'Off = delayed shadowing: listen, then repeat.'}
+                </Text>
+              </View>
+              <View style={[styles.liveSwitch, liveShadow && styles.liveSwitchOn]}>
+                <View style={[styles.liveKnob, liveShadow && styles.liveKnobOn]} />
+              </View>
+            </TouchableOpacity>
+
             <View style={styles.audioSection}>
               <TouchableOpacity
                 style={[styles.playBtn, isPlayingAudio && styles.playBtnActive]}
-                onPress={isPlayingAudio ? stopAudio : playFragmentAudio}
+                onPress={isPlayingAudio ? stopAudio : () => playFragmentAudio()}
                 disabled={audioLoading}
               >
                 {audioLoading ? (
@@ -749,8 +789,15 @@ export default function ShadowSpeakingScreen() {
               )}
             </View>
 
+            {/* One-tap shadow: plays the model then auto-records (delayed),
+                or records while it plays (live). */}
+            <TouchableOpacity style={styles.shadowNowBtn} onPress={playAndShadow} disabled={audioLoading || loading}>
+              <Feather name="mic" size={16} color="#fff" />
+              <Text style={styles.shadowNowText}>{liveShadow ? 'Play & speak along' : 'Play & shadow'}</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.nextBtn} onPress={() => setStep('record')}>
-              <Text style={styles.nextBtnText}>Ready to Record →</Text>
+              <Text style={styles.nextBtnText}>Record manually →</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -760,8 +807,16 @@ export default function ShadowSpeakingScreen() {
           <View style={styles.stepCard}>
             <Text style={styles.stepTitle}>Step 2: Shadow it</Text>
             <Text style={styles.stepDescription}>
-              Say the fragment out loud, matching the rhythm and natural flow you heard.
+              {liveShadow
+                ? 'Live shadowing: speak along with the model as it plays (use headphones).'
+                : 'Delayed shadowing: repeat right after the model, matching its rhythm and flow.'}
             </Text>
+            {cueActive && (
+              <View style={styles.cueBanner}>
+                <Feather name="volume-2" size={16} color="#0FBA9A" />
+                <Text style={styles.cueText}>Repeat now!</Text>
+              </View>
+            )}
 
             <View style={styles.recordSection}>
               <View style={styles.recordBtnWrapper}>
@@ -1236,6 +1291,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   nextBtnText: { color: '#fff', fontSize: 15, fontWeight: '700' },
+
+  // Live-shadow toggle
+  liveToggleRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#0F1B2D', borderRadius: 12, borderWidth: 1, borderColor: '#24344A',
+    paddingHorizontal: 12, paddingVertical: 10, marginTop: 12, marginBottom: 4,
+  },
+  liveToggleLabel: { color: '#F0F6FF', fontSize: 13, fontWeight: '700' },
+  liveToggleHint: { color: '#8BA0B8', fontSize: 11, marginTop: 2, lineHeight: 15 },
+  liveSwitch: {
+    width: 40, height: 22, borderRadius: 11, backgroundColor: '#24344A',
+    padding: 2, justifyContent: 'center',
+  },
+  liveSwitchOn: { backgroundColor: 'rgba(15,186,154,0.4)' },
+  liveKnob: { width: 18, height: 18, borderRadius: 9, backgroundColor: '#8BA0B8' },
+  liveKnobOn: { backgroundColor: '#0FBA9A', alignSelf: 'flex-end' },
+
+  // One-tap "Play & shadow"
+  shadowNowBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: '#8B5CF6', borderRadius: 14, paddingVertical: 14, marginTop: 12,
+  },
+  shadowNowText: { color: '#fff', fontSize: 15, fontWeight: '800' },
+
+  // "Repeat now!" cue
+  cueBanner: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: 'rgba(15,186,154,0.15)', borderRadius: 12, borderWidth: 1,
+    borderColor: 'rgba(15,186,154,0.4)', paddingVertical: 10, marginTop: 10,
+  },
+  cueText: { color: '#0FBA9A', fontSize: 15, fontWeight: '800' },
 
   recordSection: { alignItems: 'center', paddingVertical: 8, gap: 16 },
   recordBtnWrapper: { alignItems: 'center', justifyContent: 'center', width: 140, height: 140 },

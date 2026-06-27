@@ -40,10 +40,7 @@ type HealthData = {
 };
 
 interface Settings {
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
   language: 'en' | 'ro';
-  dailyGoal: number;
-  sessionDuration: number;
   notifications: {
     dailyReminder: boolean;
     achievementAlerts: boolean;
@@ -55,10 +52,7 @@ interface Settings {
 }
 
 const DEFAULT_SETTINGS: Settings = {
-  difficulty: 'intermediate',
   language: 'en',
-  dailyGoal: 10,
-  sessionDuration: 20,
   notifications: {
     dailyReminder: true,
     achievementAlerts: true,
@@ -91,7 +85,7 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeSection, setActiveSection] = useState<
-    'general' | 'learning' | 'notifications' | 'account'
+    'general' | 'notifications' | 'account'
   >('general');
   const [health, setHealth]           = useState<HealthData | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
@@ -146,11 +140,6 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleDifficultyChange = (level: 'beginner' | 'intermediate' | 'advanced') => {
-    const newSettings = { ...settings, difficulty: level };
-    saveSettings(newSettings);
-  };
-
   const handleLanguageChange = (l: 'en' | 'ro') => {
     setLang(l);
     const newSettings = { ...settings, language: l };
@@ -185,16 +174,6 @@ export default function SettingsScreen() {
     if (key === 'achievementAlerts') {
       await setAchievementAlertsEnabled(next);
     }
-  };
-
-  const handleDailyGoalChange = (value: number) => {
-    const newSettings = { ...settings, dailyGoal: value };
-    saveSettings(newSettings);
-  };
-
-  const handleSessionDurationChange = (value: number) => {
-    const newSettings = { ...settings, sessionDuration: value };
-    saveSettings(newSettings);
   };
 
   const handleSignOut = () => {
@@ -264,8 +243,8 @@ export default function SettingsScreen() {
       </View>
 
       <View style={[styles.tabsContainer, { borderBottomColor: T.border }]}>
-        {(['general', 'learning', 'notifications', 'account'] as const).map((tab) => {
-          const tabKey = tab === 'general' ? 'tabGeneral' : tab === 'learning' ? 'tabLearning' : tab === 'notifications' ? 'tabNotifications' : 'tabAccount';
+        {(['general', 'notifications', 'account'] as const).map((tab) => {
+          const tabKey = tab === 'general' ? 'tabGeneral' : tab === 'notifications' ? 'tabNotifications' : 'tabAccount';
           return (
             <TouchableOpacity
               key={tab}
@@ -276,7 +255,7 @@ export default function SettingsScreen() {
               accessibilityLabel={tr(tabKey as any, lang)}
             >
               <Feather
-                name={tab === 'general' ? 'settings' : tab === 'learning' ? 'book' : tab === 'notifications' ? 'bell' : 'user'}
+                name={tab === 'general' ? 'settings' : tab === 'notifications' ? 'bell' : 'user'}
                 size={18}
                 color={activeSection === tab ? T.active : T.text2}
               />
@@ -295,13 +274,11 @@ export default function SettingsScreen() {
         <SectionHero
           art={
             activeSection === 'general'       ? Illustrations.adjustSettings
-            : activeSection === 'learning'    ? Illustrations.goals
             : activeSection === 'notifications' ? Illustrations.alarmClock
             :                                   Illustrations.secureLogin
           }
           title={tr(
             (activeSection === 'general' ? 'tabGeneral'
-            : activeSection === 'learning' ? 'tabLearning'
             : activeSection === 'notifications' ? 'tabNotifications'
             : 'tabAccount') as any,
             lang,
@@ -312,35 +289,6 @@ export default function SettingsScreen() {
         {/* GENERAL SETTINGS */}
         {activeSection === 'general' && (
           <>
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('difficultyLevel', lang)}</Text>
-              {(['beginner', 'intermediate', 'advanced'] as const).map((level) => {
-                const active = settings.difficulty === level;
-                const labelKey = level === 'beginner' ? 'beginner' : level === 'intermediate' ? 'intermediate' : 'advanced';
-                const subKey   = level === 'beginner' ? 'beginnerSub' : level === 'intermediate' ? 'intermediateSub' : 'advancedSub';
-                return (
-                  <TouchableOpacity
-                    key={level}
-                    activeOpacity={0.7}
-                    style={[styles.optionCard, { backgroundColor: active ? T.activeBg : T.card, borderColor: active ? T.active : T.border }]}
-                    onPress={() => handleDifficultyChange(level)}
-                  >
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.optionTitle, { color: active ? T.active : T.text, fontWeight: active ? '700' : '600' }]}>
-                        {tr(labelKey as any, lang)}
-                      </Text>
-                      <Text style={[styles.optionSubtitle, { color: T.text2 }]}>
-                        {tr(subKey as any, lang)}
-                      </Text>
-                    </View>
-                    <View style={[styles.radioOuter, { borderColor: active ? T.active : T.border }]}>
-                      {active && <View style={[styles.radioInner, { backgroundColor: T.active }]} />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
             <View style={styles.section}>
               <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('language', lang)}</Text>
               <Text style={[styles.optionSubtitle, { color: T.text2, marginBottom: 12 }]}>
@@ -388,80 +336,6 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-          </>
-        )}
-
-        {/* LEARNING SETTINGS */}
-        {activeSection === 'learning' && (
-          <>
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('dailyGoals', lang)}</Text>
-              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
-                <View>
-                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('wordsPerSession', lang)}</Text>
-                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
-                    {tr('wordsTarget', lang, { n: settings.dailyGoal })}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.sliderContainer}>
-                {[5, 10, 15, 20].map((goal) => (
-                  <TouchableOpacity
-                    key={goal}
-                    style={[
-                      styles.sliderOption,
-                      settings.dailyGoal === goal && styles.sliderOptionActive,
-                    ]}
-                    onPress={() => handleDailyGoalChange(goal)}
-                  >
-                    <Text
-                      style={[
-                        styles.sliderOptionText,
-                        settings.dailyGoal === goal && styles.sliderOptionTextActive,
-                      ]}
-                    >
-                      {goal}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={[styles.sectionTitle, { color: T.text }]}>{tr('sessionDuration', lang)}</Text>
-              <View style={[styles.settingRow, { backgroundColor: T.card, borderColor: T.border }]}>
-                <View>
-                  <Text style={[styles.settingLabel, { color: T.text }]}>{tr('preferredDuration', lang)}</Text>
-                  <Text style={[styles.settingDescription, { color: T.text2 }]}>
-                    {tr('minutesPerSession', lang, { n: settings.sessionDuration })}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.sliderContainer}>
-                {[10, 20, 30, 45].map((duration) => (
-                  <TouchableOpacity
-                    key={duration}
-                    style={[
-                      styles.sliderOption,
-                      settings.sessionDuration === duration && styles.sliderOptionActive,
-                    ]}
-                    onPress={() => handleSessionDurationChange(duration)}
-                  >
-                    <Text
-                      style={[
-                        styles.sliderOptionText,
-                        settings.sessionDuration === duration &&
-                          styles.sliderOptionTextActive,
-                      ]}
-                    >
-                      {duration}m
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
           </>
         )}
 

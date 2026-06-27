@@ -501,22 +501,6 @@ const PHONEME_SPELLINGS: Record<string, { pattern: string; example: string }[]> 
   ],
 };
 
-// TTS cues to pronounce each phoneme in isolation (American voice).
-// Vowels render cleanly; consonants use a minimal schwa so the sound is produced.
-const PHONEME_CUE: Record<string, string> = {
-  '/u:/-/ʊ/':   'oooo',
-  '/i:/-/ɪ/':   'eee',
-  '/ð/':        'thuh',   // voiced TH
-  '/θ/':        'th',     // unvoiced TH
-  '/æ/-/ɑ:/':   'aaa',
-  '/ʌ/':        'uhh',
-  '[ɫ] Dark L': 'ull',
-  '/ŋ/':        'ng',
-  '[kʰ]':       'kuh',
-  '/ə/':        'uh',
-  '[pʰ]':       'puh',
-  '[tʰ]':       'tuh',
-};
 
 function PhonemeGlobe({
   exercises, attemptHistory, weakPhonemes, onSelect,
@@ -695,9 +679,15 @@ export default function AccentDNAScreen() {
   const playPhonemeSound = (ex: typeof PHONEME_EXERCISES[number]) => {
     const clip = getPhonemeAudio(ex.phoneme);
     if (clip) {
-      void playAudioAsset(clip);                            // 100% accurate recording
-    } else {
-      speakPhoneme(PHONEME_CUE[ex.phoneme] ?? ex.phoneme);  // TTS fallback (American voice)
+      void playAudioAsset(clip);                            // real recording, if one is added
+      return;
+    }
+    // No recording → use the natural ElevenLabs voice on a real example word
+    // that contains the sound. (Browser/Web-Speech TTS sounded robotic, and
+    // isolated vowels were unintelligible.)
+    const word = ex.words?.[0];
+    if (word) {
+      void playAudioAsset({ uri: `${API_URL}/accent/tts?text=${encodeURIComponent(word)}` });
     }
   };
 
@@ -710,10 +700,12 @@ export default function AccentDNAScreen() {
     setShowMinimalPairs(false);
     setShowSpellings(false);
     playPhonemeSound(ex);
-    // Scroll down to the exercise/explanation card
+    // Scroll down to the exercise/explanation card. Delay lets the layout settle
+    // first (e.g. after collapsing the Phoneme Overview grid) so exerciseYRef is
+    // up to date before we scroll.
     setTimeout(() => {
       scrollRef.current?.scrollTo({ y: Math.max(0, exerciseYRef.current - 12), animated: true });
-    }, 180);
+    }, 280);
   };
 
   useEffect(() => {
@@ -1002,11 +994,8 @@ export default function AccentDNAScreen() {
                   key={ex.phoneme}
                   style={[styles.heatmapCell, { backgroundColor: ex.color + '20', borderColor: ex.color + '60' }]}
                   onPress={() => {
-                    setSelectedExercise(ex);
-                    setSelectedWord(ex.words[0]);
-                    setSelectedSentence(sentencesFor(ex)[0]);
-                    setFeedback(null);
-                    setShowHeatmap(false);
+                    setShowHeatmap(false);     // collapse the overview…
+                    handleGlobeSelect(ex);     // …then select, play the sound and scroll to it
                   }}
                 >
                   <Text style={[styles.heatmapCellPhoneme, { color: ex.color }]}>{ex.phoneme}</Text>

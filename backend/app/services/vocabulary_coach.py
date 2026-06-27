@@ -314,13 +314,70 @@ def _analyze_vocabulary_llm(user_text: str) -> dict:
         return {"improved_text": user_text, "suggestions": []}
 
 
+def _phrase_cefr(phrase: str):
+    """
+    CEFR level of a word/phrase = the level of its HARDEST content word.
+    Returns (level | None, confident: bool). `confident` is False when the
+    level came only from the morphological heuristic (word not in EVP / the
+    supplementary lists), so callers know it is an estimate, not corpus-verified.
+    """
+    import re as _re
+    from app.services.cefr_word_classifier import _lookup_level, _LEVEL_RANK
+    words = _re.findall(r"[a-zA-Z]+", (phrase or "").lower())
+    if not words:
+        return None, False
+    best_lvl, best_rank, confident = "A1", -1, False
+    for w in words:
+        lvl, src = _lookup_level(w)
+        if src != "heuristic":      # found in EVP or a supplementary list
+            confident = True
+        if _LEVEL_RANK[lvl] > best_rank:
+            best_rank, best_lvl = _LEVEL_RANK[lvl], lvl
+    return best_lvl, confident
+
+
+def _validate_suggestions_evp(suggestions: list) -> list:
+    """
+    Keep only suggestions whose alternative is genuinely a higher CEFR level than
+    the original (English Vocabulary Profile). A suggestion is DROPPED only when
+    we are confident it is not an upgrade — i.e. both original and alternative are
+    corpus-classified (EVP/AWL/NAWL/GSL) AND the alternative is not higher.
+
+    Words absent from EVP fall back to the morphological heuristic and are kept
+    (benefit of the doubt), flagged `cefr_verified: False` so the estimate is not
+    presented as certain. Each suggestion is annotated with original_cefr,
+    alternative_cefr, is_upgrade and cefr_verified.
+    """
+    from app.services.cefr_word_classifier import _LEVEL_RANK
+    validated = []
+    for s in suggestions:
+        if not isinstance(s, dict):
+            continue
+        o_lvl, o_ok = _phrase_cefr(s.get("original_word", ""))
+        a_lvl, a_ok = _phrase_cefr(s.get("better_alternative", ""))
+        s["original_cefr"]    = o_lvl
+        s["alternative_cefr"] = a_lvl
+        s["cefr_verified"]    = bool(o_ok and a_ok)
+        if o_lvl and a_lvl:
+            is_up = _LEVEL_RANK[a_lvl] > _LEVEL_RANK[o_lvl]
+            s["is_upgrade"] = is_up
+            # Drop ONLY when we are confident it is not an upgrade.
+            if s["cefr_verified"] and not is_up:
+                continue
+        else:
+            s["is_upgrade"] = None
+        validated.append(s)
+    return validated
+
+
 def analyze_vocabulary(user_id: str, user_text: str) -> dict:
     """
     Analyzes user text and suggests sophisticated alternatives.
-    LLM portion is cached by text (1h TTL); pattern tracking is per-user
-    and always runs (DB write).
+    LLM portion is cached by text (1h TTL); EVP validation drops non-upgrades;
+    pattern tracking is per-user and always runs (DB write).
     """
     result = _analyze_vocabulary_llm(user_text)
+    result["suggestions"] = _validate_suggestions_evp(result.get("suggestions", []))
     if user_id and result.get("suggestions"):
         track_lexical_patterns(user_id, result["suggestions"])
     return result

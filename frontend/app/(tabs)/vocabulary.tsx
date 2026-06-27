@@ -36,6 +36,9 @@ interface SuggestionCard {
   original_word: string;
   better_alternative: string;
   explanation: string;
+  original_cefr?: string | null;      // EVP level of the original word
+  alternative_cefr?: string | null;   // EVP level of the suggested upgrade
+  cefr_verified?: boolean;            // false = level estimated (word not in EVP)
 }
 
 interface SpeechQuality {
@@ -1513,10 +1516,16 @@ export default function VocabularyScreen() {
                       <View style={styles.wordPairRow}>
                         <View style={styles.originalWordBadge}>
                           <Text style={styles.originalWord}>{s.original_word}</Text>
+                          {!!s.original_cefr && <Text style={styles.cefrTag}>{s.original_cefr}</Text>}
                         </View>
                         <Text style={styles.arrow}>→</Text>
                         <View style={styles.betterWordBadge}>
                           <Text style={styles.betterWord}>{s.better_alternative}</Text>
+                          {!!s.alternative_cefr && (
+                            <Text style={[styles.cefrTag, styles.cefrTagUp]}>
+                              {s.alternative_cefr}{s.cefr_verified === false ? '?' : ''}
+                            </Text>
+                          )}
                         </View>
                       </View>
                       <Text style={styles.suggestionExplanation}>{s.explanation}</Text>
@@ -2491,16 +2500,20 @@ const styles = StyleSheet.create({
   },
   wordPairRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   originalWordBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.light.error + '15',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   originalWord: { fontSize: 13, fontWeight: '700', color: Colors.light.error },
   arrow: { fontSize: 14, color: Colors.light.textLight, fontWeight: '700' },
   betterWordBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: Colors.light.success + '15',
     paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8,
   },
   betterWord: { fontSize: 14, fontWeight: '700', color: Colors.light.success },
+  cefrTag: { fontSize: 10, fontWeight: '800', color: Colors.light.textLight, opacity: 0.9 },
+  cefrTagUp: { color: Colors.light.success },
   suggestionExplanation: { fontSize: 13, color: Colors.light.textSecondary, lineHeight: 20 },
 
   successBanner: {

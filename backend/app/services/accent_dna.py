@@ -396,9 +396,15 @@ def build_phoneme_result(colab: dict, target_text: str) -> dict:
     _engine_det  = colab.get("engine_detail", _engine)
     _tier        = colab.get("_tier", "local-cmudict-per")
 
+    # Only the Colab wav2vec2 tier verifies pronunciation from the ACTUAL audio.
+    # The local CMU-dict tier compares the target text to Whisper's transcription,
+    # which normalises mispronunciations — so its score reflects intelligibility,
+    # not phoneme accuracy. Flag that honestly so the frontend shows the caveat.
+    _is_intelligibility = _tier != "colab-wav2vec2"
+
     return {
         "accuracy_score": acc,
-        "intelligibility_only": False,           # this IS phoneme-verified
+        "intelligibility_only": _is_intelligibility,
         "problematic_phonemes": problematic[:6],
         "coarticulation_notes": "",
         "suggestions": suggestions,

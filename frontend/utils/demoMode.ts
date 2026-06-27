@@ -78,7 +78,11 @@ async function _backupRealData(): Promise<void> {
 
 async function _restoreRealData(): Promise<void> {
   const manifest = await AsyncStorage.getItem(REAL_BACKUP_MANIFEST);
-  if (!manifest) return;
+  // null = no backup was ever taken → nothing to do.
+  // "" (empty) = a backup WAS taken but the real account had none of these keys,
+  // so we must STILL remove the demo-written keys (otherwise demo sessions leak
+  // into the real account). Only bail on null.
+  if (manifest === null) return;
 
   const backedUpKeys = manifest.split(',').filter(Boolean);
   const backupKeys   = backedUpKeys.map(k => REAL_BACKUP_PREFIX + k);

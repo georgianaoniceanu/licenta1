@@ -1,4 +1,5 @@
 import logging
+from functools import lru_cache
 from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
 from app.services.accent_dna import (
     transcribe_audio,
@@ -66,6 +67,34 @@ async def speak_exercise(exercise_id: str):
         raise HTTPException(status_code=404, detail="Exercise not found")
     audio_bytes = text_to_speech(exercise["sentence"])
     return Response(content=audio_bytes, media_type="audio/mpeg")
+
+
+@lru_cache(maxsize=256)
+def _cached_word_tts(text: str) -> bytes:
+    """ElevenLabs audio for a short word/phrase, cached so repeated phoneme
+    taps don't re-spend TTS credits on the same word."""
+    return text_to_speech(text)
+
+
+@router.get("/tts")
+async def speak_word(text: str):
+    """
+    ElevenLabs TTS for an arbitrary short word/phrase (used for phoneme demos —
+    replaces the browser's robotic Web-Speech voice). Streamable via GET so the
+    client can play it directly from the URI. Cached + 1-day browser cache.
+    """
+    t = (text or "").strip()[:80]
+    if not t:
+        raise HTTPException(status_code=400, detail="text required")
+    try:
+        audio_bytes = _cached_word_tts(t)
+        return Response(
+            content=audio_bytes,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/analyze")
 async def analyze_accent(
