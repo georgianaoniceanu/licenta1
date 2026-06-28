@@ -81,6 +81,7 @@ class IndicatorScore:
     interpretation: str
     research_sources: List[str]  # bibliography
     severity: str  # "🔴 CRITICAL", "🟡 HIGH", "🟢 MEDIUM", "🟢 LOW"
+    measured: bool = True  # False = imputed (e.g. speech metrics on a text-only diagnostic)
 
 
 @dataclass
@@ -209,7 +210,8 @@ class AssessmentWorkflowEngine:
         user_id: str,
         domain: str,
         measured_indicators: Dict[IndicatorType, float],
-        target_exam: Optional[ExamType] = None
+        target_exam: Optional[ExamType] = None,
+        has_audio: bool = True
     ) -> InitialAssessmentResult:
         """
         Run initial assessment: measure all 10 indicators, calculate scores, identify critical areas.
@@ -225,11 +227,18 @@ class AssessmentWorkflowEngine:
         """
         indicator_scores = []
         normalized_scores = {}
-        
+
+        # Speech metrics cannot be measured from writing — on a text-only diagnostic
+        # they are imputed from the self-assessed level, so we flag them as NOT
+        # measured and exclude them from the overall score (otherwise the score is
+        # partly circular). Their values are still kept for the ordinal model input.
+        SPEECH_INDICATORS = {IndicatorType.ARTICULATION_RATE, IndicatorType.PAUSE_FREQUENCY}
+
         # Evaluate all 10 indicators
         for indicator_type, measured_value in measured_indicators.items():
             ind_def = self.calc.get_indicator(indicator_type)
             evaluation = self.calc.evaluate_indicator(indicator_type, measured_value)
+            is_measured = has_audio or indicator_type not in SPEECH_INDICATORS
             
             # Get severity
             norm_score = evaluation["normalized_score"]
@@ -253,10 +262,13 @@ class AssessmentWorkflowEngine:
                 benchmark=evaluation["benchmark"],
                 interpretation=evaluation["interpretation"],
                 research_sources=sources,
-                severity=severity
+                severity=severity,
+                measured=is_measured
             )
             indicator_scores.append(score)
-            normalized_scores[indicator_type] = norm_score
+            # Only measured indicators feed the overall (CAF) composite score.
+            if is_measured:
+                normalized_scores[indicator_type] = norm_score
         
         # Calculate overall score
         overall_score = self.calc.calculate_overall_score(normalized_scores, target_exam)

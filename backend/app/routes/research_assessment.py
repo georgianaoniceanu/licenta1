@@ -239,6 +239,9 @@ class InitialAssessmentRequest(BaseModel):
     pause_frequency: float = 0.3
     cohesion_score: float = 60.0
     morphosyntactic_accuracy: float = 70.0
+    # False = text-only diagnostic (no recording). Speech metrics (articulation_rate,
+    # pause_frequency) are then flagged "not measured" and left out of the score.
+    has_audio: bool = False
 
 
 @router.post("/initial-assessment")
@@ -284,7 +287,8 @@ def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Opt
         user_id=payload.user_id,
         domain=payload.domain,
         measured_indicators=measured,
-        target_exam=exam_enum
+        target_exam=exam_enum,
+        has_audio=payload.has_audio
     )
     
     # K-Means learner cluster profile (Goldshtein et al. 2024; Yan et al. 2020)
@@ -338,6 +342,10 @@ def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Opt
         "user_id": result.user_id,
         "domain": result.domain,
         "predicted_cefr": headline_cefr,
+        # CAF-composite band (from overall_score thresholds) — the SECOND, independent
+        # estimate, so the UI can do a real cross-check against the ordinal model
+        # instead of comparing the ordinal model to itself.
+        "caf_cefr": result.predicted_cefr,
         "overall_score": result.overall_score,
         "exam_scores": result.exam_specific_scores,
         "indicators": [
@@ -348,7 +356,8 @@ def run_initial_assessment(payload: InitialAssessmentRequest, authorization: Opt
                 "severity": ind.severity,
                 "cefr_level": ind.cefr_level,
                 "interpretation": ind.interpretation,
-                "sources": ind.research_sources
+                "sources": ind.research_sources,
+                "measured": ind.measured
             }
             for ind in result.indicators
         ],

@@ -24,7 +24,7 @@ import {
   Pressable,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { signOut } from 'firebase/auth';
@@ -55,6 +55,7 @@ type Indicator = {
   severity: 'critical' | 'moderate' | 'acceptable' | 'strong';
   cefr_level: string;
   interpretation?: string;
+  measured?: boolean;   // false = imputed (speech metrics on a text-only diagnostic)
 };
 
 type BaselineDiagnosis = {
@@ -238,25 +239,30 @@ const IndicatorRow = ({ item, index, onInfo }: { item: Indicator; index: number;
     }).start();
   }, []);
   const color = SEVERITY_COLORS[item.severity] ?? TEAL;
+  const notMeasured = item.measured === false;
   return (
     <View style={IR.row}>
-      <TouchableOpacity style={IR.nameWrap} onPress={onInfo} activeOpacity={0.6} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={`${item.name}, ${item.cefr_level}. Tap for details`}>
+      <TouchableOpacity style={IR.nameWrap} onPress={onInfo} activeOpacity={0.6} hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }} accessibilityRole="button" accessibilityLabel={`${item.name}, ${notMeasured ? 'not measured' : item.cefr_level}. Tap for details`}>
         <Text style={IR.name} numberOfLines={1}>{item.name}</Text>
         <Feather name="info" size={11} color={TEXT2} style={{ marginLeft: 3, opacity: 0.7 }} />
       </TouchableOpacity>
-      <View style={IR.barWrap}>
-        <Animated.View
-          style={[
-            IR.bar,
-            {
-              backgroundColor: color,
-              width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
-            },
-          ]}
-        />
-      </View>
-      <View style={[IR.tag, { backgroundColor: color + '18' }]}>
-        <Text style={[IR.tagText, { color }]}>{item.cefr_level}</Text>
+      {notMeasured ? (
+        <Text style={IR.naText} numberOfLines={1}>Not measured · text only</Text>
+      ) : (
+        <View style={IR.barWrap}>
+          <Animated.View
+            style={[
+              IR.bar,
+              {
+                backgroundColor: color,
+                width: barAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
+              },
+            ]}
+          />
+        </View>
+      )}
+      <View style={[IR.tag, { backgroundColor: (notMeasured ? TEXT3 : color) + '18' }]}>
+        <Text style={[IR.tagText, { color: notMeasured ? TEXT3 : color }]}>{notMeasured ? '—' : item.cefr_level}</Text>
       </View>
     </View>
   );
@@ -287,6 +293,7 @@ const IR = StyleSheet.create({
     borderRadius: 3,
     overflow: 'hidden',
   },
+  naText: { flex: 1, color: TEXT3, fontSize: 11, fontStyle: 'italic' },
   bar: {
     height: 6,
     borderRadius: 3,
@@ -433,8 +440,37 @@ export default function HomeScreen() {
         await AsyncStorage.setItem('diagnosticCompleted', 'true');
       }
 
-      setDiagnosis(diagnosisRaw ? JSON.parse(diagnosisRaw) : null);
+      const diag = diagnosisRaw ? JSON.parse(diagnosisRaw) : null;
+      setDiagnosis(diag);
       if (token) {
+        // Fill the text-diagnostic's "not measured" speech indicators with REAL
+        // values aggregated from the user's Shadow speaking sessions.
+        if (diag?.indicators?.length) {
+          try {
+            const sp = await fetch(`${API_URL}/shadow/cefr-speech`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (sp.ok) {
+              const d = await sp.json();
+              if (d?.n_sessions > 0) {
+                const sevOf = (s: number) => s < 45 ? 'critical' : s < 62 ? 'moderate' : s < 78 ? 'acceptable' : 'strong';
+                const apply = (name: string, info: any) => {
+                  const ind = diag.indicators.find((i: any) => i.name === name);
+                  if (ind && info) {
+                    ind.measured = true;
+                    ind.normalized = info.score;
+                    ind.cefr_level = info.cefr_level;
+                    ind.severity = sevOf(info.score);
+                  }
+                };
+                apply('Speech Rate', d.speech_rate);
+                apply('Fluency', d.fluency);
+                setDiagnosis({ ...diag });
+              }
+            }
+          } catch { /* keep "not measured" if unreachable */ }
+        }
+
         const res = await fetch(`${API_URL}/auth/onboarding`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -448,7 +484,10 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => { loadData(); warmupVoices(); }, [loadData]);
+  useEffect(() => { warmupVoices(); }, []);
+  // Reload on every focus so returning from a Shadow session refreshes the
+  // dashboard (speech indicators get filled from the new sessions).
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   // Auto-dismiss the "you selected user" popup after a few seconds
   useEffect(() => {
@@ -658,6 +697,17 @@ export default function HomeScreen() {
                     onInfo={() => setInfoIndicator(ind.name)}
                   />
                 ))}
+                {sortedInds.some((i: any) => i.measured === false) && (
+                  <TouchableOpacity
+                    style={S.measureSpeechBtn}
+                    onPress={() => router.push('/(tabs)/shadow')}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="mic" size={15} color={NAVY} />
+                    <Text style={S.measureSpeechText}>Record a Shadow session to measure speech</Text>
+                    <Feather name="arrow-right" size={14} color={NAVY} />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )}
@@ -1268,6 +1318,18 @@ const S = StyleSheet.create({
     borderWidth: 1,
     borderColor: BORDER,
   },
+  measureSpeechBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: TEAL,
+    borderRadius: 12,
+    paddingVertical: 11,
+    paddingHorizontal: 14,
+    marginTop: 14,
+  },
+  measureSpeechText: { color: NAVY, fontSize: 12.5, fontWeight: '800', flexShrink: 1, textAlign: 'center' },
 
   // Focus / strength banners
   alertCard: {

@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
@@ -20,7 +21,8 @@ import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { loadDemoProfile, clearDemoData, type DemoPreset } from '@/utils/demoMode';
-import { HEALTH_ENDPOINT } from '@/constants/api';
+import { HEALTH_ENDPOINT, API_URL } from '@/constants/api';
+import { getFreshToken } from '@/utils/auth';
 import { useLanguage } from '@/context/Language';
 import { tr } from '@/constants/translations';
 import {
@@ -196,24 +198,50 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const doReset = async () => {
+    try {
+      // 1) Wipe cloud progress (sessions + assessment history) so it doesn't
+      //    re-hydrate from Firestore. Best-effort — local reset still proceeds.
+      try {
+        const token = await getFreshToken();
+        if (token) {
+          await fetch(`${API_URL}/auth/reset-progress`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        }
+      } catch { /* offline: clear local anyway */ }
+
+      // 2) Wipe local progress caches (diagnostic + every module's sessions + streak).
+      await AsyncStorage.multiRemove([
+        'learner_profile_anonymous',
+        'baselineDiagnosis', 'baselineDiagnosisOriginal', 'rawIndicators', 'diagnosticCompleted',
+        'vf_accent_sessions', 'vf_shadow_sessions', 'vf_vocab_sessions', 'vf_exam_sessions',
+        'vf_grammar_sessions', 'vf_genre_sessions', 'vf_caf_sessions', 'vf_phoneme_scores',
+        'streak_data', 'streak_last_active',
+      ]);
+
+      if (Platform.OS === 'web') (window as any).alert('Progress has been reset.');
+      router.replace('/(tabs)');
+    } catch (e) {
+      if (Platform.OS === 'web') (window as any).alert('Could not reset data');
+      else Alert.alert(tr('error', lang), 'Could not reset data');
+    }
+  };
+
   const handleResetData = () => {
+    // Alert.alert action buttons don't fire on react-native-web, so use the
+    // native confirm dialog there (same pattern as the sidebar sign-out).
+    if (Platform.OS === 'web') {
+      if ((window as any).confirm(tr('resetProgressMsg', lang))) doReset();
+      return;
+    }
     Alert.alert(
       tr('resetProgress', lang),
       tr('resetProgressMsg', lang),
       [
         { text: tr('cancel', lang), style: 'cancel' },
-        {
-          text: tr('reset', lang),
-          onPress: async () => {
-            try {
-              await AsyncStorage.removeItem('learner_profile_anonymous');
-              router.push('/(tabs)');
-            } catch (e) {
-              Alert.alert(tr('error', lang), 'Could not reset data');
-            }
-          },
-          style: 'destructive',
-        },
+        { text: tr('reset', lang), onPress: doReset, style: 'destructive' },
       ]
     );
   };

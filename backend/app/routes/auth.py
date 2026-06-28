@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Header
 from app.services.auth import verify_token, get_user_email
-from app.services.firestore import get_user_sessions
+from app.services.firestore import get_user_sessions, delete_user_progress
 from app.services.onboarding import (
     OnboardingData,
     get_onboarding_questions,
@@ -38,6 +38,21 @@ async def verify(input: TokenInput):
         return {"uid": uid, "email": email, "onboarding_completed": onboarding_done}
     except Exception as e:
         raise HTTPException(status_code=401, detail="Token invalid")
+
+
+@router.post("/reset-progress")
+async def reset_progress(authorization: str = Header(None)):
+    """Delete the authenticated user's practice sessions + assessment history from
+    Firestore (keeps the account + onboarding). Powers Settings → Reset progress."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        token = authorization.replace("Bearer ", "")
+        user = verify_token(token)
+        deleted = delete_user_progress(user["uid"])
+        return {"status": "reset", "deleted": deleted}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/history")
