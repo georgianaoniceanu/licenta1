@@ -40,7 +40,7 @@ def get_user_sessions(user_id: str) -> list:
     sessions = db.collection("sessions")\
         .where("user_id", "==", user_id)\
         .order_by("created_at", direction=firestore.Query.DESCENDING)\
-        .limit(20)\
+        .limit(100)\
         .stream()
     return [{"id": s.id, **s.to_dict()} for s in sessions]
 def save_shadow_session(

@@ -18,6 +18,7 @@ import { Feather } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
 import { LinearGradient } from 'expo-linear-gradient';
 import { API_URL } from '../../constants/api';
+import { getFreshToken } from '@/utils/auth';
 import { useLearnerProfile } from '../../context/LearnerProfile';
 import { Colors, Animations } from '../../constants/theme';
 import { Illustrations } from '@/constants/illustrations';
@@ -800,8 +801,10 @@ export default function AccentDNAScreen() {
       formData.append('audio', audioBlob, filename);
       formData.append('target_text', targetText);
 
+      const token = await getFreshToken();
       const response = await fetch(`${API_URL}/accent/analyze`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
       const data = await response.json();
@@ -867,7 +870,8 @@ export default function AccentDNAScreen() {
           const formData = new FormData();
           formData.append('audio', { uri, type: 'audio/m4a', name: 'recording.m4a' } as any);
           formData.append('target_text', targetText);
-          const response = await fetch(`${API_URL}/accent/analyze`, { method: 'POST', body: formData });
+          const token = await getFreshToken();
+          const response = await fetch(`${API_URL}/accent/analyze`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : undefined, body: formData });
           const data = await response.json();
           setFeedback(data);
           // persist session

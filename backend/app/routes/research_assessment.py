@@ -441,6 +441,11 @@ class DualDiagnosisRequest(BaseModel):
     pause_frequency: float = 0.3
     cohesion_score: float = 60.0
     morphosyntactic_accuracy: float = 70.0
+    # Real per-skill self-rating collected at onboarding (area -> 1-5).
+    self_ratings: Dict[str, int] = {}
+    # Real speech measurements from speaking sessions (skill -> 0-100):
+    # {"pronunciation": <avg Accent ADN accuracy>, "fluency": <avg Shadow score>}.
+    speech_measurements: Dict[str, float] = {}
 
 
 @router.post("/dual-diagnosis")
@@ -472,7 +477,9 @@ def run_dual_diagnosis(payload: DualDiagnosisRequest):
     result = assessment_engine.run_dual_diagnosis(
         user_id=payload.user_id,
         pain_points=payload.pain_points,
-        measured_indicators=measured
+        measured_indicators=measured,
+        self_ratings=payload.self_ratings,
+        speech_measurements=payload.speech_measurements
     )
     
     return {

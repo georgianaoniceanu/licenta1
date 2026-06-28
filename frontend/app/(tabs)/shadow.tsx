@@ -15,6 +15,7 @@ import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Feather } from '@expo/vector-icons';
 import { API_URL } from '../../constants/api';
+import { getFreshToken } from '@/utils/auth';
 import { Colors, Animations } from '../../constants/theme';
 import { Illustrations } from '@/constants/illustrations';
 import { SectionHeader, SectionHero } from '@/components/section-header';
@@ -284,8 +285,10 @@ export default function ShadowSpeakingScreen() {
       formData.append('audio', audioBlob, filename);
       formData.append('original_text', selectedFragment.text);
 
+      const token = await getFreshToken();
       const response = await fetch(`${API_URL}/shadow/analyze`, {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData,
       });
       const data = await response.json();
@@ -345,7 +348,8 @@ export default function ShadowSpeakingScreen() {
           const formData = new FormData();
           formData.append('audio', { uri, type: 'audio/m4a', name: 'recording.m4a' } as any);
           formData.append('original_text', selectedFragment.text);
-          const response = await fetch(`${API_URL}/shadow/analyze`, { method: 'POST', body: formData });
+          const token = await getFreshToken();
+          const response = await fetch(`${API_URL}/shadow/analyze`, { method: 'POST', headers: token ? { Authorization: `Bearer ${token}` } : undefined, body: formData });
           const data = await response.json();
           setFeedback(data);
           setStep('feedback');

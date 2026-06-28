@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { Illustrations } from '@/constants/illustrations';
 import { SectionHeader, SectionHero } from '@/components/section-header';
 import { signOut } from 'firebase/auth';
@@ -322,7 +323,7 @@ export default function ProfileScreen() {
   const [assessmentHistory, setAssessmentHistory] = useState<AssessmentRecord[]>([]);
 
   // Use the demo's name when in a job-persona demo, otherwise the firebase name
-  const displayName = demoDisplayName || user?.displayName || user?.email?.split('@')[0] || 'Learner';
+  const displayName = (activeDemoPreset ? demoDisplayName : null) || user?.displayName || user?.email?.split('@')[0] || 'Learner';
   const email       = user?.email ?? '';
   const avatarLabel = initials(displayName);
 
@@ -338,7 +339,14 @@ export default function ProfileScreen() {
       ]);
       if (stored) setDiagnosis(JSON.parse(stored));
       setActiveDemoPreset(demoPreset);
-      setDemoDisplayName(demoName);
+      // 'userDisplayName' is a demo-only artifact (e.g. "Mihai"). Outside demo it
+      // must never override the real account's name, so ignore + purge any leftover.
+      if (demoPreset) {
+        setDemoDisplayName(demoName);
+      } else {
+        setDemoDisplayName(null);
+        if (demoName) AsyncStorage.removeItem('userDisplayName');
+      }
       setUserJobId(jobId);
 
       if (token) {
@@ -419,7 +427,7 @@ export default function ProfileScreen() {
         style: 'destructive',
         onPress: async () => {
           await signOut(auth);
-          await AsyncStorage.multiRemove(['authToken', 'onboardingCompleted']);
+          await clearAccountScopedStorage();
           router.replace('/login');
         },
       },

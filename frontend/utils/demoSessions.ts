@@ -11,6 +11,12 @@
  */
 
 import type { AnyPreset } from './demoMode';
+// Full backend word→CEFR lookup (Cambridge EVP + AWL/NAWL/new-GSL supplements),
+// exported from cefr_word_classifier._WORD_LEVEL_MAP. Lets demo sessions classify
+// EVERY word exactly like the backend, instead of defaulting unlisted words to A1.
+import CEFR_WORDS from '../constants/cefrWords.json';
+
+const EVP: Record<string, string> = CEFR_WORDS as Record<string, string>;
 
 // Types
 export type WordBreakdown = { word: string; correct: number; total: number; ok: boolean };
@@ -194,7 +200,10 @@ function buildVocabResult(spec: VocabSpec): VocabSession {
   spec.highlights.forEach(([w, l]) => { levelOf[w.toLowerCase()] = l; });
   const counts: Record<string, number> = { A1: 0, A2: 0, B1: 0, B2: 0, C1: 0, C2: 0 };
   const word_tags = words.map((w) => {
-    const lvl = levelOf[w.toLowerCase()] || 'A1';
+    const key = w.toLowerCase();
+    // Priority: explicit spec highlight → Cambridge EVP lookup → A1 (only for
+    // words absent from EVP, e.g. inflected/rare forms). No more blanket A1.
+    const lvl = levelOf[key] || EVP[key] || 'A1';
     counts[lvl] = (counts[lvl] || 0) + 1;
     return { word: w, level: lvl };
   });

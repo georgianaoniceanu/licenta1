@@ -708,7 +708,11 @@ async def get_domain_comparison(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/dual-diagnosis")
+# NOTE: path renamed to avoid colliding with research_assessment's
+# POST /assessment/dual-diagnosis (the body-based one the app actually calls).
+# Both routers share the /assessment prefix; the first-registered route wins, so
+# this header-based variant was shadowing the real one and returning 422.
+@router.post("/dual-diagnosis-header")
 async def analyze_dual_diagnosis(
     user_id: str = Header(...),
     self_assessed_cefr: CEFRLevel = Header(...),

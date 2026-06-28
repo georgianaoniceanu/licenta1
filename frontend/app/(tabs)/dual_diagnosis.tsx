@@ -42,8 +42,9 @@ const AMBER = Colors.light.warning;
 // Types
 type Discrepancy = {
   user_score: number;
-  system_score: number;
-  gap: number;
+  system_score: number | null;   // null = speech skill not measured yet
+  gap: number | null;
+  status?: string;
   interpretation: string;
 };
 
@@ -136,6 +137,7 @@ const DiscrepancyBar = ({
   data: Discrepancy;
   index: number;
 }) => {
+  const router = useRouter();
   const userAnim   = useRef(new Animated.Value(0)).current;
   const systemAnim = useRef(new Animated.Value(0)).current;
 
@@ -148,7 +150,7 @@ const DiscrepancyBar = ({
         useNativeDriver: false,
       }),
       Animated.timing(systemAnim, {
-        toValue: Math.min(data.system_score, 100) / 100,
+        toValue: Math.min(data.system_score ?? 0, 100) / 100,
         duration: 700,
         delay: 300 + index * 80,
         useNativeDriver: false,
@@ -156,7 +158,34 @@ const DiscrepancyBar = ({
     ]).start();
   }, []);
 
-  const gap = data.gap;
+  // Speech skill with no real session data yet — be honest, don't draw a fake bar.
+  if (data.status === 'not_measured' || data.system_score == null) {
+    const target = area.toLowerCase().includes('fluen') ? '/shadow' : '/accent';
+    return (
+      <View style={[db.wrap, { borderColor: '#8B5CF640' }]}>
+        <View style={db.header}>
+          <Text style={db.area}>{area.replace(/_/g, ' ')}</Text>
+          <View style={[db.pill, { backgroundColor: '#8B5CF618' }]}>
+            <Text style={[db.pillText, { color: '#8B5CF6' }]}>Not measured yet</Text>
+          </View>
+        </View>
+        <View style={db.barRow}>
+          <Text style={db.barLabel}>You think</Text>
+          <View style={db.track}>
+            <View style={[db.fill, { backgroundColor: CORAL, width: `${Math.min(data.user_score, 100)}%` }]} />
+          </View>
+          <Text style={[db.pct, { color: CORAL }]}>{Math.round(data.user_score)}%</Text>
+        </View>
+        <Text style={db.interp}>{data.interpretation}</Text>
+        <TouchableOpacity style={db.speakBtn} onPress={() => router.push(target as any)} activeOpacity={0.85}>
+          <Feather name="mic" size={14} color={TEAL} />
+          <Text style={db.speakBtnText}>Do a speaking session</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const gap = data.gap ?? 0;
   const gapColor = gap > 15 ? CORAL : gap < -15 ? AMBER : TEAL;
   const gapLabel =
     gap > 15  ? 'Overestimated struggle' :
@@ -191,7 +220,7 @@ const DiscrepancyBar = ({
             width: systemAnim.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] }),
           }]} />
         </View>
-        <Text style={[db.pct, { color: TEAL }]}>{Math.round(data.system_score)}%</Text>
+        <Text style={[db.pct, { color: TEAL }]}>{Math.round(data.system_score ?? 0)}%</Text>
       </View>
 
       <Text style={db.interp}>{data.interpretation}</Text>
@@ -260,6 +289,23 @@ const db = StyleSheet.create({
     marginTop: 6,
     lineHeight: 18,
   },
+  speakBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: TEAL + '55',
+    backgroundColor: TEAL + '12',
+  },
+  speakBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEAL,
+  },
 });
 
 // Main Screen
@@ -313,7 +359,24 @@ export default function DualDiagnosisScreen() {
 
       const raw = JSON.parse(rawStr);
 
+      // Guard against stale/incomplete leftover data (AsyncStorage is device-wide,
+      // so a brand-new account can inherit a previous account's partial cache).
+      // A genuine diagnostic always writes finite values for these core indicators.
+      const CORE = [
+        'lexical_diversity', 'lexical_sophistication', 'sentence_complexity',
+        'syntactic_complexity', 'subordination_ratio', 'morphosyntactic_accuracy',
+      ];
+      const hasRealDiagnostic =
+        raw && typeof raw === 'object' &&
+        CORE.every((k) => typeof raw[k] === 'number' && Number.isFinite(raw[k]));
+      if (!hasRealDiagnostic) {
+        setError('No initial diagnosis data found. Please complete the initial diagnostic first.');
+        setLoading(false);
+        return;
+      }
+
       let painPoints: string[] = [];
+      let selfRatings: Record<string, number> = {};
       if (token) {
         const res = await fetch(`${API_URL}/auth/onboarding`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -321,8 +384,34 @@ export default function DualDiagnosisScreen() {
         if (res.ok) {
           const profile = await res.json();
           painPoints = profile.perceived_weak_areas ?? [];
+          selfRatings = profile.self_ratings ?? {};
         }
       }
+      // Fallback to the local copy if the server profile predates self-ratings.
+      if (Object.keys(selfRatings).length === 0) {
+        const localRatings = await AsyncStorage.getItem('userSelfRatings');
+        if (localRatings) {
+          try { selfRatings = JSON.parse(localRatings); } catch {}
+        }
+      }
+
+      // Real speech measurements from the user's OWN speaking sessions — the writing
+      // diagnostic cannot measure pronunciation/fluency, so we never impute them.
+      const speechMeasurements: Record<string, number> = {};
+      try {
+        const [accentRaw, shadowRaw] = await Promise.all([
+          AsyncStorage.getItem('vf_accent_sessions'),   // Accent ADN → pronunciation
+          AsyncStorage.getItem('vf_shadow_sessions'),   // Shadow → fluency
+        ]);
+        const accent = accentRaw ? JSON.parse(accentRaw) : [];
+        const shadow = shadowRaw ? JSON.parse(shadowRaw) : [];
+        const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
+        const accAvg = avg((accent as any[]).map(s => Number(s.accuracy_score)).filter(Number.isFinite));
+        const shAvg  = avg((shadow as any[]).map(s => Number(s.score)).filter(Number.isFinite));
+        if (accAvg != null) speechMeasurements.pronunciation = Math.round(accAvg);
+        if (shAvg  != null) speechMeasurements.fluency = Math.round(shAvg);
+      } catch {}
+
       if (painPoints.length === 0) {
         painPoints = ['vocabulary', 'grammar', 'pronunciation'];
       }
@@ -342,6 +431,8 @@ export default function DualDiagnosisScreen() {
         pause_frequency:          raw.pause_frequency          ?? 0.3,
         cohesion_score:           raw.cohesion_score           ?? 60,
         morphosyntactic_accuracy: raw.morphosyntactic_accuracy ?? 70,
+        self_ratings:             selfRatings,
+        speech_measurements:      speechMeasurements,
       };
 
       const diagRes = await fetch(`${API_URL}/assessment/dual-diagnosis`, {

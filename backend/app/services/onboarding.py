@@ -94,6 +94,10 @@ class OnboardingData:
     # Step 6 — Study intensity (Skehan 1998: time on task)
     daily_study_minutes: int              # 10 | 20 | 30 | 60
 
+    # Real per-skill self-rating (area -> 1-5). Powers honest Dual Diagnosis.
+    # Default empty for accounts onboarded before this step existed.
+    self_ratings: Dict[str, int] = field(default_factory=dict)
+
     # Timestamps
     completed_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
     is_completed: bool = True

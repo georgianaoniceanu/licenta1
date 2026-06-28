@@ -1,6 +1,6 @@
 """
 Text Indicator Analyzer — Computes all 10 proficiency indicators from raw text,
-plus IDL (Index of Developmental Levels) as a composite derived indicator.
+plus a Syntactic Maturity Composite (author-defined derived indicator).
 
 Research sources per indicator:
 ────────────────────────────────────────────────────────────────────────────────
@@ -43,9 +43,11 @@ Indicator 10 — Morphosyntactic Accuracy
   Zechner et al. (2009) amscore; Li & Shintani (2010); Şahin Kızıl (2024) EFC/C.
   Estimated via Groq LLM returning error-free clause ratio.
 
-IDL — Index of Developmental Levels (derived)
-  Neumanova (2025): IDL = (MLS × subordination_ratio) / (1 + error_rate).
-  Separates CEFR levels more reliably than any single indicator.
+Syntactic Maturity Composite (derived, author-defined)
+  composite = (MLS × subordination_ratio) / (1 + error_rate).
+  An author-defined index combining sentence length, subordination and accuracy.
+  NOTE: this is NOT Neumanova's Index of Developmental Levels (IDL), which is a
+  developmental-stage scoring rubric (Mostafa et al. 2020), not an arithmetic formula.
   SER (Syntactic Error Rate) approximated from morphosyntactic_accuracy.
 
 Automated Scoring Validation
@@ -143,13 +145,23 @@ DISCOURSE_MARKERS = {
 # CEFR FLUENCY DEFAULTS  (Zechner et al. 2009 TOEFL iBT norms)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Per-CEFR fluency norms from REAL published data — Yan et al. (2020), Aptis
+# speaking validation (Table 1, p.10). These replace earlier author-set values.
+#   - articulation_rate: this field = words / total speaking time (≈ SPEECH rate).
+#     Uses Yan's SPEECH RATE (syllables/s) ÷ 1.5 syllables-per-word → words/s.
+#     Yan speech rate: A1 1.70, A2 2.28, B1 2.79, B2 3.54, C 3.54.
+#   - pause_frequency: Yan's "silent pauses per syllable" (A1 0.23 … C 0.08),
+#     used as a proxy for this per-word pause field (different unit — documented).
+# NOTE: still IMPUTED from the self-assessed level when no audio is recorded;
+# the text-only diagnostic cannot measure speech. Real values come from audio
+# (Accent ADN / Shadow).
 CEFR_FLUENCY_DEFAULTS = {
-    "A1": {"articulation_rate": 1.2, "pause_frequency": 0.80},
-    "A2": {"articulation_rate": 1.5, "pause_frequency": 0.60},
-    "B1": {"articulation_rate": 2.0, "pause_frequency": 0.40},
-    "B2": {"articulation_rate": 2.5, "pause_frequency": 0.25},
-    "C1": {"articulation_rate": 3.0, "pause_frequency": 0.15},
-    "C2": {"articulation_rate": 3.5, "pause_frequency": 0.10},
+    "A1": {"articulation_rate": 1.13, "pause_frequency": 0.23},
+    "A2": {"articulation_rate": 1.52, "pause_frequency": 0.19},
+    "B1": {"articulation_rate": 1.86, "pause_frequency": 0.14},
+    "B2": {"articulation_rate": 2.36, "pause_frequency": 0.08},
+    "C1": {"articulation_rate": 2.36, "pause_frequency": 0.08},
+    "C2": {"articulation_rate": 2.36, "pause_frequency": 0.08},
 }
 
 
@@ -253,7 +265,7 @@ def analyze_text_indicators(
 
     Returns:
         Dict mapping each indicator name to its measured value,
-        plus 'idl' (Index of Developmental Levels, Neumanova 2025).
+        plus 'idl' (Syntactic Maturity Composite — author-defined, NOT Neumanova's IDL).
     """
     text = text.strip()
     text_lower = text.lower()
@@ -316,9 +328,9 @@ def analyze_text_indicators(
     # ── Indicator 10: Morphosyntactic Accuracy (LLM / EFC/C) ─────────────────
     morphosyntactic_accuracy = _estimate_accuracy_llm(text)
 
-    # ── IDL: Index of Developmental Levels (Neumanova 2025) ──────────────────
-    # IDL = (MLS × subordination_ratio) / (1 + SER)
-    # SER (Syntactic Error Rate) = (100 - morphosyntactic_accuracy) / 100
+    # ── Syntactic Maturity Composite (author-defined, NOT Neumanova's IDL) ───
+    # composite = (MLS × subordination_ratio) / (1 + error_rate)
+    # error_rate = (100 - morphosyntactic_accuracy) / 100
     ser = (100.0 - morphosyntactic_accuracy) / 100.0
     idl = round(
         (sentence_complexity * max(subordination_ratio, 0.01)) / (1.0 + ser), 3

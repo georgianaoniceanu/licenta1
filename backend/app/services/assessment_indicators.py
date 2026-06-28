@@ -66,6 +66,7 @@ class IndicatorDefinition:
     interpretation: str
     automation_possible: bool
     example_value: float
+    lower_is_better: bool = False  # True for indicators where a smaller value = higher proficiency (e.g. pause frequency)
 
 
 class AssessmentIndicatorsDatabase:
@@ -77,25 +78,24 @@ class AssessmentIndicatorsDatabase:
     # Indicator 1: LEXICAL DIVERSITY (Type-Token Ratio, D Index)
     INDICATOR_1 = IndicatorDefinition(
         indicator=IndicatorType.LEXICAL_DIVERSITY,
-        name="Lexical Diversity (D Index / VOCD)",
+        name="Lexical Diversity (MTLD)",
         description="Measure of vocabulary variety - how many different words used relative to total words",
-        measurement_unit="Index (0-100+)",
-        calculation_formula="VOCD function: type-token ratio averaged over 100 random word samples",
-        range_min=20.0,
-        range_max=100.0,
+        measurement_unit="MTLD (normalized 20-100)",
+        calculation_formula="MTLD (bidirectional, TTR factor threshold 0.720), normalized to 20-100",
+        range_min=30.32,
+        range_max=91.41,
         cefr_benchmarks={
-            "A1": 25.0,
-            "A2": 35.0,
-            "B1": 45.0,
-            "B2": 60.0,
-            "C1": 75.0,
-            "C2": 85.0
+            "A1": 30.32,
+            "A2": 51.38,
+            "B1": 63.07,
+            "B2": 76.82,
+            "C1": 91.41,
+            "C2": 91.41
         },
         primary_research=[
-            "Lee (2021) - Genre effects on syntactic complexity in L2 writing (Table 3, 4)",
-            "Malvern et al. (2004) - Lexical diversity and writing ability correlation",
-            "Kolahi Ahari et al. (2025) - MTLD as strongest L2 proficiency predictor (β=.40)",
-            "Yu (2010) - VOCD function application"
+            "FORMULA: McCarthy & Jarvis (2010) MTLD; threshold 0.720 (Yan et al. 2020)",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)",
+            "Kolahi Ahari et al. (2025) - MTLD as strong L2 proficiency predictor"
         ],
         interpretation="Higher values indicate greater vocabulary variety. Learners who reuse few words appear less advanced.",
         automation_possible=True,
@@ -105,28 +105,28 @@ class AssessmentIndicatorsDatabase:
     # Indicator 2: LEXICAL SOPHISTICATION (Word Frequency)
     INDICATOR_2 = IndicatorDefinition(
         indicator=IndicatorType.LEXICAL_SOPHISTICATION,
-        name="Lexical Sophistication (Word Frequency)",
-        description="Measure of word complexity - use of less frequent (more advanced) vocabulary",
-        measurement_unit="Logarithmic frequency score",
-        calculation_formula="Average logarithm of word frequency (based on 17.9M word CELEX database)",
-        range_min=1.0,
-        range_max=6.0,
+        name="Lexical Sophistication (EVP CEFR rank)",
+        description="Measure of word complexity - use of more advanced (higher-CEFR) vocabulary",
+        measurement_unit="Mean EVP CEFR rank (1=A1 … 6=C2)",
+        calculation_formula="Mean Cambridge EVP CEFR rank of graded words (A1=1 … C2=6); long-word-ratio fallback for ungraded input",
+        range_min=1.28,
+        range_max=1.92,
         cefr_benchmarks={
-            "A1": 5.8,
-            "A2": 5.5,
-            "B1": 5.0,
-            "B2": 4.5,
-            "C1": 4.0,
-            "C2": 3.5
+            "A1": 1.28,
+            "A2": 1.4,
+            "B1": 1.55,
+            "B2": 1.68,
+            "C1": 1.76,
+            "C2": 1.92
         },
         primary_research=[
-            "Lee (2021) - Word Frequency (WF) measure (Table 3)",
-            "CELEX Lexical Database (Baayen et al., 1995)",
-            "Laufer & Nation (1995) - Word frequency proficiency indicator"
+            "FORMULA: Cambridge English Vocabulary Profile (EVP) word→CEFR mapping",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)",
+            "Kyle & Crossley (2015) - lexical sophistication and L2 proficiency"
         ],
-        interpretation="Lower scores = more sophisticated vocabulary. Frequent words (high score) = lower proficiency.",
+        interpretation="Higher = more advanced vocabulary (rarer, higher-CEFR words). Means are low because function words dominate; the per-level ladder is what discriminates.",
         automation_possible=True,
-        example_value=4.2
+        example_value=1.55
     )
 
     # Indicator 3: WORD LENGTH (Average)
@@ -136,19 +136,19 @@ class AssessmentIndicatorsDatabase:
         description="Morphological complexity - average length of words used",
         measurement_unit="Number of characters per word",
         calculation_formula="Sum of word character lengths / Total number of words",
-        range_min=3.0,
-        range_max=6.0,
+        range_min=3.88,
+        range_max=5.03,
         cefr_benchmarks={
-            "A1": 3.5,
-            "A2": 3.8,
-            "B1": 4.2,
-            "B2": 4.6,
-            "C1": 5.0,
-            "C2": 5.3
+            "A1": 3.88,
+            "A2": 4.13,
+            "B1": 4.5,
+            "B2": 4.66,
+            "C1": 4.79,
+            "C2": 5.03
         },
         primary_research=[
-            "Lee (2021) - Average Word Length (WL) measure (Table 3)",
-            "Malvern et al. (2004) - Word length as proficiency indicator"
+            "FORMULA: Average word length (WL), Lee (2021); Malvern et al. (2004)",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)"
         ],
         interpretation="Longer words indicate higher proficiency. Related to word frequency (longer words are rarer).",
         automation_possible=True,
@@ -162,20 +162,19 @@ class AssessmentIndicatorsDatabase:
         description="Structural complexity - average words per sentence",
         measurement_unit="Words per sentence",
         calculation_formula="Total number of words / Number of sentences",
-        range_min=5.0,
-        range_max=25.0,
+        range_min=6.15,
+        range_max=24.2,
         cefr_benchmarks={
-            "A1": 7.0,
-            "A2": 9.0,
-            "B1": 12.0,
-            "B2": 15.0,
-            "C1": 18.0,
-            "C2": 20.0
+            "A1": 6.15,
+            "A2": 10.84,
+            "B1": 15.16,
+            "B2": 17.6,
+            "C1": 20.66,
+            "C2": 24.2
         },
         primary_research=[
-            "Lee (2021) - Mean Length of Sentence (MLS) measure (Table 2)",
-            "Lu (2010) - Syntactic complexity analyzer",
-            "Barrot & Agdeppa (2021) - MLS among 14 complexity indices across CEFR levels"
+            "FORMULA: Mean Length of Sentence (MLS), Lee (2021); Lu (2010)",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)"
         ],
         interpretation="Longer sentences indicate more complex structures. But quality matters: longer ≠ always better.",
         automation_possible=True,
@@ -187,22 +186,21 @@ class AssessmentIndicatorsDatabase:
         indicator=IndicatorType.SUBORDINATION_RATIO,
         name="Subordination Ratio (Dependent Clauses per T-unit)",
         description="Structural sophistication - use of dependent clauses for complex ideas",
-        measurement_unit="Ratio (0-3.0)",
-        calculation_formula="Number of dependent clauses / Number of T-units",
-        range_min=0.0,
-        range_max=3.0,
+        measurement_unit="Subordinators per sentence",
+        calculation_formula="Subordinating conjunctions / Number of sentences (lexical proxy for dependent-clause ratio DC/C; no parser)",
+        range_min=0.05,
+        range_max=0.47,
         cefr_benchmarks={
-            "A1": 0.3,
-            "A2": 0.5,
-            "B1": 0.8,
-            "B2": 1.2,
-            "C1": 1.6,
-            "C2": 2.0
+            "A1": 0.05,
+            "A2": 0.19,
+            "B1": 0.32,
+            "B2": 0.34,
+            "C1": 0.4,
+            "C2": 0.47
         },
         primary_research=[
-            "Lee (2021) - Dependent Clause Ratio (DC/C) (Table 2)",
-            "Lu (2010) - T-unit complexity measurement",
-            "Bardovi-Harlig (1992) - Clause complexity and proficiency"
+            "FORMULA basis: Dependent-clause ratio DC/C, Lee (2021); Lu (2010). NB: implemented as a conjunction-count proxy, not a parsed clause ratio",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)"
         ],
         interpretation="Higher ratios = more subordination = higher proficiency. Key marker of advanced syntax.",
         automation_possible=True,
@@ -214,22 +212,21 @@ class AssessmentIndicatorsDatabase:
         indicator=IndicatorType.SYNTACTIC_COMPLEXITY,
         name="Syntactic Complexity (Clauses per Sentence)",
         description="Structural richness - number of clauses combined in single sentences",
-        measurement_unit="Clauses per sentence",
-        calculation_formula="Total number of clauses / Number of sentences",
-        range_min=1.0,
-        range_max=4.0,
+        measurement_unit="Clauses per sentence (estimated)",
+        calculation_formula="(subordinating + coordinating conjunctions + sentences) / sentences — clause count estimated from conjunctions, not parsed",
+        range_min=1.19,
+        range_max=2.59,
         cefr_benchmarks={
-            "A1": 1.1,
-            "A2": 1.3,
-            "B1": 1.6,
-            "B2": 2.0,
-            "C1": 2.4,
-            "C2": 2.8
+            "A1": 1.19,
+            "A2": 1.63,
+            "B1": 2.0,
+            "B2": 2.07,
+            "C1": 2.31,
+            "C2": 2.59
         },
         primary_research=[
-            "Lee (2021) - Clauses per Sentence (C/S) (Table 2)",
-            "Ahari et al. (2025) - Syntactic complexity in speaking proficiency (explains 34% variance)",
-            "Lu & Cumming (2011) - Syntactic complexity measurement"
+            "FORMULA basis: Clauses per sentence (C/S), Lee (2021); Lu & Cumming (2011). NB: clauses estimated from conjunction counts",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py)"
         ],
         interpretation="Higher ratios indicate ability to pack multiple ideas into integrated structures.",
         automation_possible=True,
@@ -243,21 +240,21 @@ class AssessmentIndicatorsDatabase:
         description="Speech clarity - speed of clear speech (excluding pauses)",
         measurement_unit="Words per second",
         calculation_formula="Number of words / Duration of speech (excluding pauses/disfluencies)",
-        range_min=1.0,
-        range_max=4.5,
+        range_min=1.13,
+        range_max=2.36,
         cefr_benchmarks={
-            "A1": 1.2,
-            "A2": 1.5,
-            "B1": 2.0,
-            "B2": 2.5,
-            "C1": 3.0,
-            "C2": 3.5
+            "A1": 1.13,
+            "A2": 1.52,
+            "B1": 1.86,
+            "B2": 2.36,
+            "C1": 2.36,
+            "C2": 2.36
         },
         primary_research=[
-            "Zechner et al. (2009) - TOEFL iBT Speaking features (wpsec in Table 6, selected feature #8)",
-            "Cucchiarini et al. (2000) - Pronunciation assessment metrics"
+            "VALUES: Yan et al. (2020) speech rate, Table 1 — real per-level means (syllables/s ÷ 1.5 → words/s)",
+            "CONSTRUCT: Zechner et al. (2009) wpsec. NOTE: imputed from level when no audio (text diagnostic cannot measure it)"
         ],
-        interpretation="Higher rates = clearer speech. Native speakers ~2.5-3.5 wps. Very high may = unclear.",
+        interpretation="Speech metric. The text-only diagnostic cannot measure it — it is IMPUTED from the self-assessed level. Real values come only from Accent ADN / Shadow audio.",
         automation_possible=True,
         example_value=2.8
     )
@@ -269,25 +266,24 @@ class AssessmentIndicatorsDatabase:
         description="Fluency - frequency and length of hesitations, silent pauses, filled pauses",
         measurement_unit="Seconds per word",
         calculation_formula="Total pause duration / Number of words",
-        range_min=0.0,
-        range_max=1.0,
+        range_min=0.08,
+        range_max=0.23,
         cefr_benchmarks={
-            "A1": 0.8,
-            "A2": 0.6,
-            "B1": 0.4,
-            "B2": 0.25,
-            "C1": 0.15,
-            "C2": 0.10
+            "A1": 0.23,
+            "A2": 0.19,
+            "B1": 0.14,
+            "B2": 0.08,
+            "C1": 0.08,
+            "C2": 0.08
         },
         primary_research=[
-            "Zechner et al. (2009) - TOEFL iBT fluency features (silpwd in Table 6, selected feature #13)",
-            "Zechner et al. (2009) - Mean silence duration (silmean, selected feature #15)",
-            "Cucchiarini et al. (2000) - Pause analysis in non-native speech",
-            "Skehan & Foster (2001) - Fluency and planning time effects"
+            "VALUES: Yan et al. (2020) silent pauses per syllable, Table 1 — real per-level means (proxy for this per-word field)",
+            "CONSTRUCT: Zechner et al. (2009) silpwd; Skehan & Foster (2001). NOTE: lower=better; imputed when no audio (text cannot measure it)"
         ],
-        interpretation="Lower values = better fluency. High pauses indicate cognitive processing load or anxiety.",
+        interpretation="Speech metric (lower = better). The text-only diagnostic cannot measure it — it is IMPUTED from the self-assessed level. Real values come only from Accent ADN / Shadow audio.",
         automation_possible=True,
-        example_value=0.32
+        example_value=0.10,
+        lower_is_better=True
     )
 
     # Indicator 9: COHESION SCORE (Discourse Coherence)
@@ -296,24 +292,22 @@ class AssessmentIndicatorsDatabase:
         name="Cohesion & Coherence (Discourse Markers, Text Cohesion)",
         description="Discourse organization - use of connectors, transitions, clear idea relationships",
         measurement_unit="Score (0-100)",
-        calculation_formula="Analysis of discourse markers, anaphora, lexical chains, connective words per 100 words",
-        range_min=0.0,
-        range_max=100.0,
+        calculation_formula="Discourse-marker incidence per 100 words, rescaled 0-100 (connective incidence only; no anaphora/lexical-chain analysis)",
+        range_min=19.3,
+        range_max=24.5,
         cefr_benchmarks={
-            "A1": 20.0,
-            "A2": 35.0,
-            "B1": 50.0,
-            "B2": 65.0,
-            "C1": 78.0,
-            "C2": 88.0
+            "A1": 19.3,
+            "A2": 22.6,
+            "B1": 23.2,
+            "B2": 23.35,
+            "C1": 23.35,
+            "C2": 24.5
         },
         primary_research=[
-            "Ahari et al. (2025) - Cohesion as key L2 speaking proficiency indicator (explains 34% variance)",
-            "Crossley & McNamara (2016) - TAACO tool for text cohesion analysis",
-            "Graesser et al. (2004) - Coh-Metrix tool for cohesion measurement",
-            "Brown & Yule (1983) - Discourse analysis frameworks"
+            "FORMULA basis: connective incidence, Kyle & Crossley TAACO (2016). NB: only the connective-incidence sub-index is implemented",
+            "THRESHOLDS: empirical per-level medians, Kaggle CEFR corpus N=1494 (scripts/calibrate_benchmarks.py). NB: this proxy discriminates levels weakly (19-25)"
         ],
-        interpretation="High cohesion = ideas clearly connected. Low = ideas appear isolated or rambling.",
+        interpretation="Connector density. A reduced TAACO proxy that discriminates level weakly — treat as indicative, not definitive.",
         automation_possible=True,
         example_value=72.0
     )
@@ -324,7 +318,7 @@ class AssessmentIndicatorsDatabase:
         name="Morphosyntactic Accuracy (Grammar & Tense Accuracy)",
         description="Grammatical correctness - percentage of error-free clauses, agreement, tense/aspect",
         measurement_unit="Percentage (0-100%)",
-        calculation_formula="Number of error-free clauses / Total number of clauses × 100",
+        calculation_formula="LLM holistic estimate of error-free-clause % (Groq Llama-3.3); deterministic Romanian-error detector fallback — NOT a parsed clause count",
         range_min=0.0,
         range_max=100.0,
         cefr_benchmarks={
@@ -336,11 +330,10 @@ class AssessmentIndicatorsDatabase:
             "C2": 92.0
         },
         primary_research=[
-            "Zechner et al. (2009) - TOEFL iBT language model score (lmscore in Table 6, selected feature #29)",
-            "Li & Shintani (2010) - Corrective feedback meta-analysis (d=0.48 effect on accuracy)",
-            "Saito (2012) - Pronunciation & grammar co-development"
+            "CONSTRUCT: Error-Free Clause ratio EFC/C (Şahin Kızıl 2024); Li & Shintani (2010)",
+            "METRIC: LLM estimate, not a deterministic count. THRESHOLDS: author-set, NOT corpus-calibrated (the rule-based fallback saturates near 100 on English text)"
         ],
-        interpretation="Higher % = better grammar control. Improvement indicator post-intervention.",
+        interpretation="Higher % = better grammar control. Produced by an LLM estimate, so it can vary between runs.",
         automation_possible=True,
         example_value=78.5
     )
@@ -475,7 +468,11 @@ class AssessmentIndicatorsCalculator:
             normalized_score = measured_value
         
         normalized_score = max(0, min(100, normalized_score))
-        
+        # For lower-is-better indicators (e.g. pause frequency) a smaller raw value
+        # means higher proficiency, so invert the 0-100 score.
+        if ind.lower_is_better:
+            normalized_score = 100 - normalized_score
+
         # Determine CEFR level
         cefr_level = self._determine_cefr_from_benchmark(ind, measured_value)
         
@@ -493,7 +490,15 @@ class AssessmentIndicatorsCalculator:
         """Determine CEFR level from measured value"""
         benchmarks = indicator.cefr_benchmarks
         cefr_levels = ["A1", "A2", "B1", "B2", "C1", "C2"]
-        
+
+        if indicator.lower_is_better:
+            # Benchmarks descend (A1 = highest value, C2 = lowest). A larger value
+            # means a lower level — return the first level the value still reaches.
+            for level in cefr_levels:
+                if value >= benchmarks[level]:
+                    return level
+            return "C2"
+
         for i, level in enumerate(cefr_levels):
             if value < benchmarks[level]:
                 return cefr_levels[max(0, i-1)]

@@ -124,6 +124,7 @@ const STEPS = [
   { key: 'target_domain',         title: 'Your Context',       subtitle: 'Which context will you use English in most?' },
   { key: 'target_exam',           title: 'Target Exam',        subtitle: 'Are you preparing for a specific exam?' },
   { key: 'perceived_weak_areas',  title: 'Weak Areas',         subtitle: 'Where do you feel you struggle most? (up to 3)' },
+  { key: 'self_ratings',          title: 'Rate Yourself',      subtitle: 'Rate each skill honestly — the system compares this to what it measures.' },
   { key: 'daily_study_minutes',   title: 'Study Time',         subtitle: 'How much time can you study each day?' },
 ];
 
@@ -144,6 +145,7 @@ export default function OnboardingScreen() {
     target_domain: string;
     target_exam: string;
     perceived_weak_areas: string[];
+    self_ratings: Record<string, number>;
     daily_study_minutes: number;
   }>({
     self_assessed_cefr: '',
@@ -153,6 +155,7 @@ export default function OnboardingScreen() {
     target_domain: '',
     target_exam: '',
     perceived_weak_areas: [],
+    self_ratings: {},
     daily_study_minutes: 0,
   });
 
@@ -179,9 +182,14 @@ export default function OnboardingScreen() {
     });
   };
 
+  const setSelfRating = (area: string, rating: number) => {
+    setAnswers(prev => ({ ...prev, self_ratings: { ...prev.self_ratings, [area]: rating } }));
+  };
+
   const isCurrentStepComplete = () => {
     const step = STEPS[currentStep];
     if (step.key === 'perceived_weak_areas') return answers.perceived_weak_areas.length > 0;
+    if (step.key === 'self_ratings') return WEAK_AREA_OPTIONS.every(o => (answers.self_ratings[o.value] ?? 0) > 0);
     if (step.key === 'daily_study_minutes') return answers.daily_study_minutes > 0;
     if (step.key === 'profession') return !!answers.profession;
     return !!answers[step.key as keyof typeof answers];
@@ -234,6 +242,7 @@ export default function OnboardingScreen() {
         ['userCurrentCEFR',     answers.self_assessed_cefr],
         ['userDomain',          answers.target_domain],
         ['userWeaknesses',      JSON.stringify(answers.perceived_weak_areas)],
+        ['userSelfRatings',     JSON.stringify(answers.self_ratings)],
         ['userIntensity',       String(answers.daily_study_minutes)],
       ]);
       router.replace('/initial_diagnostic');
@@ -256,6 +265,7 @@ export default function OnboardingScreen() {
         ['userCurrentCEFR',     answers.self_assessed_cefr],
         ['userDomain',          answers.target_domain],
         ['userWeaknesses',      JSON.stringify(answers.perceived_weak_areas)],
+        ['userSelfRatings',     JSON.stringify(answers.self_ratings)],
         ['userIntensity',       String(answers.daily_study_minutes)],
       ]);
     } finally {
@@ -517,6 +527,51 @@ export default function OnboardingScreen() {
           </>
         );
 
+      case 'self_ratings': {
+        const SCALE = [
+          { v: 1, l: 'Very weak' },
+          { v: 2, l: 'Weak' },
+          { v: 3, l: 'OK' },
+          { v: 4, l: 'Good' },
+          { v: 5, l: 'Strong' },
+        ];
+        return (
+          <>
+            <Text style={styles.multiHint}>
+              Be honest — including skills you think you're good at. The system will
+              tell you if it measures something different.
+            </Text>
+            {WEAK_AREA_OPTIONS.map(meta => {
+              const area = meta.value;
+              const current = answers.self_ratings[area] ?? 0;
+              return (
+                <View key={area} style={styles.ratingCard}>
+                  <Text style={styles.ratingArea}>{meta.label}</Text>
+                  <View style={styles.ratingRow}>
+                    {SCALE.map(s => {
+                      const sel = current === s.v;
+                      return (
+                        <TouchableOpacity
+                          key={s.v}
+                          style={[styles.ratingPill, sel && styles.ratingPillSelected]}
+                          onPress={() => setSelfRating(area, s.v)}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.ratingPillText, sel && styles.ratingPillTextSelected]}>{s.v}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                  <Text style={styles.ratingScaleLabel}>
+                    {current > 0 ? SCALE.find(s => s.v === current)?.l : '1 = very weak  ·  5 = strong'}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
+        );
+      }
+
       case 'daily_study_minutes':
         return STUDY_TIME_OPTIONS.map(opt => (
           <TouchableOpacity
@@ -775,6 +830,54 @@ const styles = StyleSheet.create({
     color: TINT,
     fontWeight: '500',
     marginBottom: Spacing.md,
+  },
+
+  // Self-rating step
+  ratingCard: {
+    backgroundColor: CARD,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  ratingArea: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT,
+    marginBottom: Spacing.sm,
+  },
+  ratingRow: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+  },
+  ratingPill: {
+    flex: 1,
+    aspectRatio: 1,
+    maxWidth: 56,
+    borderRadius: BorderRadius.md,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ratingPillSelected: {
+    borderColor: TINT,
+    backgroundColor: TINT,
+  },
+  ratingPillText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+  ratingPillTextSelected: {
+    color: '#fff',
+  },
+  ratingScaleLabel: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    marginTop: Spacing.sm,
+    fontWeight: '600',
   },
 
   // Grid options (Goal, Domain)

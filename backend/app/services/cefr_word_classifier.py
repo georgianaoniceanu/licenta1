@@ -44,7 +44,14 @@ _EVP_PATH = os.path.join(os.path.dirname(__file__), "evp_words.json")
 try:
     with open(_EVP_PATH, encoding="utf-8") as _f:
         _EVP_MAP: Dict[str, str] = json.load(_f)
-except FileNotFoundError:
+    if not _EVP_MAP:
+        print("[cefr_word_classifier] WARNING: evp_words.json loaded but EMPTY — "
+              "CEFR levels will fall back to the binary heuristic (A1/C1 only).")
+except Exception as _evp_err:
+    # Loud warning: a silent failure here makes every word fall back to the
+    # heuristic, collapsing the distribution to ~A1/C1 (the bug seen in the UI).
+    print(f"[cefr_word_classifier] WARNING: could not load evp_words.json "
+          f"({_evp_err}) — CEFR classification will be degraded.")
     _EVP_MAP = {}
 
 # ─────────────────────────────────────────────────────────────────────────────

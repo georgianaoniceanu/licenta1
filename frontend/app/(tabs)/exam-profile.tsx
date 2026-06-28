@@ -89,7 +89,7 @@ const FILLER_WORDS = new Set([
 // Academic sources used in the exam_mapper
 const SOURCES = [
   { short: 'Kolahi Ahari et al. (2025)', detail: 'IELTS↔CEFR mapping; MTLD β=.40 — 10.22034_ijlt.2025.492133.1395' },
-  { short: 'Neumanova (2015)', detail: 'SER: A2=9.16, B1=6.91, B2=4.53 errors/100 words — 8.+Z.+Neumanova+Do+publikacji+5.06' },
+  { short: 'Neumanova (2025)', detail: 'SER: A2=9.16, B1=6.91, B2=4.53 errors/100 words — 8.+Z.+Neumanova+Do+publikacji+5.06' },
   { short: 'Pallotti (2014)', detail: 'Filled Pause Ratio; CAF fluency threshold 0.3–0.4 s — 21Routledge-Pallotti-CAF' },
   { short: 'McCarthy & Jarvis (2010)', detail: 'MTLD algorithm; TTR threshold=0.720 — Behavior Research Methods 42(2)' },
   { short: 'Hunt (1965); Norris & Ortega (2009)', detail: 'Subordination Index / MLS syntactic complexity — 1-s2.0-S1075293520300714' },
