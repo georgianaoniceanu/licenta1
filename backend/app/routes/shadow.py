@@ -187,6 +187,42 @@ async def analyze_shadow(
         os.unlink(tmp_path)
 
 
+@router.get("/cefr-speech")
+async def shadow_cefr_speech(authorization: str = Header(None)):
+    """Aggregate the user's Shadow sessions into the two SPEECH CEFR indicators
+    (Speech Rate, Fluency) so the dashboard can replace the text diagnostic's
+    'not measured' placeholders with real, audio-measured values."""
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        token = authorization.replace("Bearer ", "")
+        user = verify_token(token)
+        sessions = get_shadow_sessions(user["uid"], limit=30)
+        valid = [s for s in sessions if s.get("wpm")]
+        if not valid:
+            return {"n_sessions": 0}
+
+        avg_wpm   = sum(s.get("wpm", 0) for s in valid) / len(valid)
+        avg_pause = sum(s.get("pause_rate_per_min", 0) for s in valid) / len(valid)
+
+        from app.services.assessment_indicators import assessment_calculator, IndicatorType
+        wps = avg_wpm / 60.0                                   # words per second
+        # pauses per syllable ≈ (pauses/min) / (syllables/min); syllables ≈ words×1.5
+        pauses_per_syll = avg_pause / max(avg_wpm * 1.5, 1.0)
+
+        sr = assessment_calculator.evaluate_indicator(IndicatorType.ARTICULATION_RATE, wps)
+        fl = assessment_calculator.evaluate_indicator(IndicatorType.PAUSE_FREQUENCY, pauses_per_syll)
+        return {
+            "n_sessions": len(valid),
+            "speech_rate": {"score": sr["normalized_score"], "cefr_level": sr["cefr_level"], "wps": round(wps, 2)},
+            "fluency":     {"score": fl["normalized_score"], "cefr_level": fl["cefr_level"], "pauses_per_syllable": round(pauses_per_syll, 3)},
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"n_sessions": 0, "error": str(e)}
+
+
 @router.get("/progress")
 async def shadow_progress(authorization: str = Header(None)):
     """

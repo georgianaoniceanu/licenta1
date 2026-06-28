@@ -7,6 +7,30 @@ db = firestore.client()
 def get_db():
     return db
 
+
+def delete_user_progress(user_id: str) -> dict:
+    """Delete all of a user's practice/assessment data from Firestore so
+    'Reset progress' actually sticks (sessions are otherwise re-hydrated from the
+    cloud). Keeps the account + onboarding profile. Returns deletion counts."""
+    database = get_db()
+    deleted = {"sessions": 0, "assessments": 0}
+
+    # 1) Practice sessions (vocabulary / accent / shadow all live here)
+    for doc in database.collection("sessions").where("user_id", "==", user_id).stream():
+        doc.reference.delete()
+        deleted["sessions"] += 1
+
+    # 2) Assessment history (initial diagnostic runs)
+    try:
+        hist = database.collection("assessments").document(user_id).collection("history")
+        for doc in hist.stream():
+            doc.reference.delete()
+            deleted["assessments"] += 1
+    except Exception:
+        pass
+
+    return deleted
+
 def save_vocabulary_session(user_id: str, original_text: str, improved_text: str, suggestions: list) -> str:
     db = get_db()
     session = {

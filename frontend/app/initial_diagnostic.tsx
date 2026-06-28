@@ -45,6 +45,7 @@ interface IndicatorResult {
   cefr_level: string;
   severity: string;
   sources?: string[];   // academic bibliography per indicator
+  measured?: boolean;   // false = imputed (speech metrics on a text-only diagnostic)
 }
 
 interface DiagnosisResult {
@@ -57,6 +58,7 @@ interface DiagnosisResult {
   exam_specific_scores: Record<string, number>;
   // RF corpus model prediction (S&I Corpus 2025, Knill et al. 2025)
   rf_predicted_cefr?: string;
+  caf_cefr?: string;   // CAF-composite band (from overall_score) — independent cross-check
   rf_confidence?: number;
   rf_probabilities?: Record<string, number>;
 }
@@ -238,6 +240,7 @@ export default function InitialDiagnosticScreen() {
           cefr_level: ind.cefr_level,
           severity: ind.severity,
           sources: ind.sources || [],
+          measured: ind.measured ?? true,
         })),
         critical_areas: assessData.critical_areas || [],
         strengths: assessData.strengths || [],
@@ -246,6 +249,7 @@ export default function InitialDiagnosticScreen() {
         exam_specific_scores: assessData.exam_scores || assessData.exam_specific_scores || {},
         // RF corpus model prediction (Cambridge S&I Corpus 2025)
         rf_predicted_cefr:  assessData.rf_predicted_cefr  ?? undefined,
+        caf_cefr:           assessData.caf_cefr           ?? undefined,
         rf_confidence:      assessData.rf_confidence      ?? undefined,
         rf_probabilities:   assessData.rf_probabilities   ?? undefined,
       };
@@ -420,7 +424,15 @@ export default function InitialDiagnosticScreen() {
 
           {/* Second opinion: Ordinal LR + SVM ensemble */}
           {diagnosis.rf_predicted_cefr && (() => {
-            const agree      = diagnosis.rf_predicted_cefr === diagnosis.predicted_cefr;
+            // Real cross-check: the CAF composite band (from the 0-100 score) vs the
+            // ordinal model. Map the 6-level CAF band onto the model's 4 classes first.
+            const to4 = (b?: string) =>
+              !b ? '' : (b === 'A1' || b === 'A2') ? 'A2'
+                      : (b === 'C1' || b === 'C2' || b === 'C1-C2') ? 'C1-C2'
+                      : b; // B1, B2
+            const cafBand = diagnosis.caf_cefr;            // independent: CAF composite
+            const ordBand = diagnosis.rf_predicted_cefr;   // independent: ordinal model
+            const agree   = !!cafBand && to4(cafBand) === ordBand;
             const conf       = diagnosis.rf_confidence ?? 0;
             const LEVEL_DESC: Record<string, string> = {
               'A2': 'Elementary',
@@ -464,8 +476,8 @@ export default function InitialDiagnosticScreen() {
                   <Feather name={agree ? 'check-circle' : 'help-circle'} size={14} color={agree ? TINT : '#B45309'} />
                   <Text style={[styles.rfAgreeMsg, { color: agree ? TINT : '#B45309' }]}>
                     {agree
-                      ? 'Both analyses agree — you\'re at ' + diagnosis.predicted_cefr
-                      : 'Analyses differ slightly (' + diagnosis.predicted_cefr + ' vs ' + diagnosis.rf_predicted_cefr + ') — your true level is between these'}
+                      ? `Both methods agree — CAF composite (${cafBand}) and the ordinal model (${ordBand})`
+                      : `Methods differ — CAF composite says ${cafBand ?? '—'}, ordinal model says ${ordBand}; your true level is likely between these`}
                   </Text>
                 </View>
               </View>
@@ -532,26 +544,53 @@ export default function InitialDiagnosticScreen() {
             <View key={ind.name} style={styles.indicatorRow}>
               <View style={styles.indicatorLabelRow}>
                 <Text style={styles.indicatorName}>{ind.name}</Text>
-                <Text style={[styles.indicatorCefr, { color: SEVERITY_COLOR[ind.severity] || Colors.light.tint }]}>
-                  {ind.cefr_level}
-                </Text>
-              </View>
-              <View style={styles.barBg}>
-                <View style={[styles.barFill, {
-                  width: `${ind.normalized}%`,
-                  backgroundColor: SEVERITY_COLOR[ind.severity] || Colors.light.tint,
-                }]} />
-              </View>
-              <View style={styles.indicatorFooter}>
-                <Text style={styles.barPct}>{Math.round(ind.normalized)}%</Text>
-                {ind.sources && ind.sources.length > 0 && (
-                  <Text style={styles.indicatorSource} numberOfLines={1}>
-                    {ind.sources[0]}
+                {ind.measured === false ? (
+                  <Text style={[styles.indicatorCefr, { color: Colors.light.textSecondary }]}>—</Text>
+                ) : (
+                  <Text style={[styles.indicatorCefr, { color: SEVERITY_COLOR[ind.severity] || Colors.light.tint }]}>
+                    {ind.cefr_level}
                   </Text>
                 )}
               </View>
+              {ind.measured === false ? (
+                <Text style={styles.notMeasured}>
+                  Not measured — needs a speaking session (text diagnostic can’t measure speech)
+                </Text>
+              ) : (
+                <>
+                  <View style={styles.barBg}>
+                    <View style={[styles.barFill, {
+                      width: `${ind.normalized}%`,
+                      backgroundColor: SEVERITY_COLOR[ind.severity] || Colors.light.tint,
+                    }]} />
+                  </View>
+                  <View style={styles.indicatorFooter}>
+                    <Text style={styles.barPct}>{Math.round(ind.normalized)}%</Text>
+                    {ind.sources && ind.sources.length > 0 && (
+                      <Text style={styles.indicatorSource} numberOfLines={1}>
+                        {ind.sources[0]}
+                      </Text>
+                    )}
+                  </View>
+                </>
+              )}
             </View>
           ))}
+
+          {/* Offer to actually measure the speech metrics that text can't capture */}
+          {diagnosis.indicators.some(i => i.measured === false) && (
+            <TouchableOpacity
+              style={styles.measureSpeechBtn}
+              onPress={() => router.push('/(tabs)/shadow')}
+              activeOpacity={0.85}
+            >
+              <Feather name="mic" size={16} color="#fff" />
+              <Text style={styles.measureSpeechText}>
+                Record a speaking sample to measure Fluency &amp; Speech Rate
+              </Text>
+              <Feather name="arrow-right" size={15} color="#fff" />
+            </TouchableOpacity>
+          )}
 
           {/* Priority areas */}
           {diagnosis.critical_areas.length > 0 && (
@@ -890,6 +929,20 @@ const styles = StyleSheet.create({
   indicatorFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 },
   barPct: { fontSize: 11, color: Colors.light.textSecondary },
   indicatorSource: { fontSize: 10, color: Colors.light.textSecondary, fontStyle: 'italic', flex: 1, textAlign: 'right', marginLeft: 8 },
+  notMeasured: { fontSize: 11, color: Colors.light.textSecondary, fontStyle: 'italic', marginTop: 2 },
+  measureSpeechBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: TINT,
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 4,
+  },
+  measureSpeechText: { color: '#fff', fontSize: 13, fontWeight: '700', flexShrink: 1, textAlign: 'center' },
 
   // Exam scores
   examCard: { marginBottom: Spacing.md },

@@ -271,12 +271,12 @@ def classify_learner(indicators: Dict[str, float]) -> Dict:
     best = CLUSTERS[best_idx]
     best_dist = distances[best_idx]
 
-    # Confidence: how much closer to best vs. second-best
-    sorted_dists = sorted(distances)
-    if len(sorted_dists) > 1 and sorted_dists[1] > 0:
-        confidence = round(1.0 - (sorted_dists[0] / sorted_dists[1]), 3)
-    else:
-        confidence = 1.0
+    # Membership ("% match"): inverse-distance share of the nearest centroid over
+    # all centroids — an intuitive, honest "how well you fit this profile vs the
+    # others". (The old metric was a margin to the 2nd-best, which read misleadingly
+    # low, e.g. "11% match" for a learner sitting between two profiles.)
+    inv = [1.0 / (d + 1e-6) for d in distances]
+    confidence = round(inv[best_idx] / sum(inv), 3) if sum(inv) > 0 else 1.0
     confidence = max(0.0, min(1.0, confidence))
 
     return {
