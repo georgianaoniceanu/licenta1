@@ -451,6 +451,9 @@ export default function LoginScreen() {
       const data = await response.json();
       await AsyncStorage.setItem('authToken', token);
       await AsyncStorage.setItem('userEmail', data.email || email);
+      // Persist the onboarding flag from the backend (source of truth) so the
+      // launch gate in _layout doesn't bounce returning users to onboarding.
+      await AsyncStorage.setItem('onboardingCompleted', data.onboarding_completed ? 'true' : 'false');
 
       if (!isLogin) {
         setBanner({ type: 'success', text: 'Account created — setting up your profile…' });

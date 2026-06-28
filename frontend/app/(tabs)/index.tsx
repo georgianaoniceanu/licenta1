@@ -26,6 +26,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import { getFreshToken } from '@/utils/auth';
@@ -148,65 +149,65 @@ const INDICATOR_INFO: Record<string, IndicatorInfo> = {
   'Vocabulary Range': {
     eli5: 'Imagine you have a bag of words. This measures how many DIFFERENT words are in your bag. If you keep saying "good" instead of "excellent", "great", "outstanding" — your bag looks small. A bigger, more varied bag = higher score.',
     plain: 'How many different words you use relative to total words spoken.',
-    formula: 'D index (VOCD) — probability-based estimate of lexical diversity corrected for text length; or Type-Token Ratio (TTR) normalized to 50-word samples.',
-    studies: 'Malvern, Richards, Chipere & Durán (2004) — Lexical Diversity and Language Development; Jarvis (2013) — Defining and Measuring Lexical Diversity; Lee (2021) — CEFR alignment of spoken metrics.',
-    rationale: 'CEFR descriptors explicitly require broader vocabulary at each level (A2: everyday topics → C1: broad lexical repertoire). D-index is robust across text lengths and validated on L2 English learner corpora.',
+    formula: 'MTLD (Measure of Textual Lexical Diversity), bidirectional, TTR factor threshold 0.720, normalized to 20–100. CEFR bands calibrated on a labelled corpus (N=1494).',
+    studies: 'Formula: McCarthy & Jarvis (2010) MTLD; threshold Yan et al. (2020). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494).',
+    rationale: 'CEFR descriptors explicitly require broader vocabulary at each level (A2: everyday topics → C1: broad lexical repertoire). MTLD is robust across text lengths and a strong L2 proficiency predictor.',
   },
   'Word Sophistication': {
     eli5: 'Not just HOW MANY different words, but HOW ADVANCED they are. Saying "use" is basic. Saying "utilise" or "leverage" is sophisticated. This score rewards you for picking rarer, more advanced words — the ones you\'d find in a newspaper or academic text.',
     plain: 'Proportion of advanced, low-frequency words in your speech.',
-    formula: 'Lexical Frequency Profile (LFP) — percentage of words outside the 2,000 most frequent English words (Nation BNC lists); high % = more sophisticated.',
-    studies: 'Laufer & Nation (1995) — Vocabulary Size and Use; Schmitt (2010) — Vocabulary in Language Teaching; Nation (2006) — How large a vocabulary is needed for reading and listening.',
-    rationale: 'High-frequency words dominate A2/B1 output; B2/C1 speakers use significantly more low-frequency vocabulary. LFP is used in automatic IELTS and Cambridge writing scoring.',
+    formula: 'Mean Cambridge EVP CEFR rank (A1=1 … C2=6) of the graded words you used (not LFP). Means are low because function words dominate; the per-level ladder is what discriminates. Bands calibrated on a corpus (N=1494).',
+    studies: 'Formula: Cambridge English Vocabulary Profile (EVP); Kyle & Crossley (2015). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494).',
+    rationale: 'Higher-CEFR words appear more often as proficiency rises. We use the Cambridge EVP word→CEFR mapping directly rather than a frequency list.',
   },
   'Sentence Length': {
     eli5: 'Short sentences are easy. "I went. I saw. I left." Long sentences pack more information: "I went to the market, which was crowded, because I needed ingredients for the dinner I was planning." This score measures whether you can build longer, information-rich sentences.',
     plain: 'Average number of words per sentence or T-unit.',
-    formula: 'Mean Length of T-Unit (MLTU) — each T-unit = one independent clause + subordinate clauses; measured in words per unit from transcribed speech.',
-    studies: 'Hunt (1965) — Grammatical Structures Written at Three Grade Levels; Ortega (2003) — Syntactic complexity and L2 proficiency; Lee (2021).',
+    formula: 'Mean Length of Sentence = words ÷ sentences (not parsed T-units). Bands calibrated on a corpus (N=1494).',
+    studies: 'Formula: MLS, Lee (2021); Lu (2010); Hunt (1965). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494).',
     rationale: 'Longer T-units correlate with CEFR level in learner corpora (Ortega 2003). They indicate the ability to embed information — a key B2+ discourse marker.',
   },
   'Subordination': {
     eli5: 'Can you connect ideas using words like "because", "although", "which", "even though", "despite"? A beginner says: "I was tired. I went to bed." An advanced speaker says: "Although I had planned to study, I went to bed because I was exhausted." This score counts those connectors.',
     plain: 'How often you use subordinate clauses — "because", "although", "which", "that"…',
-    formula: 'Subordination Ratio = total clauses ÷ T-units; includes relative, adverbial, and complement clauses detected via dependency parsing.',
-    studies: 'Norris & Ortega (2009) — Towards an organic approach to CAF in instructed SLA; Pallotti (2014) — A simple view of linguistic complexity.',
-    rationale: 'One of the most robust syntactic complexity metrics. Distinguishes B1 (low subordination) from B2/C1 (frequent complex embedding). Used in automated CAE essay scoring.',
+    formula: 'Subordinating conjunctions ÷ sentences — a keyword proxy for the dependent-clause ratio (no parser). Bands calibrated on a corpus (N=1494).',
+    studies: 'Formula basis: dependent-clause ratio, Lee (2021); Lu (2010); Pallotti (2015). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494).',
+    rationale: 'Subordination is a robust complexity marker. Note: we approximate it by counting subordinating words, not by parsing clauses.',
   },
   'Syntactic Richness': {
     eli5: 'Think of it as "how fancy is your sentence structure". Basic: "The dog ran." Richer: "The exhausted dog, chased by the neighbour\'s cat, ran across the freshly mown garden." More detail packed into the noun phrases = richer syntax = higher score.',
     plain: 'Variety and density of syntactic structures per sentence.',
-    formula: 'Complex Nominal ratio — number of noun phrases with modifiers or embedded clauses per T-unit, via NLP constituency parser.',
-    studies: 'Lu (2010) — Automatic analysis of syntactic complexity in second language writing; Ortega (2003).',
-    rationale: 'Captures noun phrase density — orthogonal to subordination. Correlates with IELTS Writing Band 6.5+ and is used in the e-rater automated scoring system.',
+    formula: '(subordinating + coordinating conjunctions + sentences) ÷ sentences — clauses-per-sentence estimated from conjunction counts (no parser). Bands calibrated on a corpus (N=1494).',
+    studies: 'Formula basis: clauses per sentence, Lee (2021); Lu (2010). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494).',
+    rationale: 'More clauses per sentence signals denser syntax. Note: clauses are estimated from conjunctions, not from a constituency parser.',
   },
   'Speech Rate': {
     eli5: 'Simply: how fast you speak, not counting the pauses. Native English speakers fire off about 4–5 syllables every second. If you speak much slower, it signals that you\'re searching for words mid-sentence. Faster (up to a natural limit) = more automatic = higher score.',
     plain: 'How many words you produce per second, pauses excluded.',
-    formula: 'Articulation Rate = syllables per second during fluent speech segments (silent pauses > 200 ms excluded); measured via forced-alignment on the audio signal.',
-    studies: 'Cucchiarini, Strik & Boves (2002) — Quantitative assessment of second language learners\' fluency; de Jong & Wempe (2009) — Praat script for syllable nuclei detection.',
-    rationale: 'Native English speakers average 4–5 syllables/second. L2 learners slow down due to lexical retrieval difficulty. Articulation rate is the primary IELTS Fluency & Coherence sub-criterion.',
+    formula: 'Words ÷ speaking time WHEN audio is recorded. The writing diagnostic has no audio, so this is IMPUTED from your self-assessed level — not measured. Real values come from Accent ADN / Shadow.',
+    studies: 'Values: Yan et al. (2020) speech rate, Table 1 — real per-level means (syllables/s ÷ 1.5 → words/s). Construct: Zechner et al. (2009).',
+    rationale: 'Speech rate rises with proficiency, but it cannot be measured from writing — so on the diagnostic it is an estimate based on the level you declared.',
   },
   'Fluency': {
     eli5: 'This counts your "ums", "uhs", "like", and awkward pauses. Every time you say "um" you lose points. Think of it as measuring how smooth the river of your speech is — no rocks (fillers), no dams (long pauses). The smoother, the higher.',
     plain: 'How smoothly you speak — fewer "um/uh" and false starts = higher score.',
-    formula: 'Fluency = 100 − (pause_rate × 70 + filler_rate × 30); pause_rate = pauses > 200 ms per minute; filler_rate = "um", "uh", "like", "you know" per 100 words.',
-    studies: 'Lennon (1990) — Investigating fluency in EFL; Segalowitz (2010) — Cognitive Bases of Second Language Fluency; IELTS band descriptors (Cambridge ESOL 2024).',
-    rationale: 'Pause and disfluency frequency maps directly to IELTS Fluency & Coherence bands 4–8. Reducing filler words is the single highest-ROI intervention for band improvement.',
+    formula: 'Silence per word WHEN audio is recorded. The writing diagnostic has no audio, so this is IMPUTED from your self-assessed level — not measured. Real values come from Accent ADN / Shadow.',
+    studies: 'Values: Yan et al. (2020) silent pauses per syllable, Table 1 — real per-level means. Construct: Zechner et al. (2009); Skehan & Foster (2001).',
+    rationale: 'Fewer/shorter pauses signal higher fluency, but this cannot be measured from writing — so on the diagnostic it is an estimate based on the level you declared.',
   },
   'Coherence': {
     eli5: 'Imagine your speech as a necklace. Each sentence is a bead. Coherence measures how well the beads are connected — do your ideas flow naturally from one to the next, or do they just fall on the floor randomly? Words like "however", "therefore", "as a result" are the thread.',
     plain: 'How well your ideas connect and flow as a whole.',
-    formula: 'Coh-Metrix Referential Cohesion score — measures pronoun–antecedent links, lexical repetition, and connective use ("however", "therefore", "in addition") across sentences.',
-    studies: 'McNamara & Graesser (2012) — Coh-Metrix: An Automated Tool for NLP; Crossley & McNamara (2010) — Cohesion, coherence, and expert evaluations of writing proficiency.',
-    rationale: 'Coherence distinguishes B1 (basic cohesion) from C1 (full discourse organisation). It is one of the four Cambridge Writing criteria and correlates r = 0.61 with expert rater scores.',
+    formula: 'Discourse-marker (connective) incidence per 100 words, rescaled 0–100 — a reduced TAACO proxy (no Coh-Metrix, no anaphora/lexical-chain analysis). Bands calibrated on a corpus (N=1494).',
+    studies: 'Formula basis: connective incidence, Kyle & Crossley TAACO (2016). Thresholds: empirical per-level medians on the Kaggle CEFR corpus (N=1494) — this proxy discriminates level weakly.',
+    rationale: 'Connector density is a partial cue to cohesion. We implement only the connective-incidence sub-index, so treat it as indicative, not definitive.',
   },
   'Grammar Accuracy': {
     eli5: 'Did you say "I go to school yesterday" instead of "I went"? Did you skip the article ("I have car" instead of "I have a car")? This score penalises those mistakes, with trickier errors (wrong tense, false friends) counting more than small ones (missing "the").',
     plain: 'Correctness of verb tenses, articles, prepositions, and word order.',
-    formula: 'Weighted error score: 100 − (Σ errors × weight); articles/prepositions weight ×1, tense errors ×2, structural errors ×3. Errors detected by a Romanian-interference grammar model.',
-    studies: 'Ellis (1994) — The Study of Second Language Acquisition; Pungă & Pârlog (2015) — Romanian EFL Learner Language; Norris & Ortega (2009).',
-    rationale: 'Romanian speakers show predictable L1-transfer errors (missing articles, wrong prepositions, false friends). Severity weighting mirrors the IELTS Grammatical Range & Accuracy criterion.',
+    formula: 'LLM holistic estimate of error-free-clause % (Groq Llama-3.3); deterministic Romanian-interference detector as fallback. Not a parsed clause count, so it can vary between runs.',
+    studies: 'Construct: Error-Free Clause ratio EFC/C (Şahin Kızıl 2024); Li & Shintani (2010); Pungă & Pârlog (2015). Thresholds: author-set, not corpus-calibrated.',
+    rationale: 'Grammatical accuracy rises with proficiency. We estimate it with an LLM (broad error coverage) rather than a rule-based parser.',
   },
   'Vocabulary Level': {
     eli5: 'Not just whether you use varied or advanced words — but what CEFR level those words belong to. Every English word has been assigned an A1–C2 level by Cambridge researchers. This score averages the CEFR level of all the words you actually said. Mostly A2 words → A2 score. Mix of B2/C1 words → much higher.',
@@ -375,6 +376,7 @@ export default function HomeScreen() {
     { label: tr('modVocabulary', lang),subtitle: tr('modVocabSub', lang), icon: 'book',     route: '/(tabs)/vocabulary', color: TEAL   },
   ];
   const TOOL_MODULES = [
+    { label: tr('modAssessment', lang), subtitle: tr('modAssessmentSub', lang), icon: 'activity',    route: '/initial_diagnostic', color: '#F59E0B' },
     { label: tr('modPractice', lang),   subtitle: tr('modPracticeSub', lang),   icon: 'zap',         route: '/(tabs)/practice',   color: '#0FBA9A' },
     { label: tr('modProgress', lang),   subtitle: tr('modProgressSub', lang),   icon: 'bar-chart-2', route: '/(tabs)/progress',   color: '#8B5CF6' },
   ];
@@ -469,7 +471,7 @@ export default function HomeScreen() {
         style: 'destructive',
         onPress: async () => {
           await signOut(auth);
-          await AsyncStorage.multiRemove(['authToken', 'onboardingCompleted']);
+          await clearAccountScopedStorage();
           router.replace('/login');
         },
       },

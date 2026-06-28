@@ -18,6 +18,7 @@ import { SectionHeader, SectionHero } from '@/components/section-header';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { loadDemoProfile, clearDemoData, type DemoPreset } from '@/utils/demoMode';
 import { HEALTH_ENDPOINT } from '@/constants/api';
 import { useLanguage } from '@/context/Language';
@@ -184,6 +185,7 @@ export default function SettingsScreen() {
         onPress: async () => {
           try {
             await signOut(auth);
+            await clearAccountScopedStorage();
             router.replace('/login');
           } catch (e) {
             Alert.alert(tr('error', lang), 'Failed to sign out');

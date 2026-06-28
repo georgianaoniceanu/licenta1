@@ -376,15 +376,52 @@ export default function ProgressScreen() {
         if (rawGn) { localGenre = JSON.parse(rawGn); setGenreSessions(localGenre); }
       } catch {}
 
-      // Accent ADN + Shadow Speaking sessions (stored newest-first in each module)
-      try {
-        const rawAcc = await AsyncStorage.getItem('vf_accent_sessions');
-        if (rawAcc) setAccentSessions(JSON.parse(rawAcc));
-      } catch {}
-      try {
-        const rawSh = await AsyncStorage.getItem('vf_shadow_sessions');
-        if (rawSh) setShadowSessions(JSON.parse(rawSh));
-      } catch {}
+      // Accent ADN + Shadow Speaking sessions (stored newest-first in each module).
+      // Read the local cache first, then re-hydrate from Firestore — the local cache
+      // can be cleared on sign-out, but the sessions themselves live in the cloud
+      // ('sessions' collection, types 'accent'/'shadow'). Re-seed the local cache so
+      // every screen sees the cloud history again.
+      let localAcc: AccentSession[] = [];
+      let localSh: ShadowSession[] = [];
+      try { const r = await AsyncStorage.getItem('vf_accent_sessions'); if (r) localAcc = JSON.parse(r); } catch {}
+      try { const r = await AsyncStorage.getItem('vf_shadow_sessions'); if (r) localSh = JSON.parse(r); } catch {}
+      if (localAcc.length) setAccentSessions(localAcc);
+      if (localSh.length) setShadowSessions(localSh);
+
+      if (!isDemo) {
+        try {
+          const hToken = await getFreshToken();
+          if (hToken) {
+            const hRes = await fetch(`${API_URL}/auth/history`, { headers: { Authorization: `Bearer ${hToken}` } });
+            if (hRes.ok) {
+              const { sessions = [] } = await hRes.json();
+              const toTs = (s: any) => s.ts ?? (s.created_at ? Date.parse(s.created_at) : 0);
+              const dedupe = <T extends { ts: number }>(a: T[], b: T[]): T[] => {
+                const seen = new Set(a.map(x => x.ts));
+                return [...a, ...b.filter(x => !seen.has(x.ts))].sort((x, y) => y.ts - x.ts);
+              };
+              const cloudAcc: AccentSession[] = sessions
+                .filter((s: any) => s.type === 'accent' && s.accuracy_score != null)
+                .map((s: any) => ({ ts: toTs(s), accuracy_score: Number(s.accuracy_score) }))
+                .filter((s: AccentSession) => s.ts > 0);
+              const cloudSh: ShadowSession[] = sessions
+                .filter((s: any) => s.type === 'shadow' && (s.score != null || s.accuracy_score != null))
+                .map((s: any) => ({ ts: toTs(s), score: Number(s.score ?? s.accuracy_score) }))
+                .filter((s: ShadowSession) => s.ts > 0);
+              if (cloudAcc.length) {
+                const merged = dedupe(localAcc, cloudAcc);
+                setAccentSessions(merged);
+                AsyncStorage.setItem('vf_accent_sessions', JSON.stringify(merged.slice(0, 50))).catch(() => {});
+              }
+              if (cloudSh.length) {
+                const merged = dedupe(localSh, cloudSh);
+                setShadowSessions(merged);
+                AsyncStorage.setItem('vf_shadow_sessions', JSON.stringify(merged.slice(0, 50))).catch(() => {});
+              }
+            }
+          }
+        } catch {}
+      }
 
       // Firestore merge (survives reinstall — same /sessions endpoint)
       // Merges remote sessions not already in AsyncStorage, sorts ascending

@@ -14,6 +14,7 @@ import { useRouter, usePathname } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { clearAccountScopedStorage } from '@/utils/authCleanup';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Feather } from '@expo/vector-icons';
 import { useLanguage } from '@/context/Language';
@@ -153,7 +154,7 @@ export default function SidebarMenu({ onClose }: SidebarMenuProps) {
   const doSignOut = async () => {
     try {
       await signOut(auth);
-      await AsyncStorage.multiRemove(['authToken', 'onboardingCompleted']);
+      await clearAccountScopedStorage();
       onClose?.();
       router.replace('/login');
     } catch {

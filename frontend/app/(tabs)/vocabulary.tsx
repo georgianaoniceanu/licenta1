@@ -2187,12 +2187,12 @@ export default function VocabularyScreen() {
                     <Text style={styles.sectionTitle}>Measured Indicators</Text>
                     {([
                       ['MTLD', ep.indicators.mtld, 'Kolahi Ahari et al. (2025) β=.40', true],
-                      ['Lexical Density', `${ep.indicators.lexical_density}%`, 'Neumanova (2015) spoken range 45.7–48.5%', true],
+                      ['Lexical Density', `${ep.indicators.lexical_density}%`, 'Neumanova (2025) spoken range 45.7–48.5%', true],
                       ['Subordination Index', ep.indicators.subordination_index, 'Hunt (1965); Norris & Ortega (2009)', true],
-                      ['Syntax Error Rate', `${ep.indicators.syntactic_error_rate ?? '—'}/100w`, 'Neumanova (2015) B2=4.53, B1=6.91, A2=9.16', true],
+                      ['Syntax Error Rate', `${ep.indicators.syntactic_error_rate ?? '—'}/100w`, 'Neumanova (2025) B2=4.53, B1=6.91, A2=9.16', true],
                       ['B2+ Vocabulary', `${ep.indicators.b2plus_pct}%`, 'EVP Cambridge / Kolahi Ahari et al. (2025)', true],
                       ['Connective Density', `${ep.indicators.connective_density ?? 0}/100w`, 'Crossley, Kyle & McNamara (2016) TAACO', isWritingMode],
-                      ['Words/sec (WPS)', ep.indicators.wps, 'Foster & Tavakoli (2009); Neumanova (2015) p<0.012', !isWritingMode],
+                      ['Words/sec (WPS)', ep.indicators.wps, 'Foster & Tavakoli (2009); Neumanova (2025) p<0.012', !isWritingMode],
                       ['Filler Rate', `${ep.indicators.filler_rate}%`, 'Pallotti (2014) Filled-Pause Ratio', !isWritingMode],
                       ['Mean Sentence Length', ep.indicators.mls, '1-s2.0-S1075293520300714 — MLS linearly progresses', true],
                     ] as Array<[string, string | number, string, boolean]>)

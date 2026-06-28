@@ -472,45 +472,56 @@ export default function InitialDiagnosticScreen() {
             );
           })()}
 
-          {/* Exam Score Mapping (Cambridge CAE / TOEFL iBT / IELTS) */}
-          {diagnosis.exam_specific_scores && Object.keys(diagnosis.exam_specific_scores).length > 0 && (
-            <View style={styles.examCard}>
-              <Text style={styles.sectionTitle}>International Exam Mapping</Text>
-              <Text style={styles.examSubtitle}>
-                Scores estimated from your indicator profile · Cambridge / TOEFL / IELTS
-              </Text>
-              <View style={styles.examRow}>
-                {[
-                  { key: 'cambridge_cae', label: 'Cambridge\nCAE', max: 100, color: '#7C6FFF' },
-                  { key: 'toefl_ibt',    label: 'TOEFL\niBT',     max: 120, color: '#F59E0B' },
-                  { key: 'ielts_academic', label: 'IELTS\nAcademic', max: 9, color: '#10B981' },
-                ].map(({ key, label, max, color }) => {
-                  const raw = diagnosis.exam_specific_scores[key] ?? null;
-                  if (raw == null) return null;
-                  // backend returns 0-100 normalized; scale to native range
-                  const native = key === 'toefl_ibt' ? Math.round((raw / 100) * 120)
-                               : key === 'ielts_academic' ? ((raw / 100) * 9).toFixed(1)
-                               : Math.round(raw);
-                  const pct = Math.min(raw, 100);
-                  return (
-                    <View key={key} style={styles.examBox}>
+          {/* Exam mapping via OFFICIAL CEFR concordance (not a rescaled CAF score).
+              Cambridge English Scale + IELTS: "The methodology behind the Cambridge
+              English Scale" (2015), which aligns Cambridge exams, IELTS and CEFR on one
+              scale. TOEFL iBT totals summed from Tannenbaum & Wylie (2008), ETS RR-08-34,
+              Table 18. */}
+          {(() => {
+            const CEFR_EXAM: Record<string, { cambridge: string; toefl: string; ielts: string }> = {
+              A2: { cambridge: '120–139', toefl: '24–56',  ielts: '4.0' },
+              B1: { cambridge: '140–159', toefl: '57–86',  ielts: '4.0–5.0' },
+              B2: { cambridge: '160–179', toefl: '87–109', ielts: '5.5–6.5' },
+              C1: { cambridge: '180–199', toefl: '110–120', ielts: '7.0–8.0' },
+              C2: { cambridge: '200–230', toefl: '110–120', ielts: '8.5–9.0' },
+            };
+            const ORD: Record<string, number> = { A1: 1, A2: 2, B1: 3, B2: 4, C1: 5, C2: 6 };
+            const levels = (diagnosis.predicted_cefr || '').match(/[ABC][12]/g) || [];
+            const lvl = levels[0] || ''; // lower bound of the predicted band
+            const map = CEFR_EXAM[lvl] || null;
+            if (!map) return null;
+            const exams = [
+              { label: 'Cambridge\nEnglish Scale', range: map.cambridge, color: '#7C6FFF' },
+              { label: 'TOEFL\niBT', range: map.toefl, color: '#F59E0B' },
+              { label: 'IELTS\nAcademic', range: map.ielts, color: '#10B981' },
+            ];
+            const pct = ((ORD[lvl] ?? 1) / 6) * 100;
+            return (
+              <View style={styles.examCard}>
+                <Text style={styles.sectionTitle}>International Exam Mapping</Text>
+                <Text style={styles.examSubtitle}>
+                  Official CEFR concordance for level {lvl} — not estimated from your score
+                </Text>
+                <View style={styles.examRow}>
+                  {exams.map(({ label, range, color }) => (
+                    <View key={label} style={styles.examBox}>
                       <View style={[styles.examArc, { borderColor: color }]}>
-                        <Text style={[styles.examScore, { color }]}>{native}</Text>
-                        <Text style={styles.examMax}>/{max}</Text>
+                        <Text style={[styles.examScore, { color, fontSize: 18 }]}>{range}</Text>
                       </View>
                       <View style={styles.examBarTrack}>
                         <View style={[styles.examBarFill, { width: `${pct}%`, backgroundColor: color }]} />
                       </View>
                       <Text style={styles.examLabel}>{label}</Text>
                     </View>
-                  );
-                })}
+                  ))}
+                </View>
+                <Text style={styles.examNote}>
+                  Cambridge English Scale &amp; IELTS: Cambridge English Scale methodology (2015), which
+                  aligns Cambridge exams, IELTS and CEFR on one scale · TOEFL: Tannenbaum &amp; Wylie (2008), ETS RR-08-34
+                </Text>
               </View>
-              <Text style={styles.examNote}>
-                Cambridge CAE: 60+ pass · TOEFL iBT: 79+ university · IELTS: 6.5+ academic
-              </Text>
-            </View>
-          )}
+            );
+          })()}
 
           {/* Indicator bars */}
           <Text style={styles.sectionTitle}>10 Indicator Breakdown</Text>
@@ -610,15 +621,16 @@ export default function InitialDiagnosticScreen() {
             </View>
           )}
 
-          {/* IDL — Index of Developmental Levels (Neumanova 2025) */}
+          {/* Syntactic Maturity Composite — author-defined, NOT Neumanova's IDL */}
           {idl != null && (
             <View style={styles.enrichCard}>
-              <Text style={styles.enrichTitle}>Developmental Level (IDL)</Text>
-              <Text style={styles.enrichSource}>Neumanova (2025) — separates CEFR levels</Text>
+              <Text style={styles.enrichTitle}>Syntactic Maturity Composite</Text>
+              <Text style={styles.enrichSource}>Author-defined index (complexity × accuracy)</Text>
               <Text style={styles.idlValue}>{idl.toFixed(2)}</Text>
               <Text style={styles.enrichNote}>
-                IDL = (MLS × Subordination) ÷ (1 + Error Rate).
-                Higher = more syntactically complex and accurate.
+                Composite = (MLS × Subordination) ÷ (1 + Error Rate).
+                Higher = more syntactically complex and accurate. A custom blend of three
+                indicators above — not a separately validated metric.
               </Text>
             </View>
           )}

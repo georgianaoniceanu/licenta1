@@ -8,6 +8,8 @@ import { tickStreak } from '@/utils/streak';
 import { configureNotifications } from '@/utils/notifications';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getFreshToken } from '@/utils/auth';
+import { API_URL } from '@/constants/api';
 import {
   useFonts,
   Fredoka_300Light,
@@ -35,7 +37,27 @@ function AppShell() {
         const token = await AsyncStorage.getItem('authToken');
         if (!token) { router.replace('/login'); return; }
 
-        const onboardingDone = await AsyncStorage.getItem('onboardingCompleted');
+        let onboardingDone = await AsyncStorage.getItem('onboardingCompleted');
+        if (onboardingDone !== 'true') {
+          // The local flag can be missing (e.g. after a sign-out cleared it, or on a
+          // new device) even though the account HAS onboarded. Confirm with the
+          // backend (source of truth) before sending the user back to onboarding.
+          try {
+            const fresh = await getFreshToken();
+            if (fresh) {
+              const res = await fetch(`${API_URL}/auth/onboarding`, {
+                headers: { Authorization: `Bearer ${fresh}` },
+              });
+              if (res.ok) {
+                const profile = await res.json();
+                if (profile?.onboarding_completed) {
+                  await AsyncStorage.setItem('onboardingCompleted', 'true');
+                  onboardingDone = 'true';
+                }
+              }
+            }
+          } catch { /* offline: fall back to the local flag below */ }
+        }
         if (onboardingDone !== 'true') { router.replace('/onboarding'); return; }
 
         const diagnosticDone = await AsyncStorage.getItem('diagnosticCompleted');

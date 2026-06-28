@@ -318,7 +318,9 @@ class AssessmentWorkflowEngine:
         self,
         user_id: str,
         pain_points: List[str],
-        measured_indicators: Dict[IndicatorType, float]
+        measured_indicators: Dict[IndicatorType, float],
+        self_ratings: Dict[str, int] = None,
+        speech_measurements: Dict[str, float] = None
     ) -> DualDiagnosisResult:
         """
         Compare learner's self-perceived pain points with system measurements.
@@ -336,59 +338,90 @@ class AssessmentWorkflowEngine:
         user_underestimates = []
         aligned = []
         
-        # Map pain points to indicators
-        pain_to_indicator = {
-            "pronunciation": IndicatorType.ARTICULATION_RATE,
-            "grammar": IndicatorType.MORPHOSYNTACTIC_ACCURACY,
-            "vocabulary": IndicatorType.LEXICAL_DIVERSITY,
-            "fluency": IndicatorType.PAUSE_FREQUENCY,
-            "speaking": IndicatorType.ARTICULATION_RATE,
-            "writing": IndicatorType.SYNTACTIC_COMPLEXITY,
-            "comprehension": IndicatorType.LEXICAL_SOPHISTICATION,
+        # Map each onboarding skill to the TEXT indicator that genuinely measures it.
+        # The initial diagnostic is text-only, so only these can be measured here.
+        skill_to_indicator = {
+            "vocabulary":          IndicatorType.LEXICAL_DIVERSITY,
+            "word_choice":         IndicatorType.LEXICAL_SOPHISTICATION,
+            "grammar":             IndicatorType.MORPHOSYNTACTIC_ACCURACY,
+            "sentence_length":     IndicatorType.SENTENCE_COMPLEXITY,
+            "complex_structures":  IndicatorType.SUBORDINATION_RATIO,
+            "coherence":           IndicatorType.COHESION_SCORE,
+            # legacy aliases
+            "writing":             IndicatorType.SYNTACTIC_COMPLEXITY,
+            "comprehension":       IndicatorType.LEXICAL_SOPHISTICATION,
         }
-        
-        for pain in pain_points:
-            indicator = pain_to_indicator.get(pain.lower(), None)
-            if not indicator:
-                continue
-            
-            # A flagged pain point means the learner believes they are WEAK here,
-            # so their perceived proficiency is LOW (~4/10), not high.
-            user_score_10 = 4
-            user_score_100 = user_score_10 * 10  # perceived proficiency, 0-100
-            # Normalise the raw indicator (MTLD, articulation rate, etc. are in
-            # different units) to a 0-100 score before comparing to the learner's
-            # 0-100 self-perception — otherwise raw values like articulation_rate
-            # ≈ 2.0 read as "2%" and every sound-related area looks mismeasured.
-            raw_val = measured_indicators.get(indicator)
-            if raw_val is None:
-                system_measured = 50.0
+        # Speech skills CANNOT be measured from writing. Their real score comes from
+        # the learner's speaking sessions (Accent ADN → pronunciation, Shadow →
+        # fluency), passed in as already-normalised 0-100 values. If absent we say so
+        # honestly instead of imputing a number from the writing level.
+        SPEECH_SKILLS = {"pronunciation", "fluency", "speaking"}
+        speech_measurements = {k.lower(): v for k, v in (speech_measurements or {}).items()}
+
+        # Compare every skill the learner rated, plus any flagged pain point.
+        skills = sorted(set((self_ratings or {}).keys()) | set(pain_points))
+
+        for skill in skills:
+            skill_l = skill.lower()
+
+            # The learner's REAL self-rating (1-5 scale), mapped to 0-100:
+            # 1→10, 2→30, 3→50, 4→70, 5→90.
+            rating = (self_ratings or {}).get(skill)
+            if rating:
+                user_score_100 = max(0.0, min(100.0, rating * 20 - 10))
             else:
+                # Backward-compat: a flagged area with no rating is assumed weak (~40%).
+                user_score_100 = 40.0
+
+            # --- System side (real measurement only) ---
+            if skill_l in SPEECH_SKILLS:
+                system_measured = speech_measurements.get(skill_l)
+                if system_measured is None:
+                    discrepancies[skill] = {
+                        "user_score": round(user_score_100, 1),
+                        "system_score": None,
+                        "gap": None,
+                        "status": "not_measured",
+                        "interpretation": (
+                            "Not measured yet — speaking skills come from your Accent ADN "
+                            "and Shadow Speaking sessions, not the writing diagnostic. "
+                            "Do a speaking session to compare."
+                        ),
+                    }
+                    continue
+            else:
+                indicator = skill_to_indicator.get(skill_l)
+                if not indicator:
+                    continue
+                raw_val = measured_indicators.get(indicator)
+                if raw_val is None:
+                    continue  # never fabricate a measurement we don't have
                 system_measured = self.calc.evaluate_indicator(indicator, raw_val)["normalized_score"]
 
-            # Gap = system − self. Positive → the system rates you higher than you rate yourself.
+            # Gap = system − self. Positive → the system rates you higher than you do.
             gap = system_measured - user_score_100
 
             if abs(gap) <= 20:
                 status = "aligned"
-                aligned.append(pain)
+                aligned.append(skill)
                 interpretation = (f"Confirmed: the system measures ~{system_measured:.0f}%, close to "
-                                  f"how you rate yourself — a real area to focus on.")
+                                  f"how you rate yourself.")
             elif gap > 20:
                 status = "overestimates_problem"
-                user_overestimates.append(pain)
+                user_overestimates.append(skill)
                 interpretation = (f"Better than you think: measured {system_measured:.0f}% vs your "
                                   f"~{user_score_100:.0f}% self-rating — a relative strength, less urgent.")
             else:
                 status = "underestimates_problem"
-                user_underestimates.append(pain)
+                user_underestimates.append(skill)
                 interpretation = (f"Weaker than you think: measured {system_measured:.0f}% vs your "
                                   f"~{user_score_100:.0f}% self-rating — high priority.")
 
-            discrepancies[pain] = {
-                "user_score_10": user_score_10,
-                "system_score_100": round(system_measured, 1),
-                "gap_points": round(gap, 1),
+            discrepancies[skill] = {
+                # Keys the frontend DiscrepancyBar reads (0-100 scale).
+                "user_score": round(user_score_100, 1),
+                "system_score": round(system_measured, 1),
+                "gap": round(gap, 1),
                 "status": status,
                 "interpretation": interpretation
             }

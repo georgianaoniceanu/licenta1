@@ -9,7 +9,7 @@ from app.services.onboarding import (
     is_onboarding_complete,
 )
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict
 
 router = APIRouter()
 
@@ -25,6 +25,7 @@ class OnboardingInput(BaseModel):
     target_exam: str
     perceived_weak_areas: List[str]
     daily_study_minutes: int
+    self_ratings: Dict[str, int] = {}
 
 
 @router.post("/verify")
@@ -91,6 +92,7 @@ async def submit_onboarding(
             target_exam=body.target_exam,
             perceived_weak_areas=body.perceived_weak_areas,
             daily_study_minutes=body.daily_study_minutes,
+            self_ratings=body.self_ratings,
         )
 
         success = save_onboarding(data)
