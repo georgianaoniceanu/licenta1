@@ -9,7 +9,7 @@ api_key = os.getenv("ELEVENLABS_API_KEY")
 if not api_key:
     raise RuntimeError("ELEVENLABS_API_KEY not found in environment variables")
 
-print(f"[TTS] API Key loaded: {api_key[:10]}...")
+print("[TTS] API key loaded")
 client = ElevenLabs(api_key=api_key)
 
 

@@ -18,10 +18,7 @@ from typing import Dict, List, Optional
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel
 
-from sqlalchemy.orm import Session
 
-from database import get_db, OnboardingProfile
-from app import schemas as api_schemas
 
 from app.services.vocabulary_management import (
     vocabulary_manager, VocabularyManager, CEFRLevel
@@ -540,98 +537,6 @@ def get_assessment_report(user_id: str):
             "Barrot, J. S., & Agdeppa, J. Y. (2021). Complexity, accuracy, and fluency as indices of college-level L2 writers' proficiency. Assessing Writing, 47, 100510."
         ],
         "assessment_methodology": "CAF (Complexity-Accuracy-Fluency) framework with 10 standardized SLA research-backed indicators mapped to CEFR levels and international exams."
-    }
-
-
-@router.post("/onboarding/generate-learning-path")
-def generate_learning_path(user_identifier: Optional[str] = None, profile_id: Optional[int] = None, db: Session = Depends(get_db)):
-    """Generate a learning path mapped to an international exam based on onboarding profile.
-
-    Provide either `user_identifier` (string) or `profile_id` (int).
-    """
-    # fetch profile
-    q = db.query(OnboardingProfile)
-    if profile_id:
-        profile = q.filter(OnboardingProfile.profile_id == profile_id).first()
-    elif user_identifier:
-        profile = q.filter(OnboardingProfile.user_identifier == user_identifier).first()
-    else:
-        raise HTTPException(status_code=400, detail="Provide user_identifier or profile_id")
-
-    if not profile:
-        raise HTTPException(status_code=404, detail="Onboarding profile not found")
-
-    # map stored exam string to ExamType enum
-    exam_map = {
-        "Cambridge CAE": ExamType.CAMBRIDGE_CAE,
-        "Cambridge CPE": ExamType.CAMBRIDGE_CPE,
-        "Cambridge FCE": ExamType.CAMBRIDGE_FCE,
-        "TOEFL iBT": ExamType.TOEFL_iBT,
-        "IELTS": ExamType.IELTS_ACADEMIC,
-        "Aptis": ExamType.PTE_CORE,
-    }
-
-    if not profile.target_exam:
-        raise HTTPException(status_code=400, detail="No target_exam set on profile")
-
-    exam_enum = exam_map.get(profile.target_exam, None)
-    if not exam_enum:
-        raise HTTPException(status_code=400, detail=f"Unsupported target exam: {profile.target_exam}")
-
-    # retrieve weights
-    weights = assessment_calculator.indicators_db.EXAM_WEIGHTS.get(exam_enum, None)
-
-    indicators = assessment_calculator.get_all_indicators()
-    prioritized = []
-    if weights:
-        for ind in indicators:
-            w = weights.get(ind.indicator, 0.0)
-            prioritized.append({
-                "indicator": ind.indicator.value,
-                "name": ind.name,
-                "weight": w,
-                "top_source": ind.primary_research[0] if ind.primary_research else None
-            })
-        prioritized.sort(key=lambda x: x["weight"], reverse=True)
-    else:
-        # fallback: equal weighting
-        for ind in indicators:
-            prioritized.append({
-                "indicator": ind.indicator.value,
-                "name": ind.name,
-                "weight": round(1.0 / len(indicators), 3),
-                "top_source": ind.primary_research[0] if ind.primary_research else None
-            })
-
-    # suggest modules based on top indicators
-    indicator_to_module = {
-        "articulation_rate": "pronunciation_drills",
-        "pause_frequency": "fluency_practice",
-        "morphosyntactic_accuracy": "grammar_refresher",
-        "lexical_diversity": "vocabulary_booster",
-        "lexical_sophistication": "vocabulary_advanced",
-        "cohesion_score": "discourse_cohesion_workshop",
-        "sentence_complexity": "syntax_building",
-        "subordination_ratio": "complex_sentences",
-        "syntactic_complexity": "clause_integration",
-        "word_length": "morphology_exercises",
-    }
-
-    top_inds = [p["indicator"] for p in prioritized[:3]]
-    recommended_modules = []
-    for tid in top_inds:
-        mod = indicator_to_module.get(tid, None)
-        if mod and mod not in recommended_modules:
-            recommended_modules.append(mod)
-
-    return {
-        "user_identifier": profile.user_identifier,
-        "profile_id": profile.profile_id,
-        "target_exam": profile.target_exam,
-        "exam_enum": exam_enum.value,
-        "prioritized_indicators": prioritized,
-        "recommended_modules": recommended_modules,
-        "note": "Use these weights to prioritize training modules and generate a domain-specific learning path"
     }
 
 
@@ -1216,48 +1121,3 @@ def get_exam_indicator_mapping(exam_type: str):
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid exam type: {exam_type}")
 
-
-@router.post("/onboarding/initial-assessment")
-def create_initial_assessment(payload: api_schemas.OnboardingRequest, db: Session = Depends(get_db)) -> api_schemas.OnboardingResponse:
-    """
-    Create and persist initial onboarding profile. Accepts full onboarding questionnaire
-    and returns a short onboarding response with initial module suggestions.
-    """
-    # persist profile
-    profile = OnboardingProfile(
-        user_identifier=payload.user_id,
-        learning_goal=payload.learning_goals.value if hasattr(payload.learning_goals, 'value') else str(payload.learning_goals),
-        primary_domain=str(payload.primary_domain),
-        pain_points=[p.value if hasattr(p, 'value') else str(p) for p in payload.pain_points],
-        target_exam=payload.target_exam.value if payload.target_exam else None,
-        self_assessed_cefr=payload.self_assessed_cefr.value if hasattr(payload.self_assessed_cefr, 'value') else str(payload.self_assessed_cefr),
-        study_hours_per_week=payload.study_hours_per_week,
-        previous_experience=payload.previous_experience
-    )
-
-    db.add(profile)
-    db.commit()
-    db.refresh(profile)
-
-    # minimal initial recommendations based on pain points
-    pain_set = set([p.lower() for p in (profile.pain_points or [])])
-    initial_modules = []
-    if 'pronunciation' in pain_set:
-        initial_modules.append('pronunciation_drills')
-    if 'vocabulary' in pain_set:
-        initial_modules.append('vocabulary_booster')
-    if 'grammar' in pain_set:
-        initial_modules.append('grammar_refresher')
-    if not initial_modules:
-        initial_modules = ['general_fluency_path']
-
-    resp = api_schemas.OnboardingResponse(
-        user_id=payload.user_id,
-        profile_created=True,
-        learning_path_generated=False,
-        initial_modules_recommended=initial_modules,
-        estimated_completion_weeks=max(4, payload.study_hours_per_week // 2),
-        next_step="Complete initial indicator measurements and upload a short speaking sample",
-        timestamp=""
-    )
-    return resp
