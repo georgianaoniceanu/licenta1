@@ -181,17 +181,34 @@ def transcribe_audio_with_timestamps(audio_file_path: str) -> dict:
     text     = getattr(result, "text", "") or ""
     raw_segs = getattr(result, "segments", []) or []
 
-    # Normalise segments to plain dicts
+    # Groq returns each segment as a dict ({"start":.., "end":.., "text":..});
+    # older SDKs return objects. Read both — attribute access alone (getattr) would
+    # silently yield 0 on dicts, zeroing out duration/WPM/pause metrics.
+    def _seg(s, key, default=0):
+        val = s.get(key, default) if isinstance(s, dict) else getattr(s, key, default)
+        return default if val is None else val
+
     segments = [
         {
-            "start": float(getattr(s, "start", 0) or 0),
-            "end":   float(getattr(s, "end",   0) or 0),
-            "text":  str(getattr(s,  "text",  "") or "").strip(),
+            "start": float(_seg(s, "start", 0) or 0),
+            "end":   float(_seg(s, "end",   0) or 0),
+            "text":  str(_seg(s, "text", "") or "").strip(),
         }
         for s in raw_segs
     ]
 
     duration_s = segments[-1]["end"] if segments else 0.0
+
+    # Fallback: if timestamps are missing/zero, read the real duration straight
+    # from the audio so WPM still works (pause metrics need segments, but rate won't be 0).
+    if duration_s <= 0:
+        try:
+            import librosa
+            y, _sr = librosa.load(audio_file_path, sr=16000, mono=True)
+            duration_s = round(len(y) / 16000, 2)
+        except Exception as _dur_err:
+            print(f"[transcribe_ts] duration fallback failed: {_dur_err}")
+
     n_words    = len(text.split()) if text.strip() else 0
     wpm        = round(n_words / duration_s * 60) if duration_s > 0 else 0
 

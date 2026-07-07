@@ -42,22 +42,14 @@ from app.schemas import (
     AssessmentProgressResponse, ValidationReportResponse
 )
 
-# Optional services: keep API bootable even if research modules are not present.
-try:
-    from app.services.domain_comparison import DomainComparison
-except Exception:
-    DomainComparison = None
+# Legacy research endpoints below guard on these. The modules were never shipped,
+# so DomainComparison / UniversalVocabularyAnalyzer stay None and those endpoints
+# report "unavailable". DualDiagnosis uses the dataclass from assessment_indicators.
+from app.services.assessment_indicators import DualDiagnosis
 
-try:
-    from app.services.dual_diagnosis import DualDiagnosis
-except Exception:
-    from app.services.assessment_indicators import DualDiagnosis
-
-try:
-    from app.services.universal_vocabulary import UniversalVocabularyAnalyzer, VocabularyType
-except Exception:
-    UniversalVocabularyAnalyzer = None
-    VocabularyType = None
+DomainComparison = None
+UniversalVocabularyAnalyzer = None
+VocabularyType = None
 
 router = APIRouter()
 
