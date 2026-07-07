@@ -44,10 +44,6 @@ _SERVICE_DIR  = os.path.dirname(os.path.abspath(__file__))
 _MODEL_PATH   = os.path.join(_SERVICE_DIR, "..", "models", "cefr_ordinal_model.pkl")
 _MODEL_PATH   = os.path.normpath(_MODEL_PATH)
 
-# Fallback to legacy RF model if ordinal model not yet generated
-_LEGACY_PATH  = os.path.join(_SERVICE_DIR, "..", "models", "cefr_rf_model.pkl")
-_LEGACY_PATH  = os.path.normpath(_LEGACY_PATH)
-
 # ── Feature names (10 CAF indicators) ─────────────────────────────────────────
 FEATURES = [
     "lexical_diversity",        # MTLD
@@ -62,7 +58,7 @@ FEATURES = [
     "morphosyntactic_accuracy", # Error-free clauses/C-unit x100
 ]
 
-# Legacy RF feature aliases (to accept both naming conventions)
+# Feature aliases (accept alternative naming conventions)
 _FEATURE_ALIASES = {
     "speech_rate": "articulation_rate",
     "filler_rate": None,   # ignored — no text equivalent
@@ -84,11 +80,6 @@ def _load_bundle() -> dict:
         if os.path.exists(_MODEL_PATH):
             _bundle = joblib.load(_MODEL_PATH)
             logger.info("Ordinal LR+SVM model loaded from %s", _MODEL_PATH)
-        elif os.path.exists(_LEGACY_PATH):
-            # Legacy RF bundle — wrap in compatible structure
-            legacy = joblib.load(_LEGACY_PATH)
-            _bundle = {"_legacy_rf": legacy}
-            logger.warning("Ordinal model not found; fell back to legacy RF at %s", _LEGACY_PATH)
         else:
             raise FileNotFoundError(
                 f"No CEFR model found. Run train_cefr_ordinal.py first."
@@ -138,34 +129,6 @@ def _resolve_features(features: dict, model_feats: list) -> np.ndarray:
     ).reshape(1, -1)
 
 
-def _legacy_rf_predict(features: dict, legacy: dict) -> dict:
-    """Fallback: use original RF bundle if ordinal model not available."""
-    rf          = legacy["model"]
-    model_feats = legacy.get("features", FEATURES[:9])  # RF was 9-feature
-    x           = _resolve_features(features, model_feats)
-
-    pred_label = int(rf.predict(x)[0])
-    proba      = rf.predict_proba(x)[0]
-    classes    = rf.classes_
-    # RF was trained with {0:B1, 1:B2, 2:C1-C2} — 3-class
-    rf_labels  = {0: "B1", 1: "B2", 2: "C1-C2"}
-    all_proba  = {rf_labels[int(c)]: round(float(p), 4)
-                  for c, p in zip(classes, proba)}
-    confidence = round(float(proba[list(classes).index(pred_label)]), 4)
-
-    return {
-        "predicted_cefr":    rf_labels[pred_label],
-        "predicted_label":   pred_label,
-        "confidence":        confidence,
-        "all_probabilities": all_proba,
-        "model_info": {
-            "algorithm":   "RandomForest (legacy fallback)",
-            "n_features":  len(model_feats),
-            "cv_accuracy": "~59% (5-fold, 3-class B1/B2/C1-C2)",
-        },
-    }
-
-
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def predict_cefr(features: dict) -> dict:
@@ -189,10 +152,6 @@ def predict_cefr(features: dict) -> dict:
         model_info          : dict  metadata about the model
     """
     bundle = _load_bundle()
-
-    # ── Legacy RF fallback ────────────────────────────────────────────────────
-    if "_legacy_rf" in bundle:
-        return _legacy_rf_predict(features, bundle["_legacy_rf"])
 
     # ── Ordinal LR + SVM ensemble ─────────────────────────────────────────────
     ordinal_lr  = bundle["ordinal_lr"]

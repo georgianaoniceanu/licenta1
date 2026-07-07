@@ -12,7 +12,7 @@ Tier 1 (ALWAYS ON):
 
 Tier 2 (OPTIONAL — higher acoustic precision):
   Google Colab notebook (backend/colab/phoneme_assessment_colab.py)
-  exposed via ngrok → wav2vec2-lv-60-espeak phoneme recognition
+  exposed via Cloudflare tunnel → wav2vec2-xlsr-53-espeak-cv-ft phoneme recognition
   Set COLAB_PHONEME_URL in .env to enable. When reachable, replaces
   Tier 1 with genuine audio-level phoneme transcription.
 

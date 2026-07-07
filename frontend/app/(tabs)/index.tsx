@@ -791,9 +791,10 @@ export default function HomeScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Redo onboarding */}
+          {/* Redo onboarding — exit demo first so the NEW real answers show
+              everywhere (in demo mode every screen overrides with preset data). */}
           <TouchableOpacity
-            onPress={() => router.push('/onboarding')}
+            onPress={async () => { await clearDemoData(); router.push('/onboarding'); }}
             activeOpacity={0.85}
             style={S.redoOnboardingBtn}
           >
