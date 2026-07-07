@@ -127,10 +127,13 @@ def _local_prosody(learner_path: str, native_path: str) -> dict:
             return np.where(~np.isnan(f0), 12 * np.log2(np.maximum(f0, 1e-9) / mean), 0.0)
 
         st_l, st_n = to_st(f0_l), to_st(f0_n)
-        voiced_mask = (st_l != 0.0) & (st_n != 0.0)
-        l_v, n_v = st_l[voiced_mask], st_n[voiced_mask]
+        # Learner and native clips differ in length, so mask each contour on its
+        # OWN voiced frames — DTW then aligns the two unequal-length sequences.
+        # (A shared element-wise mask would crash on the shape mismatch.)
+        l_v = st_l[st_l != 0.0]
+        n_v = st_n[st_n != 0.0]
 
-        if len(l_v) >= 5:
+        if len(l_v) >= 5 and len(n_v) >= 5:
             d = _dtw_distance_1d(l_v, n_v)
             pitch_score = max(0, min(100, round(100 * math.exp(-d / 1.5))))
         else:
