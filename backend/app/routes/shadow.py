@@ -92,8 +92,22 @@ async def analyze_shadow(
         tmp_path = tmp.name
 
     try:
-        # 1) Transcribe with timestamps → text + WPM (de Jong & Wempe 2009)
-        ts_result   = transcribe_audio_with_timestamps(tmp_path)
+        # 1) Transcribe with timestamps → text + WPM (de Jong & Wempe 2009).
+        #    Guard invalid clips: an empty/corrupt recording makes Whisper (Groq)
+        #    return a 400, which would otherwise surface to the user as a 500 crash.
+        if len(content) < 1000:
+            return JSONResponse(
+                {"error": "Recording is empty or too short — please record again."},
+                status_code=400,
+            )
+        try:
+            ts_result = transcribe_audio_with_timestamps(tmp_path)
+        except Exception as _asr_err:
+            logger.warning("Shadow transcription failed (invalid audio?): %s", _asr_err)
+            return JSONResponse(
+                {"error": "Could not process the audio. Please record again — make sure the clip isn't empty, too short, or corrupted."},
+                status_code=400,
+            )
         transcribed = ts_result["text"]
         wpm         = ts_result["wpm"]
 
