@@ -1,5 +1,4 @@
-"""
-Spaced Repetition System (SRS) for vocabulary retention.
+"""Spaced Repetition System (SRS) for vocabulary retention.
 
 Uses SM-2 algorithm for adaptive review scheduling:
 - easiness factor (EF): determines interval growth
@@ -16,8 +15,7 @@ Research Foundation:
 - Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., & Rohrer, D. (2006). Distributed
   practice in verbal recall tasks: A review and quantitative synthesis. Psychological
   Bulletin, 132(3), 354–380. [Cepeda2006] Confirms spaced re-use as the strongest
-  predictor of long-term lexical retention over massed practice.
-"""
+  predictor of long-term lexical retention over massed practice."""
 
 from datetime import datetime, timedelta
 import json

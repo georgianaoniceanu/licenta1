@@ -15,7 +15,7 @@ from enum import Enum
 from typing import Dict, List, Set, Optional
 from dataclasses import dataclass, field
 
-# ── COCA sub-category → top-level group mapping ───────────────────────────────
+#COCA sub-category -> top-level group mapping 
 _SUBCAT_TO_GROUP = {}
 for _code in [str(c) for c in range(101, 110)]:  _SUBCAT_TO_GROUP[_code] = "spoken"
 for _code in [str(c) for c in [114,115,116,117,118,119]]:  _SUBCAT_TO_GROUP[_code] = "fiction"
@@ -110,7 +110,7 @@ class AcademicWordList:
     570 word families organized in 10 sublists by frequency
     """
     
-    # Sublist 1: Most frequent academic words (90 word families)
+    #Sublist 1: Most frequent academic words (90 word families)
     SUBLIST_1 = {
         'analyse': ['analyse', 'analyzed', 'analyzes', 'analyzing', 'analysis', 'analyst', 'analytical', 'analyze'],
         'approach': ['approach', 'approaches', 'approached', 'approaching'],
@@ -393,7 +393,7 @@ class VocabularyManager:
            the rank-based CEFR with their validated level and always include
            "academic" in their domains.
         """
-        # ── 1. Load COCA lemmas ───────────────────────────────────────────────
+        #1. Load COCA lemmas
         coca = _load_coca()
         for lemma, dist in coca.items():
             rank = dist.get("_rank", 999999)
@@ -409,7 +409,7 @@ class VocabularyManager:
                 frequency_rank=rank,
             )
 
-        # ── 2. AWL Sublist 1 (B1, academic) ──────────────────────────────────
+        # 2. AWL Sublist 1 (B1, academic) 
         for headword, word_family in AcademicWordList.SUBLIST_1.items():
             existing = self.vocabulary_db.get(headword)
             domains = (existing.domains | {"academic"}) if existing else {"academic"}
@@ -422,7 +422,7 @@ class VocabularyManager:
                 frequency_rank=existing.frequency_rank if existing else None,
             )
 
-        # ── 3. AWL Sublist 2 (B2, academic) ──────────────────────────────────
+        # 3. AWL Sublist 2 (B2, academic)
         for headword, word_family in AcademicWordList.SUBLIST_2.items():
             existing = self.vocabulary_db.get(headword)
             domains = (existing.domains | {"academic"}) if existing else {"academic"}

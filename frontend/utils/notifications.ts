@@ -10,6 +10,13 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
+
+// expo-notifications' remote/push features were removed from Expo Go (SDK 53+),
+// which logs an error on launch. Treat Expo Go like web: all notification calls
+// become no-ops here. They still work in a real development/production build.
+const IN_EXPO_GO = Constants.executionEnvironment === 'storeClient';
+const DISABLED = Platform.OS === 'web' || IN_EXPO_GO;
 
 // Default times (24h, device-local).
 const DAILY_HOUR = 19;
@@ -25,7 +32,7 @@ let configured = false;
 
 /** Install the foreground handler + Android channel. Call once on app launch. */
 export function configureNotifications(): void {
-  if (configured || Platform.OS === 'web') return;
+  if (configured || DISABLED) return;
   configured = true;
 
   Notifications.setNotificationHandler({
@@ -47,7 +54,7 @@ export function configureNotifications(): void {
 
 /** Ask the OS for permission. Returns true if granted. */
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (DISABLED) return false;
   try {
     const { status } = await Notifications.getPermissionsAsync();
     if (status === 'granted') return true;
@@ -64,7 +71,7 @@ export async function scheduleDailyReminder(
   hour: number = DAILY_HOUR,
   minute: number = DAILY_MINUTE,
 ): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (DISABLED) return;
   await cancelDailyReminder();
   try {
     const id = await Notifications.scheduleNotificationAsync({
@@ -85,7 +92,7 @@ export async function scheduleDailyReminder(
 }
 
 export async function cancelDailyReminder(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (DISABLED) return;
   try {
     const id = await AsyncStorage.getItem(DAILY_ID_KEY);
     if (id) {
@@ -103,7 +110,7 @@ export async function scheduleReviewReminder(
   hour: number = REVIEW_HOUR,
   minute: number = REVIEW_MINUTE,
 ): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (DISABLED) return;
   await cancelReviewReminder();
   try {
     const id = await Notifications.scheduleNotificationAsync({
@@ -124,7 +131,7 @@ export async function scheduleReviewReminder(
 }
 
 export async function cancelReviewReminder(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (DISABLED) return;
   try {
     const id = await AsyncStorage.getItem(REVIEW_ID_KEY);
     if (id) {
@@ -144,7 +151,7 @@ export async function setAchievementAlertsEnabled(enabled: boolean): Promise<voi
 
 /** Fire an immediate local notification for an unlocked achievement. */
 export async function notifyAchievement(title: string, body: string): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (DISABLED) return;
   try {
     const enabled = await AsyncStorage.getItem(ACHIEVEMENTS_KEY);
     if (enabled === 'false') return; // default ON when unset

@@ -14,16 +14,16 @@ if backend_root not in sys.path:
 # Load environment variables from backend/.env regardless of current working directory
 load_dotenv(os.path.join(backend_root, ".env"))
 
-# Initializam Firebase o singura data aici (optional for development)
+#Initializam Firebase o singura data aici (optional for development)
 try:
     firebase_key_path = os.path.join(backend_root, "firebase_key.json")
     if os.path.exists(firebase_key_path):
         cred = credentials.Certificate(firebase_key_path)
         firebase_admin.initialize_app(cred)
     else:
-        print("⚠️  Firebase key not found - running in test mode")
+        print("Firebase key not found - running in test mode")
 except Exception as e:
-    print(f"⚠️  Firebase initialization failed: {e} - running in test mode")
+    print(f"Firebase initialization failed: {e} - running in test mode")
 
 from app.routes.vocabulary import router as vocabulary_router
 from app.routes.auth import router as auth_router
@@ -73,9 +73,9 @@ async def on_startup():
     try:
         from app.services.vocabulary_coach import _get_vocabulary_bank
         bank = _get_vocabulary_bank()
-        print(f"✅ Vocabulary bank ready: {len(bank)} words")
+        print(f"Vocabulary bank ready: {len(bank)} words")
     except Exception as e:
-        print(f"⚠️  Vocabulary bank init failed: {e}")
+        print(f"Vocabulary bank init failed: {e}")
 
 
 @app.get("/")

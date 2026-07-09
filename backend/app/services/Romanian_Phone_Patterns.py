@@ -7,9 +7,7 @@ by Romanian and French Learners of English. University of Bucharest.
 This module maps specific phonological errors expected from Romanian speakers learning English.
 """
 
-# ============================================================================
 # 1. VOWEL SYSTEMS - Tense-Lax Confusion
-# ============================================================================
 
 VOWEL_DIFFICULTIES = {
     "/i:/ vs /ɪ/": {
@@ -71,9 +69,9 @@ VOWEL_DIFFICULTIES = {
 }
 
 
-# ============================================================================
+
 # 2. CONSONANT SYSTEMS - Missing Phonemes
-# ============================================================================
+
 
 CONSONANT_DIFFICULTIES = {
     "/θ/": {
@@ -122,9 +120,9 @@ CONSONANT_DIFFICULTIES = {
 }
 
 
-# ============================================================================
+
 # 3. ALLOPHONES - Positional Variations
-# ============================================================================
+
 
 ALLOPHONE_DIFFICULTIES = {
     "Dark L [ɫ]": {
@@ -160,9 +158,9 @@ ALLOPHONE_DIFFICULTIES = {
 }
 
 
-# ============================================================================
+
 # 4. COMBINED DIFFICULTY MATRIX
-# ============================================================================
+
 
 ROMANIAN_SPEAKER_PHONEME_RANKING = [
     # High Difficulty (90+)
@@ -185,9 +183,9 @@ ROMANIAN_SPEAKER_PHONEME_RANKING = [
 ]
 
 
-# ============================================================================
+
 # 5. INTERVENTION STRATEGIES PER PHONEME
-# ============================================================================
+
 
 INTERVENTION_STRATEGIES = {
     "/u:/ vs /ʊ/": {
@@ -252,9 +250,9 @@ INTERVENTION_STRATEGIES = {
 }
 
 
-# ============================================================================
+
 # 6. DATA FOR HEATMAP VISUALIZATION
-# ============================================================================
+
 
 HEATMAP_DATA = {
     "title": "Romanian Speakers' English Phonological Difficulties",
@@ -284,9 +282,8 @@ HEATMAP_DATA = {
 }
 
 
-# ============================================================================
 # 7. DIFFICULTY CLASSIFICATION FOR EXERCISES
-# ============================================================================
+
 
 PHONEME_EXERCISE_LEVELS = {
     "CRITICAL (Start here)": [
@@ -308,5 +305,3 @@ PHONEME_EXERCISE_LEVELS = {
         {"phoneme": "/ə/", "course_level": "B2-C1", "priority": 9},
     ],
 }
-
-# (no side-effect prints — import-safe)

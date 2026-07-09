@@ -205,6 +205,7 @@ export default function OnboardingScreen() {
 
   const handleBack = () => {
     if (currentStep > 0) transitionStep(currentStep - 1);
+    else router.back();
   };
 
   const handleSubmit = async () => {
@@ -640,14 +641,10 @@ export default function OnboardingScreen() {
 
       {/* Navigation buttons */}
       <View style={styles.navRow}>
-        {currentStep > 0 ? (
-          <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
-            <Feather name="chevron-left" size={18} color={TINT} />
-            <Text style={styles.backBtnText}>Back</Text>
-          </TouchableOpacity>
-        ) : (
-          <View style={styles.backBtn} />
-        )}
+        <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.8}>
+          <Feather name="chevron-left" size={18} color={TINT} />
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.nextBtn, !isCurrentStepComplete() && styles.nextBtnDisabled]}

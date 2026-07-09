@@ -1,15 +1,4 @@
-"""
-Vocabulary Coach Service — Refactored to use vocabulary_enriched.json
-
-CHANGES FROM ORIGINAL:
-1. VOCABULARY_DATA hardcoded ❌ → Load from app/data/vocabulary_enriched.json ✅
-2. Added: seed_vocabulary_bank() — populates Firestore with 570 academic words
-3. Added: track_lexical_patterns() — identifies generic word usage patterns
-4. Added: get_lexical_patterns() — returns user's most frequent generic words
-5. get_random_exercise() now prioritizes personalized exercises from patterns
-6. All other functions preserved: analyze_vocabulary, submit_exercise, stats, etc.
-
-Research Foundation:
+"""Research Foundation:
 - Coxhead, A. (2000). Academic Word List — 570 words across 10 sublists.
 - DeKeyser, R. M., & Suzuki, Y. (2025). Skill acquisition theory. In VanPatten et al.
   (Eds.), Theories in SLA: An introduction (4th ed., pp. 157–182). Routledge.
@@ -39,13 +28,13 @@ try:
     PHONETIC_LIBRARY_AVAILABLE = True
 except ImportError:
     PHONETIC_LIBRARY_AVAILABLE = False
-    print("⚠️  eng-to-ipa not installed. Install with: pip install eng-to-ipa")
+    print("eng-to-ipa not installed. Install with: pip install eng-to-ipa")
 
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-# ---------------------------------------------------------------------------
-# 1. LOAD VOCABULARY FROM JSON
-# ---------------------------------------------------------------------------
+
+#1. LOAD VOCABULARY FROM JSON
+
 
 def load_vocabulary_from_json(file_path: str = None) -> List[Dict]:
     """
@@ -85,11 +74,8 @@ def load_vocabulary_from_json(file_path: str = None) -> List[Dict]:
         return []
 
 
-# ---------------------------------------------------------------------------
-# 2. SEED — Populate Firestore from JSON (runs once)
-# ---------------------------------------------------------------------------
+#2.SEED - Populate Firestore from JSON (runs once)
 
-# ─── In-memory vocabulary bank cache ────────────────────────────────────────
 # Populated on first call. Avoids reading 570 Firestore docs on every request.
 _VOCABULARY_CACHE: List[Dict] = []
 
@@ -104,14 +90,12 @@ def _get_vocabulary_bank() -> List[Dict]:
     return _VOCABULARY_CACHE
 
 
-# ---------------------------------------------------------------------------
-# SM-2 SPACED REPETITION ALGORITHM
-# ---------------------------------------------------------------------------
-# Each vocabulary_progress document stores:
-#   sm2_ef            — easiness factor (default 2.5, min 1.3)
-#   sm2_interval      — days until next review (1 → 6 → grows by EF each pass)
-#   sm2_repetitions   — consecutive correct reviews
-#   sm2_next_review   — ISO date string for next due date
+#SM-2 SPACED REPETITION ALGORITHM
+#Each vocabulary_progress document stores:
+#   sm2_ef            - easiness factor (default 2.5, min 1.3)
+#   sm2_interval      - days until next review (1 → 6 → grows by EF each pass)
+#   sm2_repetitions   - consecutive correct reviews
+#   sm2_next_review   - ISO date string for next due date
 
 def _sm2_update(data: Dict, grade: int) -> Dict:
     """
@@ -184,13 +168,13 @@ def seed_vocabulary_bank():
     # Check if already seeded
     existing = list(bank_ref.limit(1).stream())
     if existing:
-        print("✅ Vocabulary bank already seeded.")
+        print("Vocabulary bank already seeded.")
         return
 
     # Load from JSON
     vocabulary = load_vocabulary_from_json()
     if not vocabulary:
-        print("❌ Failed to load vocabulary from JSON.")
+        print("Failed to load vocabulary from JSON.")
         return
 
     # Batch write to Firestore (in chunks due to size)
@@ -218,12 +202,11 @@ def seed_vocabulary_bank():
             })
         batch.commit()
 
-    print(f"✅ Seeded {len(vocabulary)} words into vocabulary_bank.")
+    print(f"Seeded {len(vocabulary)} words into vocabulary_bank.")
 
 
-# ---------------------------------------------------------------------------
 # 3. TRANSCRIBE AUDIO with Groq Whisper — NEW
-# ---------------------------------------------------------------------------
+
 
 def transcribe_audio(audio_file_path: str) -> str:
     """
@@ -244,17 +227,17 @@ def transcribe_audio(audio_file_path: str) -> str:
             )
         
         transcribed_text = transcript.text
-        print(f"✅ Transcribed: {transcribed_text[:100]}...")
+        print(f"Transcribed: {transcribed_text[:100]}...")
         return transcribed_text
     
     except Exception as e:
-        print(f"❌ Error transcribing audio: {e}")
+        print(f"Error transcribing audio: {e}")
         return ""
 
 
-# ---------------------------------------------------------------------------
-# 4. ANALYZE VOCABULARY — with AI feedback
-# ---------------------------------------------------------------------------
+
+#4. ANALYZE VOCABULARY (with AI feedback)
+
 
 @cached("vocab_llm", ttl=3600)
 def _analyze_vocabulary_llm(user_text: str) -> dict:
@@ -383,9 +366,8 @@ def analyze_vocabulary(user_id: str, user_text: str) -> dict:
     return result
 
 
-# ---------------------------------------------------------------------------
-# 4. TRACK LEXICAL PATTERNS — NEW
-# ---------------------------------------------------------------------------
+#4. TRACK LEXICAL PATTERNS 
+
 
 def track_lexical_patterns(user_id: str, suggestions: list):
     """
@@ -434,9 +416,9 @@ def track_lexical_patterns(user_id: str, suggestions: list):
             print(f"Error tracking pattern '{original_word}': {e}")
 
 
-# ---------------------------------------------------------------------------
-# 5. GET LEXICAL PATTERNS — NEW
-# ---------------------------------------------------------------------------
+
+#5. GET LEXICAL PATTERNS 
+
 
 def get_lexical_patterns(user_id: str) -> List[Dict]:
     """
@@ -461,9 +443,8 @@ def get_lexical_patterns(user_id: str) -> List[Dict]:
         return []
 
 
-# ---------------------------------------------------------------------------
-# 6. GET RANDOM EXERCISE — Personalized
-# ---------------------------------------------------------------------------
+# 6. GET RANDOM EXERCISE - Personalized
+
 
 def get_random_exercise(user_id: str) -> Dict:
     """
@@ -652,9 +633,9 @@ def submit_exercise_answer(
         return {"error": str(e)}
 
 
-# ---------------------------------------------------------------------------
-# 8b. RESPONSE TIME TRACKING — DeKeyser & Suzuki (2025) Skill Acquisition
-# ---------------------------------------------------------------------------
+
+#8b. RESPONSE TIME TRACKING - DeKeyser & Suzuki (2025) Skill Acquisition
+
 
 def _save_response_time(user_id: str, rt_ms: int, is_correct: bool):
     """
@@ -732,9 +713,9 @@ def get_rt_stats(user_id: str) -> Dict:
         return {"avg_rt_ms": None, "cv": None, "trend": [], "interpretation": "Error loading data"}
 
 
-# ---------------------------------------------------------------------------
-# 8. CALCULATE MASTERY LEVEL
-# ---------------------------------------------------------------------------
+
+#8. CALCULATE MASTERY LEVEL
+
 
 def calculate_mastery_level(attempts: int, accuracy: float) -> str:
     """
@@ -750,9 +731,8 @@ def calculate_mastery_level(attempts: int, accuracy: float) -> str:
         return "new"
 
 
-# ---------------------------------------------------------------------------
-# 9. UPDATE DAILY STATS
-# ---------------------------------------------------------------------------
+#9. UPDATE DAILY STATS
+
 
 def update_daily_stats(user_id: str, is_correct: bool):
     """
@@ -785,9 +765,9 @@ def update_daily_stats(user_id: str, is_correct: bool):
         print(f"Error updating daily stats: {e}")
 
 
-# ---------------------------------------------------------------------------
+
 # 10. GET USER PROGRESS
-# ---------------------------------------------------------------------------
+
 
 def get_user_progress(user_id: str) -> Dict:
     """
@@ -859,9 +839,8 @@ def get_daily_stats(user_id: str, days: int = 7) -> List[Dict]:
         return []
 
 
-# ---------------------------------------------------------------------------
-# 11b. SRS STATE — full SM-2 view across all vocabulary words
-# ---------------------------------------------------------------------------
+#11b. SRS STATE — full SM-2 view across all vocabulary words
+
 
 def get_srs_state(user_id: str) -> Dict:
     """
@@ -1008,11 +987,11 @@ Return ONLY this JSON format:
         )
         
         result = json.loads(response.choices[0].message.content)
-        print(f"✅ Generated context-aware sentence for '{target_word}'")
+        print(f"Generated context-aware sentence for '{target_word}'")
         return result
     
     except Exception as e:
-        print(f"❌ Error generating context-aware sentence: {e}")
+        print(f"Error generating context-aware sentence: {e}")
         # Fallback to generic sentence
         return {
             "sentence": f"Please pronounce this word: {target_word}",
@@ -1023,9 +1002,7 @@ Return ONLY this JSON format:
         }
 
 
-# ---------------------------------------------------------------------------
 # 13. ANALYZE PRONUNCIATION WITH EMOTION DETECTION — NEW FEATURE
-# ---------------------------------------------------------------------------
 
 def transcribe_audio_with_confidence(audio_file_path: str) -> Dict:
     """
@@ -1062,11 +1039,11 @@ def transcribe_audio_with_confidence(audio_file_path: str) -> Dict:
             "duration": float(getattr(transcript, 'duration', 0))
         }
         
-        print(f"✅ Transcribed with {result['confidence']*100:.1f}% confidence: {transcript.text[:50]}...")
+        print(f"Transcribed with {result['confidence']*100:.1f}% confidence: {transcript.text[:50]}...")
         return result
     
     except Exception as e:
-        print(f"❌ Error transcribing audio with confidence: {e}")
+        print(f"Error transcribing audio with confidence: {e}")
         return {
             "transcribed_text": "",
             "confidence": 0.0,
@@ -1077,9 +1054,8 @@ def transcribe_audio_with_confidence(audio_file_path: str) -> Dict:
 
 
 
-# ---------------------------------------------------------------------------
-# 14. PHONETIC BREAKDOWN WITH IPA — FEATURE 16
-# ---------------------------------------------------------------------------
+#14. PHONETIC BREAKDOWN WITH IPA — FEATURE 16
+
 
 @cached("phonetic_breakdown", ttl=3600)
 def generate_phonetic_breakdown(target_text: str, transcribed_text: str) -> Dict:
@@ -1087,10 +1063,10 @@ def generate_phonetic_breakdown(target_text: str, transcribed_text: str) -> Dict
     Generates detailed phonetic breakdown using IPA (International Phonetic Alphabet).
     
     FEATURE 16 — SIMPLIFIED VERSION (LLM analysis removed)
-    ⚠️ ALWAYS returns IPA using eng-to-ipa library
+    ALWAYS returns IPA using eng-to-ipa library
     """
     
-    print(f"\n📱 Phonetic breakdown: target='{target_text}' vs user='{transcribed_text}'")
+    print(f"\nPhonetic breakdown: target='{target_text}' vs user='{transcribed_text}'")
     
     # Sanitize input
     target_text = str(target_text or "").strip()
@@ -1113,14 +1089,14 @@ def generate_phonetic_breakdown(target_text: str, transcribed_text: str) -> Dict
             user_ipa = f"/{user_raw}/" if user_raw and not user_raw.endswith("*") else f"/[{transcribed_text}]/"
             ipa_source = "eng-to-ipa"
             
-            print(f"✅ IPA generated: {target_ipa}")
+            print(f"IPA generated: {target_ipa}")
         except Exception as e:
-            print(f"❌ IPA error: {e}")
+            print(f"IPA error: {e}")
             target_ipa = f"/[{target_text}]/"
             user_ipa = f"/[{transcribed_text}]/"
             ipa_source = f"fallback: {str(e)}"
     else:
-        print("⚠️  Library not available")
+        print("Library not available")
         target_ipa = f"/[{target_text}]/"
         user_ipa = f"/[{transcribed_text}]/"
         ipa_source = "fallback: no library"
@@ -1136,9 +1112,9 @@ def generate_phonetic_breakdown(target_text: str, transcribed_text: str) -> Dict
     }
 
 
-# ---------------------------------------------------------------------------
-# 15. WORD FAMILY DRILLING — FEATURE 17
-# ---------------------------------------------------------------------------
+
+#15. WORD FAMILY DRILLING
+
 
 @cached("word_family", ttl=24 * 3600)
 def generate_word_family(target_word: str) -> Dict:
@@ -1205,20 +1181,20 @@ def generate_word_family(target_word: str) -> Dict:
         )
         
         result = json.loads(response.choices[0].message.content)
-        print(f"✅ Generated word family for '{target_word}'")
+        print(f"Generated word family for '{target_word}'")
         return result
     
     except Exception as e:
-        print(f"❌ Error generating word family: {e}")
+        print(f"Error generating word family: {e}")
         return {
             "base_word": target_word,
             "word_family": []
         }
 
 
-# ---------------------------------------------------------------------------
-# 16. PERSONALIZED EXERCISE GENERATION — FEATURE 15
-# ---------------------------------------------------------------------------
+
+# 16. PERSONALIZED EXERCISE GENERATION
+
 
 def get_personalized_exercise(
     user_id: str,
@@ -1256,7 +1232,7 @@ def get_personalized_exercise(
         # Get vocabulary bank
         all_words = list(db.collection("vocabulary_bank").stream())
         if not all_words:
-            print("⚠️ Vocabulary bank empty, seeding...")
+            print("Vocabulary bank empty, seeding...")
             seed_vocabulary_bank()
             all_words = list(db.collection("vocabulary_bank").stream())
         
@@ -1332,7 +1308,7 @@ def get_personalized_exercise(
         }
     
     except Exception as e:
-        print(f"❌ Error generating personalized exercise: {e}")
+        print(f"Error generating personalized exercise: {e}")
         # Return a safe fallback exercise even on error
         return {
             "exercise_type": learning_style,
@@ -1438,9 +1414,8 @@ def get_time_estimate(time_available: str) -> str:
     return estimates.get(time_available, "60-90 seconds")
 
 
-# ---------------------------------------------------------------------------
-# 17. REAL-TIME RECORDING METRICS — FEATURE 14
-# ---------------------------------------------------------------------------
+# 17. REAL-TIME RECORDING METRICS
+
 
 def analyze_recording_quality(audio_file_path: str) -> Dict:
     """
@@ -1518,7 +1493,7 @@ def analyze_recording_quality(audio_file_path: str) -> Dict:
             }
     
     except Exception as e:
-        print(f"❌ Error analyzing recording quality: {e}")
+        print(f"Error analyzing recording quality: {e}")
         return {
             "duration": 0,
             "silence_percentage": 0,

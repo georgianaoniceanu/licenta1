@@ -163,8 +163,7 @@ function GrammarCard({ data }: { data: GrammarSession }) {
       </View>
       <View style={[S.cardBody, { flexDirection: 'row', alignItems: 'center', gap: 16 }]}>
         <View style={[S.scoreRing, { borderColor: scoreColor }]}>
-          <Text style={[S.scoreRingNum, { color: scoreColor }]}>{Math.round(data.severity_score)}</Text>
-          <Text style={S.scoreRingSub}>/100</Text>
+          <Text style={[S.scoreRingNum, { color: scoreColor }]}>{Math.round(data.severity_score)}<Text style={S.scoreRingPct}>/100</Text></Text>
         </View>
         <View style={{ flex: 1, gap: 6 }}>
           <Text style={S.grammarErrLabel}>
@@ -286,8 +285,7 @@ function ShadowCard({ data, activeDemoPreset }: { data: ShadowSession; activeDem
       </View>
       <View style={[S.cardBody, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}>
         <View style={[S.scoreRing, { borderColor: scoreColor }]}>
-          <Text style={[S.scoreRingNum, { color: scoreColor }]}>{data.score}</Text>
-          <Text style={S.scoreRingSub}>%</Text>
+          <Text style={[S.scoreRingNum, { color: scoreColor }]}>{data.score}<Text style={S.scoreRingPct}>%</Text></Text>
         </View>
         <View style={{ flex: 1, gap: 6 }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -563,6 +561,7 @@ const S = StyleSheet.create({
   },
   scoreRingNum: { fontSize: 18, fontWeight: '900' },
   scoreRingSub: { fontSize: 10, color: Colors.light.textLight, alignSelf: 'flex-end', marginBottom: 1 },
+  scoreRingPct: { fontSize: 11, fontWeight: '700' },
   grammarErrLabel: { fontSize: 13, fontWeight: '600', color: Colors.light.text },
   topCatBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, alignSelf: 'flex-start' },
   topCatText: { fontSize: 12, fontWeight: '700' },
