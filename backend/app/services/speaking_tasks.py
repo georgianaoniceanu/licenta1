@@ -1,5 +1,4 @@
-"""
-Speaking task bank — original prompts organised by each exam's public structure.
+"""Speaking task bank -  original prompts organised by each exam's public structure.
 
 Data lives in app/data/speaking_tasks.json. Only the test FORMAT (parts, timing,
 task types) comes from the exam boards' public descriptions; every prompt is
@@ -7,8 +6,7 @@ original, so nothing copyrighted is reproduced.
 
 This is the curated backbone that complements the LLM adaptive generator in
 practice.py: fixed, reproducible, exam-format-correct tasks the committee can
-inspect, while the LLM covers the long tail of per-learner personalisation.
-"""
+inspect, while the LLM covers the long tail of per-learner personalisation."""
 
 import json
 import os
@@ -17,7 +15,7 @@ from typing import Any, Dict, List, Optional
 
 _PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "speaking_tasks.json")
 
-# Exam keys that come from onboarding (EXAM_FOCUS on the frontend).
+#Exam keys that come from onboarding (EXAM_FOCUS on the frontend).
 VALID_EXAMS = {
     "ielts_academic", "ielts_general", "toefl_ibt",
     "cambridge_fce", "cambridge_cae", "cambridge_cpe",
@@ -46,16 +44,11 @@ def list_exams() -> List[str]:
 
 
 def get_speaking_tasks(exam: str, level: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Return the exam's speaking structure with its tasks.
-
-    Parameters
-    ----------
+    """Return the exam's speaking structure with its tasks.
     exam  : one of VALID_EXAMS (unknown values fall back to 'general')
     level : optional CEFR level (e.g. 'B2'). When given, each part's tasks are
             filtered to that level; if a part has no task at that level, all of
-            its tasks are returned so the part is never empty.
-    """
+            its tasks are returned so the part is never empty."""
     data = _load()
     if exam not in data or exam.startswith("_"):
         exam = "general"

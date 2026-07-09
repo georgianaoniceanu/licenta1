@@ -27,11 +27,11 @@ Scientific basis:
     → Praat phonetic framework underlying the acoustic/phoneme analysis.
 
 Metrics computed:
-  1. word_accuracy   — difflib word-match (deterministic, no LLM)
-  2. wpm             — words/min from Whisper verbose_json timestamps
-  3. wpm_assessment  — slow/ideal/fast compared to native speaker norms (120-180 WPM)
-  4. phoneme_score   — wav2vec2-espeak via Colab if available
-  5. qualitative tips — LLM constrained to computed scores only
+  1. word_accuracy   - difflib word-match (deterministic, no LLM)
+  2. wpm             - words/min from Whisper verbose_json timestamps
+  3. wpm_assessment  - slow/ideal/fast compared to native speaker norms (120-180 WPM)
+  4. phoneme_score   - wav2vec2-espeak via Colab if available
+  5. qualitative tips - LLM constrained to computed scores only
 """
 
 from groq import Groq
@@ -44,7 +44,7 @@ import json
 load_dotenv()
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# ── WPM norms per COCA genre ──────────────────────────────────────────────────
+
 # Source: Tauroza & Allison (1990) Speech rates in British English.
 #         Applied Linguistics, 11(1), 90-105.
 #         Varies by register: academic lectures slower, casual speech faster.
@@ -77,7 +77,7 @@ _COCA_TO_NORM: dict[str, str] = {
 _WPM_TOO_SLOW_MARGIN = 20   # subtract from norm low → "too slow" threshold
 _WPM_TOO_FAST_MARGIN = 30   # add to norm high → "too fast" threshold
 
-# ── Phonetically similar word pairs (near-miss penalty reduction) ─────────────
+# Phonetically similar word pairs (near-miss penalty reduction)
 # Homophones and near-homophones: if a learner says one of these instead of the
 # other, it counts as a "near miss" (50% word penalty instead of 100%).
 _NEAR_MISS_PAIRS: list[frozenset] = [
@@ -121,7 +121,7 @@ def _near_miss_ratio(w1: str, w2: str) -> bool:
             return True
     return difflib.SequenceMatcher(None, w1l, w2l).ratio() >= 0.80
 
-# ── Romanian phoneme patterns (top difficulties for LLM context) ──────────────
+#Romanian phoneme patterns (top difficulties for LLM context)
 _ROMANIAN_PHONEME_CONTEXT = (
     "Key phonological difficulties for Romanian speakers (Măchiță 2021): "
     "/θ/ → /t/ (90% error rate: 'think'→'tink'); "
@@ -220,7 +220,7 @@ def transcribe_audio_with_timestamps(audio_file_path: str) -> dict:
     }
 
 
-# ── Pause detection ───────────────────────────────────────────────────────────
+# Pause detection 
 # Scientific basis:
 #   De Jong & Wempe (2009). Praat script to detect syllable nuclei and measure
 #     speech rate automatically. Behavior Research Methods, 41(2), 385-390.

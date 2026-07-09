@@ -80,7 +80,7 @@ class IndicatorScore:
     benchmark: float
     interpretation: str
     research_sources: List[str]  # bibliography
-    severity: str  # "🔴 CRITICAL", "🟡 HIGH", "🟢 MEDIUM", "🟢 LOW"
+    severity: str  # "CRITICAL", "HIGH", "MEDIUM", "LOW"
     measured: bool = True  # False = imputed (e.g. speech metrics on a text-only diagnostic)
 
 
@@ -243,13 +243,13 @@ class AssessmentWorkflowEngine:
             # Get severity
             norm_score = evaluation["normalized_score"]
             if norm_score < 40:
-                severity = "🔴 CRITICAL"
+                severity = "CRITICAL"
             elif norm_score < 60:
-                severity = "🟡 HIGH"
+                severity = "HIGH"
             elif norm_score < 75:
-                severity = "🟢 MEDIUM"
+                severity = "MEDIUM"
             else:
-                severity = "🟢 LOW"
+                severity = "LOW"
             
             sources = [s.value for s in self.sources.get(indicator_type, [])]
             
@@ -294,13 +294,13 @@ class AssessmentWorkflowEngine:
             exam_scores[exam_type.value] = round(exam_score, 1)
         
         # Identify critical/strength areas
-        critical = [s.name for s in indicator_scores if s.severity == "🔴 CRITICAL"]
-        strengths = [s.name for s in indicator_scores if s.severity == "🟢 LOW"]
+        critical = [s.name for s in indicator_scores if s.severity == "CRITICAL"]
+        strengths = [s.name for s in indicator_scores if s.severity == "LOW"]
         
         # Recommendations
         recommendations = []
         for score in indicator_scores:
-            if score.severity in ["🔴 CRITICAL", "🟡 HIGH"]:
+            if score.severity in ["CRITICAL", "HIGH"]:
                 recommendations.append(
                     f"{score.name}: {score.interpretation}. Target: {score.cefr_level} benchmark ({score.benchmark})"
                 )

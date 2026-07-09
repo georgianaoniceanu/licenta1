@@ -275,10 +275,10 @@ def analyze_text_indicators(
     n_words = max(len(words), 1)
     n_sentences = max(len(sentences), 1)
 
-    # ── Indicator 1: Lexical Diversity (MTLD, Şahin Kızıl 2024) ──────────────
+    # Indicator 1: Lexical Diversity (MTLD, Şahin Kızıl 2024) 
     lexical_diversity = compute_mtld(words)
 
-    # ── Indicator 2: Lexical Sophistication (1.0-6.0, higher = more advanced) ──
+    # Indicator 2: Lexical Sophistication (1.0-6.0, higher = more advanced) 
     # Mean Cambridge EVP CEFR rank of the words used (A1=1 … C2=6). Falls back to
     # the long-word ratio only when no EVP-graded word is present (very short input).
     lexical_sophistication = _evp_sophistication(words)
@@ -286,22 +286,22 @@ def analyze_text_indicators(
         long_word_ratio = len([w for w in words if len(w) >= 7]) / n_words
         lexical_sophistication = round(max(1.0, min(6.0, 1.0 + long_word_ratio * 5.0)), 2)
 
-    # ── Indicator 3: Average Word Length ─────────────────────────────────────
+    # Indicator 3: Average Word Length 
     word_length = round(sum(len(w) for w in words) / n_words, 2)
 
-    # ── Indicator 4: Mean Length of Sentence (MLS) ───────────────────────────
+    # Indicator 4: Mean Length of Sentence (MLS) 
     sentence_complexity = round(n_words / n_sentences, 2)
 
-    # ── Indicator 5: Subordination Ratio ─────────────────────────────────────
+    # Indicator 5: Subordination Ratio 
     n_sub = _count_subordinating(words, text_lower)
     subordination_ratio = round(n_sub / n_sentences, 2)
 
-    # ── Indicator 6: Syntactic Complexity ────────────────────────────────────
+    # Indicator 6: Syntactic Complexity 
     n_coord = _count_coordinating(words)
     estimated_clauses = n_sub + n_coord + n_sentences
     syntactic_complexity = round(estimated_clauses / n_sentences, 2)
 
-    # ── Indicator 7: Articulation Rate ───────────────────────────────────────
+    # Indicator 7: Articulation Rate
     if audio_duration_seconds and audio_duration_seconds > 0:
         articulation_rate = round(n_words / audio_duration_seconds, 2)
     else:
@@ -309,7 +309,7 @@ def analyze_text_indicators(
             self_assessed_cefr, CEFR_FLUENCY_DEFAULTS["B1"]
         )["articulation_rate"]
 
-    # ── Indicator 8: Pause Frequency ─────────────────────────────────────────
+    # Indicator 8: Pause Frequency 
     if audio_duration_seconds and audio_duration_seconds > 0:
         estimated_speech_s = n_words / 3.0
         pause_time = max(0.0, audio_duration_seconds - estimated_speech_s)
@@ -319,13 +319,13 @@ def analyze_text_indicators(
             self_assessed_cefr, CEFR_FLUENCY_DEFAULTS["B1"]
         )["pause_frequency"]
 
-    # ── Indicator 9: Cohesion Score ───────────────────────────────────────────
+    # Indicator 9: Cohesion Score 
     n_markers = _count_discourse_markers(text_lower)
     markers_per_100 = (n_markers / n_words) * 100
     cohesion_score = round(10 + (markers_per_100 / 8.0) * 80, 1)
     cohesion_score = max(0.0, min(100.0, cohesion_score))
 
-    # ── Indicator 10: Morphosyntactic Accuracy (LLM / EFC/C) ─────────────────
+    # Indicator 10: Morphosyntactic Accuracy (LLM / EFC/C) 
     morphosyntactic_accuracy = _estimate_accuracy_llm(text)
 
     # ── Syntactic Maturity Composite (author-defined, NOT Neumanova's IDL) ───
@@ -431,7 +431,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
     Source: Davies, M. — COCA; Knoch (2009) — EAP diagnostic writing design.
     """
     prompts = {
-        # ── Spoken (TV/radio dialogue, interviews, talk shows) ────────────────
+        #Spoken (TV/radio dialogue, interviews, talk shows)
         "spoken": {
             "title": "Spontaneous Spoken Response",
             "instruction": (
@@ -443,7 +443,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Write as you would speak — contractions and natural phrasing are fine.",
             "research": "Tauroza & Allison (1990) — spoken register WPM norms; COCA Spoken sub-corpus.",
         },
-        # ── Fiction (novels, screenplays, juvenile fiction) ───────────────────
+        # Fiction (novels, screenplays, juvenile fiction) 
         "fiction": {
             "title": "Narrative Writing Task",
             "instruction": (
@@ -454,7 +454,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Use vivid description, past tenses, and varied sentence rhythm.",
             "research": "COCA Fiction sub-corpus; Coxhead (2000) — narrative register vocabulary.",
         },
-        # ── Academic (journals, science, law, medicine) ───────────────────────
+        #Academic (journals, science, law, medicine)
         "academic": {
             "title": "Academic Writing Task",
             "instruction": (
@@ -465,7 +465,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Use formal register, precise vocabulary, and logical connectors.",
             "research": "Knoch (2009) — EAP diagnostic writing; Coxhead (2000) AWL; COCA Academic sub-corpus.",
         },
-        # ── Newspaper (national/local news, editorial, opinion) ───────────────
+        #Newspaper (national/local news, editorial, opinion) 
         "newspaper": {
             "title": "Opinion Editorial Task",
             "instruction": (
@@ -476,7 +476,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Use discourse markers: however, consequently, in contrast.",
             "research": "COCA Newspaper sub-corpus; Fulcher (2003) — opinion task design for L2 assessment.",
         },
-        # ── Magazine (lifestyle, sports, science, religion) ───────────────────
+        #Magazine (lifestyle, sports, science, religion) 
         "magazine": {
             "title": "Magazine Feature Task",
             "instruction": (
@@ -487,7 +487,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Use descriptive adjectives, engaging tone, and varied vocabulary.",
             "research": "COCA Magazine sub-corpus; Davies (COCA) — magazine register frequency profiles.",
         },
-        # ── Web (informational sites, reviews, instructional) ─────────────────
+        # Web (informational sites, reviews, instructional) 
         "web": {
             "title": "Informational Web Text Task",
             "instruction": (
@@ -498,7 +498,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Use clear, direct language and imperative verb forms.",
             "research": "COCA Web sub-corpus; Coxhead (2000) — instructional register vocabulary.",
         },
-        # ── Blog (personal, argumentative, promotional) ───────────────────────
+        #Blog (personal, argumentative, promotional)
         "blog": {
             "title": "Personal Blog Post Task",
             "instruction": (
@@ -509,7 +509,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. First-person, conversational tone — be direct and honest.",
             "research": "COCA Blog sub-corpus; Davies (COCA) — blog register frequency profiles.",
         },
-        # ── Movies (dialogue: action, drama, comedy, sci-fi) ─────────────────
+        #Movies (dialogue: action, drama, comedy, sci-fi)
         "movies": {
             "title": "Film Dialogue Task",
             "instruction": (
@@ -520,7 +520,7 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "hint": "Aim for 150–200 words. Write dialogue naturally — use contractions, interruptions, emotion.",
             "research": "COCA Movies sub-corpus; Davies (COCA) — film dialogue register profiles.",
         },
-        # ── TV Shows (drama, comedy, reality, crime) ──────────────────────────
+        #TV Shows (drama, comedy, reality, crime)
         "tv": {
             "title": "TV Drama Scene Task",
             "instruction": (
@@ -532,4 +532,16 @@ def get_diagnostic_prompt(domain: str) -> Dict[str, str]:
             "research": "COCA TV sub-corpus; Davies (COCA) — television dialogue register profiles.",
         },
     }
-    return prompts.get(domain, prompts["spoken"])
+    # Onboarding stores context values (conversation/narration/…) that differ from
+    # the COCA prompt keys above - map them so each context gets its own prompt
+    # instead of always falling back to "spoken".
+    aliases = {
+        "conversation":  "spoken",      # live interview / conversational
+        "narration":     "fiction",     # storytelling
+        "description":   "magazine",    # descriptive feature
+        "argumentation": "newspaper",   # opinion editorial
+        "academic":      "academic",    # formal explanation
+        "technical":     "web",         # instructional how-to
+    }
+    key = aliases.get(domain, domain)
+    return prompts.get(key, prompts["spoken"])

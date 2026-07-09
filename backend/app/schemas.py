@@ -7,9 +7,8 @@ from typing import List, Optional, Dict
 from enum import Enum
 
 
-# ============================================================================
-# Assessment & Indicators
-# ============================================================================
+#Assessment & Indicators
+
 
 class AssessmentIndicatorsRequest(BaseModel):
     """10 linguistic indicators from assessment"""
@@ -45,13 +44,12 @@ class AssessmentMetadata(BaseModel):
     user_id: str
     cefr_level: CEFRLevel
     target_test: OfficialTest
-    domain: str = "academic"  # COCAGenre value: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
+    domain: str = "academic"  #COCAGenre value: academic, fiction, spoken, newspaper, magazine, web, blog, movies, tv
     l1: str = "Romanian"
 
 
-# ============================================================================
-# Module Recommendation Response
-# ============================================================================
+#Module Recommendation Response
+
 
 class ModuleRecommendationResponse(BaseModel):
     """Single recommended module"""
@@ -62,7 +60,7 @@ class ModuleRecommendationResponse(BaseModel):
     estimated_hours: float
     expected_improvement: Dict[str, float]  # indicator -> improvement
     rationale: str
-    priority_level: str  # "CRITICAL", "HIGH", "MEDIUM", "LOW"
+    priority_level: str  #"CRITICAL", "HIGH", "MEDIUM", "LOW"
 
 
 class RecommendationResponse(BaseModel):
@@ -75,9 +73,7 @@ class RecommendationResponse(BaseModel):
     timestamp: str
 
 
-# ============================================================================
-# Feedback Response
-# ============================================================================
+#Feedback Response
 
 class LearnerExampleResponse(BaseModel):
     """Example of learner's error"""
@@ -100,7 +96,7 @@ class IndicatorFeedbackResponse(BaseModel):
     learner_score: float
     target_score: float
     cefr_level: str
-    severity: str  # "🔴 CRITICAL", "🟡 HIGH", "🟢 MEDIUM", "🟢 LOW"
+    severity: str  # "CRITICAL", "HIGH", "MEDIUM", "LOW"
     diagnosis: str
     learner_examples: List[LearnerExampleResponse]
     test_specific_insight: str
@@ -108,7 +104,7 @@ class IndicatorFeedbackResponse(BaseModel):
     timeline_weeks: int
     practice_suggestions: List[PracticeSuggestionResponse]
     expected_improvement: str  # "0.45 → 0.65"
-    markdown_output: str  # Full markdown-formatted feedback
+    markdown_output: str  #Full markdown-formatted feedback
 
 
 class FeedbackResponse(BaseModel):
@@ -122,9 +118,9 @@ class FeedbackResponse(BaseModel):
     timestamp: str
 
 
-# ============================================================================
-# Onboarding Profile
-# ============================================================================
+
+#Onboarding Profile
+
 
 class LearningGoal(str, Enum):
     """User's primary learning goal"""
@@ -169,9 +165,8 @@ class OnboardingResponse(BaseModel):
     timestamp: str
 
 
-# ============================================================================
-# Pilot Study Enrollment
-# ============================================================================
+#Pilot Study Enrollment
+
 
 class ConsentFormRequest(BaseModel):
     """Informed consent"""
@@ -227,9 +222,9 @@ class AssessmentProgressResponse(BaseModel):
     phase: str
 
 
-# ============================================================================
-# Validation Study Report
-# ============================================================================
+
+#Validation Study Report
+
 
 class ValidationReportResponse(BaseModel):
     """Pilot study results"""
