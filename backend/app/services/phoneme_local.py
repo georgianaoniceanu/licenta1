@@ -1,11 +1,10 @@
-"""
-Local Phoneme Scorer — always-available, no external server
-===========================================================
+"""Local Phoneme Scorer — always-available, no external server
+
 Replaces the Google Colab wav2vec2 dependency with a deterministic,
 production-ready phoneme scoring pipeline.
 
 Algorithm
----------
+
 1. Convert the TARGET text → ARPABET phoneme sequence
    via CMU Pronouncing Dictionary (pronouncing 0.3.0 / cmudict 0.7b,
    ~134 000 English words).  Unknown words → letter-to-phoneme rules.
@@ -21,7 +20,7 @@ Algorithm
    so build_phoneme_result() in accent_dna.py works without changes.
 
 Scientific basis
-----------------
+
 - PER (Phoneme Error Rate) — standard metric in ASR/pronunciation
   research: Kim et al. (2019) Automatic Pronunciation Assessment,
   Interspeech; Leung et al. (2019) Generalized end-to-end loss for
@@ -35,15 +34,14 @@ Scientific basis
   deletions, insertions, and reversals. Soviet Physics Doklady.
 
 Availability guarantee
-----------------------
+
 No network calls, no external processes, no GPU.
 Depends only on:
   pronouncing >= 0.3.0  (pip install pronouncing)
   cmudict >= 1.0.0      (installed automatically with pronouncing)
 
 If pronouncing is somehow missing, the module raises ImportError at
-import time (not at call time), making the failure visible at startup.
-"""
+import time (not at call time), making the failure visible at startup."""
 
 from __future__ import annotations
 
@@ -53,7 +51,7 @@ from typing import Any
 import pronouncing   # pip install pronouncing  (wraps cmudict 0.7b)
 
 
-# ── ARPABET → IPA mapping ─────────────────────────────────────────────────────
+# ARPABET → IPA mapping 
 # Source: ARPABET specification; ARPAbet (1986); Ladefoged & Johnson (2015).
 
 ARPABET_TO_IPA: dict[str, str] = {
@@ -67,7 +65,7 @@ ARPABET_TO_IPA: dict[str, str] = {
     "W":  "w",  "Y":  "j",  "Z":  "z",  "ZH": "ʒ",
 }
 
-# ── Romanian-specific phoneme substitution pairs (Măchiță 2021) ───────────────
+# Romanian-specific phoneme substitution pairs (Măchiță 2021)
 # (ARPABET_expected, ARPABET_produced) → error_rate_percent
 # Used to annotate detected errors with their documented Romanian frequency.
 
@@ -85,7 +83,7 @@ _RO_SUBSTITUTIONS: dict[tuple[str, str], int] = {
     ("NG", "N"):  45,   # /ŋ/ → /n/ velar nasal loss
 }
 
-# ── Letter-to-phoneme fallback for OOV words ──────────────────────────────────
+#Letter-to-phoneme fallback for OOV words 
 _LETTER_PHONEME: dict[str, list[str]] = {
     "a": ["AE"], "b": ["B"],  "c": ["K"],       "d": ["D"],
     "e": ["EH"], "f": ["F"],  "g": ["G"],       "h": ["HH"],
@@ -236,7 +234,7 @@ def _word_phoneme_breakdown(
     return breakdown
 
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+#Public API 
 
 def score_pronunciation(original_text: str, transcribed_text: str) -> dict[str, Any]:
     """
@@ -263,7 +261,7 @@ def score_pronunciation(original_text: str, transcribed_text: str) -> dict[str, 
     }
 
     Scientific basis
-    ----------------
+    
     Phoneme Error Rate (PER):
       Kim et al. (2019) Automatic Pronunciation Assessment, Interspeech.
     CMU Pronouncing Dictionary:

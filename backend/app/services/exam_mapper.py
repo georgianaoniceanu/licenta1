@@ -1,26 +1,23 @@
-"""
-Exam Profile Mapper
-─────────────────────────────────────────────────────────────────────────────
-
+"""Exam Profile Mapper
 Maps student speech/text metrics to internationally recognised proficiency
 frameworks: IELTS Speaking band descriptors and Cambridge CEFR scale.
 
 All numeric thresholds are derived directly from the following academic
 sources present in the project's articles_text corpus:
 
-  [IELTS-CEFR] Kolahi Ahari et al. (2025) — 10.22034_ijlt.2025.492133.1395.txt (Kolahi Ahari, Ghonsooly, Ghapanchi & Soodmand Afshar).txt
+  [IELTS-CEFR] Kolahi Ahari et al. (2025) - 10.22034_ijlt.2025.492133.1395.txt (Kolahi Ahari, Ghonsooly, Ghapanchi & Soodmand Afshar).txt
     419 L2 speaking samples assigned IELTS scores by trained raters then
     mapped to CEFR. Official conversion used:
-      B1 = IELTS 4.0–5.0  (mean 4.8, SD 0.3)
-      B2 = IELTS 5.5–6.5  (mean 6.0, SD 0.3)
-      C1 = IELTS 7.0–8.0  (mean 7.5, SD 0.4)
-      C2 = IELTS 8.5–9.0  (mean 8.6, SD 0.2)
+      B1 = IELTS 4.0-5.0  (mean 4.8, SD 0.3)
+      B2 = IELTS 5.5-6.5  (mean 6.0, SD 0.3)
+      C1 = IELTS 7.0-8.0  (mean 7.5, SD 0.4)
+      C2 = IELTS 8.5-9.0  (mean 8.6, SD 0.2)
     Model explains 34 % of L2 speaking proficiency variance:
       Lexical Diversity  β = .40 (p < .001) — strongest predictor
       Lexical Sophistication β = .21 (p < .001)
       Syntactic Sophistication β = .16 (p < .001)
 
-  [SER / Grammar] Neumanova (2015) — 8.+Z.+Neumanova+Do+publikacji+5.06.txt
+  [SER / Grammar] Neumanova (2015) - 8.+Z.+Neumanova+Do+publikacji+5.06.txt
     Syntactic Error Rate (SER) per 100 words by CEFR level in EFL learners:
       A2: M = 9.16, SD = 2.64  (pairwise A2→B1 p = 0.011)
       B1: M = 6.91, SD = 2.31  (pairwise B1→B2 p = 0.009)
@@ -28,7 +25,7 @@ sources present in the project's articles_text corpus:
     Index of Developmental Levels (IDL) — syntactic complexity measure:
       A2: M = 26.31  B1: M = 46.13  B2: M = 60.25
 
-  [Lexical Density] Neumanova (2015) — same file, Tables 4–8
+  [Lexical Density] Neumanova (2015) - same file, Tables 4–8
     Spoken EFL learner text (ratio content words / total words):
       A2: M = 0.485 (48.5 %)   B1: M = 0.457 (45.7 %)
       B2: M = 0.463 (46.3 %)
@@ -57,9 +54,7 @@ sources present in the project's articles_text corpus:
 
   [Complexity indices] 1-s2.0-S1075293520300714-main.txt
     MLS, MLT, MLC, CN/C, CN/T, CP/T, CP/C identified as 14 indices that
-    "linearly progressed across proficiency levels."
-─────────────────────────────────────────────────────────────────────────────
-"""
+    "linearly progressed across proficiency levels."""
 
 import re
 from typing import Dict, Any, List
@@ -94,7 +89,7 @@ _SUBORD_CONJ = [
 ]
 
 
-# ─── Text feature computations ───────────────────────────────────────────────
+#Text feature computations
 
 def _mtld(tokens: List[str]) -> float:
     """
@@ -182,7 +177,7 @@ def _score_from_thresholds(val: float, thresholds: List[tuple]) -> float:
     return 1.0
 
 
-# ─── IELTS band mapping — all thresholds grounded in corpus data ─────────────
+#ELTS band mapping — all thresholds grounded in corpus data
 
 def _band_fluency(wps: float, filler_rate: float) -> float:
     """
@@ -272,7 +267,7 @@ def _band_grammar(mls: float, sub_index: float, ser: float) -> float:
     return round(raw * 2) / 2
 
 
-# ─── Writing-mode cohesion (TAACO) ────────────────────────────────────────────
+#Writing-mode cohesion (TAACO)
 # Crossley, Kyle & McNamara (2016) — TAACO: Tool for Automatic Analysis of
 # Cohesion. Behavior Research Methods 48(4), 1227–1237.
 # (ThetoolfortheautomaticanalysisoftextcohesionTAACO.txt) — connective density
@@ -348,7 +343,7 @@ def _band_pronunciation(score: float) -> float:
     ])
 
 
-# ─── CEFR mapping — from Kolahi Ahari et al. (2025) empirical data ───────────────
+#CEFR mapping — from Kolahi Ahari et al. (2025) empirical data
 
 # Official conversion cited in both 10.22034_ijlt.2025.492133.1395.txt (Kolahi Ahari, Ghonsooly, Ghapanchi & Soodmand Afshar).txt and
 # 1-s2.0-S1075293520300714-main.txt (ETS + Cambridge ESOL official mapping).
@@ -377,7 +372,7 @@ def _cefr_from_ielts(band: float) -> Dict[str, str]:
     return {'level': 'A1', 'exam': 'Cambridge Starter', 'description': 'Breakthrough — very basic language use'}
 
 
-# ─── Cambridge ESOL Speaking Assessment ─────────────────────────────────────
+# Cambridge ESOL Speaking Assessment 
 # Source: Cambridge English Skills Test for Schools — Speaking Assessment
 # Criteria (Cambridge Assessment English, 2023).
 # Stored locally in: articles_text/731659-cambridge-english-skills-test-
@@ -581,7 +576,7 @@ def _compute_cambridge_assessment(
     }
 
 
-# ─── PTE Core estimate — via IELTS → CEFR → CLB → PTE Speaking ──────────────
+#PTE Core estimate — via IELTS → CEFR → CLB → PTE Speaking 
 #
 # Derivation chain (all sources in articles_text):
 #
@@ -673,7 +668,7 @@ def _pte_core_from_ielts(ielts_band: float) -> Dict[str, Any]:
     }
 
 
-# ─── Public API ──────────────────────────────────────────────────────────────
+#Public API 
 
 def compute_exam_profile(
     text: str,

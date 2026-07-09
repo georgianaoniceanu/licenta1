@@ -1,6 +1,4 @@
-"""
-Learner Profiling via K-Means Clustering
-─────────────────────────────────────────────────────────────────────────────
+"""Learner Profiling via K-Means Clustering
 
 Research Foundation:
   Goldshtein, M., Alhashim, A. G., & Roscoe, R. D. (2024). An NLP-based exploration
@@ -39,11 +37,11 @@ import math
 from typing import Dict, List, Tuple, Optional
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # INDICATOR NORMALIZATION BOUNDS
 # Used to bring all 10 indicators onto a 0–100 scale before distance calc.
 # Sources: Lee (2021) Table 2; Zechner et al. (2009); Yan et al. (2020).
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # (min_observed, max_observed) per indicator — based on A1–C2 CEFR ranges
 INDICATOR_BOUNDS: Dict[str, Tuple[float, float]] = {
@@ -76,9 +74,9 @@ def _normalize(indicator: str, value: float) -> float:
     return round(pct, 2)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # CLUSTER CENTROIDS (normalized 0–100 space)
-#
+
 # Derived from published CEFR-level means:
 #   Lee (2021): MLS, subordination, syntactic complexity by CEFR
 #   Zechner et al. (2009): articulation rate, pause frequency by score band
@@ -87,7 +85,7 @@ def _normalize(indicator: str, value: float) -> float:
 #
 # Cluster names follow Goldshtein et al. (2024) labeling convention,
 # reinterpreted for speaking+writing across the full CAF space.
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 CLUSTERS: List[Dict] = [
     {
@@ -218,9 +216,9 @@ CLUSTERS: List[Dict] = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # CLUSTERING ENGINE
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _euclidean_distance(a: Dict[str, float], b: Dict[str, float]) -> float:
     """Euclidean distance between two indicator vectors."""

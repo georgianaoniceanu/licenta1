@@ -1,9 +1,8 @@
-"""
-Prosody Assessment — Primary: Colab parselmouth+librosa; Fallback: local librosa
-=================================================================================
+"""Prosody Assessment — Primary: Colab parselmouth+librosa; Fallback: local librosa
+
 
 Architecture (two-tier, always available)
-------------------------------------------
+
 Tier 1 (OPTIONAL — full acoustic prosody):
   Google Colab notebook (backend/colab/prosody_analysis_colab.py)
   Exposed via Cloudflare tunnel → parselmouth (Praat) + librosa + DTW
@@ -36,7 +35,6 @@ def _colab_url() -> str:
     return os.getenv("COLAB_PROSODY_URL", "").strip().rstrip("/")
 
 
-# ── Tier 1: Colab server ──────────────────────────────────────────────────────
 
 def _assess_via_colab(learner_path: str, native_path: str) -> dict | None:
     """
@@ -66,7 +64,7 @@ def _assess_via_colab(learner_path: str, native_path: str) -> dict | None:
         return None
 
 
-# ── Tier 2: local librosa fallback ────────────────────────────────────────────
+#Tier 2: local librosa fallback 
 
 def _dtw_distance_1d(x: np.ndarray, y: np.ndarray) -> float:
     """Normalised DTW distance between two 1-D sequences."""
@@ -112,7 +110,7 @@ def _local_prosody(learner_path: str, native_path: str) -> dict:
         logger.warning("[prosody] audio load failed: %s", e, exc_info=True)
         return _neutral_result(f"audio load failed: {e}")
 
-    # ── Pitch via YIN ──────────────────────────────────────────────────────
+    #Pitch via YIN 
     try:
         f0_l = librosa.yin(y_l, fmin=75, fmax=500, hop_length=HOP).astype(float)
         f0_n = librosa.yin(y_n, fmin=75, fmax=500, hop_length=HOP).astype(float)
@@ -142,7 +140,7 @@ def _local_prosody(learner_path: str, native_path: str) -> dict:
         logger.warning("Local pitch failed: %s", e)
         pitch_score = 50
 
-    # ── Rhythm via onset strength ──────────────────────────────────────────
+    # Rhythm via onset strength 
     try:
         oenv_l = librosa.onset.onset_strength(y=y_l, sr=SR, hop_length=HOP)
         oenv_n = librosa.onset.onset_strength(y=y_n, sr=SR, hop_length=HOP)
@@ -160,7 +158,7 @@ def _local_prosody(learner_path: str, native_path: str) -> dict:
         logger.warning("Local rhythm failed: %s", e)
         rhythm_score = 50
 
-    # ── Energy envelope ────────────────────────────────────────────────────
+    #Energy envelope 
     try:
         rms_l = librosa.feature.rms(y=y_l, frame_length=2048, hop_length=HOP)[0]
         rms_n = librosa.feature.rms(y=y_n, frame_length=2048, hop_length=HOP)[0]
@@ -171,7 +169,7 @@ def _local_prosody(learner_path: str, native_path: str) -> dict:
         logger.warning("Local energy failed: %s", e)
         energy_score = 50
 
-    # ── Combined ───────────────────────────────────────────────────────────
+
     prosody_score = round(0.45 * pitch_score + 0.35 * rhythm_score + 0.20 * energy_score)
 
     return {
@@ -202,7 +200,7 @@ def _neutral_result(reason: str) -> dict:
     }
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+# Public API 
 
 def assess_prosody(learner_path: str, native_path: str) -> dict:
     """
@@ -212,12 +210,12 @@ def assess_prosody(learner_path: str, native_path: str) -> dict:
     Tries Colab (Tier 1) first; falls back to local librosa (Tier 2).
 
     Parameters
-    ----------
+    
     learner_path : path to learner's audio file
     native_path  : path to native/TTS reference audio file
 
     Returns
-    -------
+    
     dict with keys: prosody_score, pitch_score, rhythm_score, energy_score,
                     score_method, scientific_basis, _tier, [local_fallback]
     """
