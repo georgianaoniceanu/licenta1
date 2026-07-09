@@ -32,12 +32,11 @@ for _name, _data in ALLOPHONE_DIFFICULTIES.items():
     for _sym in re.findall(r"[ɫ]", _name):
         _ROMANIAN_HARD_PHONEMES[_sym] = {**_data, "category": "allophone", "name": _name}
 
-# ============================================================================
-# ROMANIAN LEARNER PHONEME ERROR PATTERNS (from Măchiță 2021 dissertation)
-# ============================================================================
+
+#ROMANIAN LEARNER PHONEME ERROR PATTERNS (from Măchiță 2021 dissertation)
 
 ROMANIAN_PRONUNCIATION_PATTERNS = {
-    # Interdental fricatives - CRITICAL for Romanian learners
+    #Interdental fricatives - CRITICAL for Romanian learners
     "/θ/ (voiceless interdental)": {
         "error_rate": 90,  # 90% of Romanian learners make errors
         "correct_rate": 10,  # Only 10% produce correctly all tasks
@@ -296,14 +295,12 @@ def _norm_words(s: str):
 
 
 def _similarity(transcribed: str, target: str) -> dict:
-    """
-    Deterministic ASR-based similarity between the Whisper transcription and the
+    """ Deterministic ASR-based similarity between the Whisper transcription and the
     target. This is the ONLY objective signal we have: a robust ASR like Whisper
     normalises mild mispronunciations back to the intended word, so an exact
     match means the speech was *intelligible* — it does NOT prove phoneme-level
     accuracy. A mismatch, however, means the mispronunciation was strong enough
-    that even the ASR misheard it → a reliable error signal.
-    """
+    that even the ASR misheard it → a reliable error signal."""
     tw, gw = _norm_words(transcribed), _norm_words(target)
     word_sim = difflib.SequenceMatcher(None, tw, gw).ratio() if gw else 0.0
     tc = re.sub(r"[^\w]", "", transcribed.lower())
@@ -436,7 +433,7 @@ def analyze_pronunciation(transcribed_text: str, target_text: str) -> dict:
     sim = _similarity(transcribed_text, target_text)
     combined = sim["combined"]
 
-    # ── Calibrated, honest score ────────────────────────────────────────────
+    #Calibrated, honest score 
     if not transcribed_text.strip():
         accuracy = 0
         verified_errors = True          # nothing usable captured
@@ -450,7 +447,7 @@ def analyze_pronunciation(transcribed_text: str, target_text: str) -> dict:
         accuracy = max(20, round(combined * 70))      # 20–66 → "Needs work"
         verified_errors = True
 
-    # ── Problematic phonemes (deterministic, consistent with the score) ─────
+    # Problematic phonemes (deterministic, consistent with the score) 
     problematic = []
     for ph, details in patterns.items():
         subs = details.get("substitutions", {})
@@ -466,7 +463,7 @@ def analyze_pronunciation(transcribed_text: str, target_text: str) -> dict:
             "frequency": (first_sub[1] or {}).get("frequency", 0),
         })
 
-    # ── Qualitative feedback from the LLM, constrained to the computed score ──
+    # Qualitative feedback from the LLM, constrained to the computed score ─
     pattern_context = ""
     for ph, details in patterns.items():
         pattern_context += f"\n{ph}: error rate {details.get('error_rate', 0)}%"

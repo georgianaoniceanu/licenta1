@@ -1,5 +1,4 @@
-"""
-Assessment Indicators Framework - 10 Standardized Metrics for L2 Proficiency
+"""Assessment Indicators Framework - 10 Standardized Metrics for L2 Proficiency
 
 Based on academic research from:
 1. Lee (2021) - Genre effects on syntactic complexity & lexical diversity
@@ -17,8 +16,7 @@ Based on academic research from:
    proficiency (A2→B1→B2); IDL (Index of Developmental Levels) and articulation rate
    are the most reliable discriminators between adjacent CEFR levels.
 
-This framework provides measurable, research-backed indicators for evaluating learner proficiency.
-"""
+This framework provides measurable, research-backed indicators for evaluating learner proficiency."""
 
 from dataclasses import dataclass
 from enum import Enum

@@ -1,24 +1,22 @@
-"""
-VocaFlow — CEFR Predictor Service (Ordinal LR + SVM Ensemble)
-=============================================================
+"""VocaFlow - CEFR Predictor Service (Ordinal LR + SVM Ensemble)
 Loads the Ordinal Logistic Regression + SVM ensemble trained on
 1,494 written English texts from the Kaggle CEFR Levelled English Texts
 corpus (Montgomery 2023), covering A1-C2, merged into 4 ordinal classes:
 A2 (A1+A2), B1, B2, C1-C2 (C1+C2).
 
-Primary model  : mord.LogisticAT — Proportional-odds cumulative link model
+Primary model  : mord.LogisticAT - Proportional-odds cumulative link model
                  Respects the ordinal nature of CEFR: A2 < B1 < B2 < C1-C2
                  CV accuracy: ~76.7% (5-fold stratified, written text)
-Secondary model: SVM RBF — confirmation vote; models agree 91% of test cases
-Ensemble rule  : Both agree → use that class.
-                 Disagree   → OrdinalLR wins (ordinal model is primary).
-                 Confidence → SVM's calibrated Platt-scaled probability.
+Secondary model: SVM RBF - confirmation vote; models agree 91% of test cases
+Ensemble rule  : Both agree -> use that class.
+                 Disagree   -> OrdinalLR wins (ordinal model is primary).
+                 Confidence -> SVM's calibrated Platt-scaled probability.
 
 Model trained in:  backend/train_cefr_ordinal.py
 Model file:        backend/app/models/cefr_ordinal_model.pkl
 
 References
-----------
+
 Agresti, A. (2002). Categorical Data Analysis (2nd ed.). Wiley.
   — Proportional-odds / cumulative link model (Section 6.2)
 Cortes, C., & Vapnik, V. (1995). Machine Learning, 20(3), 273–297.
@@ -26,8 +24,7 @@ Cortes, C., & Vapnik, V. (1995). Machine Learning, 20(3), 273–297.
 Rennie, J. D. M., & Srebro, N. (2005). ICML 2005.
   — LogisticAT (all-threshold ordinal model) implemented in mord
 Montgomery, A. (2023). CEFR Levelled English Texts. Kaggle.
-  — Written learner corpus used for training
-"""
+  — Written learner corpus used for training"""
 
 from __future__ import annotations
 
@@ -39,12 +36,12 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+#Paths
 _SERVICE_DIR  = os.path.dirname(os.path.abspath(__file__))
 _MODEL_PATH   = os.path.join(_SERVICE_DIR, "..", "models", "cefr_ordinal_model.pkl")
 _MODEL_PATH   = os.path.normpath(_MODEL_PATH)
 
-# ── Feature names (10 CAF indicators) ─────────────────────────────────────────
+#Feature names (10 CAF indicators)
 FEATURES = [
     "lexical_diversity",        # MTLD
     "lexical_sophistication",   # Word-frequency rarity 1-6
@@ -66,7 +63,7 @@ _FEATURE_ALIASES = {
 
 CEFR_LABELS = {0: "A2", 1: "B1", 2: "B2", 3: "C1-C2"}
 
-# ── Lazy-load ─────────────────────────────────────────────────────────────────
+#Lazy-load
 _bundle: Optional[dict] = None
 
 
@@ -89,7 +86,7 @@ def _load_bundle() -> dict:
         raise RuntimeError(f"Failed to load CEFR model: {exc}") from exc
 
 
-# ── Internal helpers ──────────────────────────────────────────────────────────
+#Internal helpers
 
 def _resolve_features(features: dict, model_feats: list) -> np.ndarray:
     """
@@ -102,7 +99,7 @@ def _resolve_features(features: dict, model_feats: list) -> np.ndarray:
       but since StandardScaler doesn't support NaN we use explicit per-feature
       means from the training distribution (approximate safe defaults).
     """
-    # Safe defaults ≈ training corpus means (written text, Kaggle corpus)
+    # Safe defaults = training corpus means (written text, Kaggle corpus)
     # These prevent extreme z-scores when a feature is missing from input.
     _SAFE_DEFAULTS = {
         "lexical_diversity":      65.0,   # MTLD mean ~65
@@ -129,31 +126,27 @@ def _resolve_features(features: dict, model_feats: list) -> np.ndarray:
     ).reshape(1, -1)
 
 
-# ── Public API ────────────────────────────────────────────────────────────────
+#Public API 
 
 def predict_cefr(features: dict) -> dict:
-    """
-    Predict CEFR level from 10 CAF indicator values.
+    """Predict CEFR level from 10 CAF indicator values.
 
     Parameters
-    ----------
     features : dict
         Keys should match FEATURES list above.
         Legacy aliases (speech_rate, filler_rate) are resolved automatically.
         Missing keys default to 0.0.
 
     Returns
-    -------
     dict with keys:
         predicted_cefr      : str   e.g. "B2"
         predicted_label     : int   0=A2 / 1=B1 / 2=B2 / 3=C1-C2
         confidence          : float SVM Platt-scaled probability of predicted class (0-1)
         all_probabilities   : dict  {cefr_label: probability} from SVM
-        model_info          : dict  metadata about the model
-    """
+        model_info          : dict  metadata about the model"""
     bundle = _load_bundle()
 
-    # ── Ordinal LR + SVM ensemble ─────────────────────────────────────────────
+    # Ordinal LR + SVM ensemble
     ordinal_lr  = bundle["ordinal_lr"]
     svm         = bundle["svm"]
     scaler      = bundle["scaler"]
