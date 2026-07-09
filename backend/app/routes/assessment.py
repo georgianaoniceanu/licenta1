@@ -61,9 +61,9 @@ study_manager.study_start_date = datetime.now()
 participants_db = {}  # participant_id -> participant data
 
 
-# ============================================================================
+
 # 0. DOMAIN INFORMATION
-# ============================================================================
+
 
 @router.get("/domains")
 async def get_available_domains():
@@ -153,9 +153,9 @@ async def get_available_domains():
     }
 
 
-# ============================================================================
+
 # 1. MODULE RECOMMENDATIONS
-# ============================================================================
+
 
 @router.post("/recommend", response_model=RecommendationResponse)
 async def get_module_recommendations(
@@ -244,9 +244,9 @@ async def get_module_recommendations(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 2. TEST-SPECIFIC FEEDBACK
-# ============================================================================
+
 
 @router.post("/feedback", response_model=FeedbackResponse)
 async def get_feedback(
@@ -312,15 +312,15 @@ async def get_feedback(
                 
                 # Determine severity
                 severity_map = {
-                    0.7: "🟢 LOW",
-                    0.5: "🟡 MEDIUM", 
-                    0.3: "🟡 HIGH",
-                    0.0: "🔴 CRITICAL"
+                    0.7: "LOW",
+                    0.5: "MEDIUM", 
+                    0.3: "HIGH",
+                    0.0: "CRITICAL"
                 }
                 severity = next(
                     (s for threshold, s in sorted(severity_map.items(), reverse=True) 
                      if score <= threshold),
-                    "🟢 LOW"
+                    "LOW"
                 )
                 
                 # Map to response model
@@ -391,9 +391,7 @@ def get_cefr_threshold(indicator: str, cefr_level: CEFRLevel) -> float:
     return thresholds.get(cefr_level.value, {}).get(indicator_short, 0.5)
 
 
-# ============================================================================
 # 3. PILOT STUDY ENROLLMENT
-# ============================================================================
 
 @router.post("/enroll", response_model=ParticipantEnrollmentResponse)
 async def enroll_participant(
@@ -437,9 +435,9 @@ async def enroll_participant(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 4. BASELINE ASSESSMENT SUBMISSION
-# ============================================================================
+
 
 @router.post("/baseline")
 async def submit_baseline_assessment(
@@ -487,9 +485,8 @@ async def submit_baseline_assessment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 5. POST-TEST ASSESSMENT SUBMISSION
-# ============================================================================
 
 @router.post("/posttest")
 async def submit_posttest_assessment(
@@ -544,9 +541,8 @@ async def submit_posttest_assessment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 6. PROGRESS TRACKING
-# ============================================================================
 
 @router.get("/progress/{participant_id}", response_model=AssessmentProgressResponse)
 async def get_participant_progress(participant_id: str):
@@ -592,9 +588,8 @@ def get_study_phase(status: str) -> str:
     return phases.get(status, "Unknown")
 
 
-# ============================================================================
 # 7. VALIDATION REPORT
-# ============================================================================
+
 
 @router.get("/validation-report", response_model=ValidationReportResponse)
 async def get_validation_report():
@@ -641,9 +636,9 @@ async def export_results(filepath: str = Query(...)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 8. DOMAIN COMPARISON & ANALYSIS
-# ============================================================================
+
 
 @router.get("/domain-comparison/{user_id}")
 async def get_domain_comparison(
@@ -773,9 +768,8 @@ async def analyze_dual_diagnosis(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ============================================================================
+
 # 9. UNIVERSAL VOCABULARY ANALYSIS
-# ============================================================================
 
 @router.get("/vocabulary/universal-words/{cefr_level}")
 async def get_universal_vocabulary(

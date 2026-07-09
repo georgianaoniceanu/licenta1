@@ -1,5 +1,4 @@
-"""
-Practice Hub — closes the diagnostic ⇄ intervention loop
+"""Practice Hub - closes the diagnostic, intervention loop
 
 Four endpoints, each grounded in a piece of literature already cited in
 articles_text/:
@@ -82,9 +81,8 @@ _groq = Groq(api_key=os.getenv("GROQ_API_KEY"))
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _require_user(authorization: Optional[str]) -> str:
     if not authorization or not authorization.startswith("Bearer "):
@@ -110,9 +108,8 @@ def _parse_json(content: str) -> Any:
     return json.loads(raw)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 1. ADAPTIVE EXERCISES
-# ─────────────────────────────────────────────────────────────────────────────
 
 class AdaptivePayload(BaseModel):
     cefr_level: str = "B1"                              # current learner CEFR
@@ -198,9 +195,8 @@ async def adaptive_exercises(payload: AdaptivePayload, authorization: str = Head
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 1b. EXAM-FORMAT SPEAKING TASKS  (curated bank, original prompts)
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/practice/speaking-tasks")
 async def speaking_tasks(
@@ -221,9 +217,9 @@ async def speaking_tasks(
     return {"success": True, "data": get_speaking_tasks(exam, level)}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 2. WORD RETENTION  (Cepeda et al. 2006 spaced re-use)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class RetentionPayload(BaseModel):
     # List of session bundles — each is the set of advanced words produced
@@ -298,9 +294,8 @@ async def word_retention(payload: RetentionPayload, authorization: str = Header(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 3. READING COMPREHENSION
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ReadingPayload(BaseModel):
     cefr_level: str = "B1"
@@ -365,9 +360,9 @@ async def reading_comprehension(payload: ReadingPayload, authorization: str = He
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # 4. LISTENING PRACTICE
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class ListeningGenerateBody(BaseModel):
     cefr_level: str = "B1"

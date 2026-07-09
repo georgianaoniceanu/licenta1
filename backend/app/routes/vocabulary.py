@@ -397,7 +397,7 @@ async def seed_bank(authorization: str = Header(None)):
         seed_vocabulary_bank()
         return {
             "success": True,
-            "message": "✅ Vocabulary bank seeded successfully",
+            "message": "Vocabulary bank seeded successfully",
         }
     except Exception as e:
         return {
@@ -465,9 +465,9 @@ async def get_phonetic_breakdown(
         try:
             user_id = get_user_id_from_token(authorization)
         except Exception as token_err:
-            print(f"⚠️  Token error (non-blocking): {token_err}")
+            print(f" Token error (non-blocking): {token_err}")
         
-        print(f"📤 Phonetic breakdown request: target='{payload.target_text}' user='{payload.transcribed_text}'")
+        print(f"Phonetic breakdown request: target='{payload.target_text}' user='{payload.transcribed_text}'")
         
         result = generate_phonetic_breakdown(
             target_text=payload.target_text,
@@ -478,11 +478,11 @@ async def get_phonetic_breakdown(
             "success": True,
             "data": result,
         }
-        print(f"✅ Phonetic breakdown response: {response_obj}")
+        print(f"Phonetic breakdown response: {response_obj}")
         return response_obj
         
     except Exception as e:
-        print(f"❌ Phonetic breakdown error: {e}")
+        print(f"Phonetic breakdown error: {e}")
         import traceback
         traceback.print_exc()
         return {
