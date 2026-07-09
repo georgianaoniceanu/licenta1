@@ -1,7 +1,7 @@
 """
-Health endpoint — quick liveness check for all external dependencies.
+Health endpoint - quick liveness check for all external dependencies.
 
-GET /health  →  {
+GET /health  ->  {
   "ok": true,
   "checks": {
     "groq":       { "ok": true,  "latency_ms": 230 },

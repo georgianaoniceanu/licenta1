@@ -1,6 +1,5 @@
-"""
-VocaFlow — /cefr/predict  endpoint
-====================================
+"""VocaFlow - /cefr/predict  endpoint
+
 POST /cefr/predict
   Accepts CAF indicator values and returns a CEFR level prediction produced by
   the deployed model: an Ordinal LR + SVM ensemble trained on the Kaggle CEFR
@@ -27,7 +26,7 @@ from app.services.cefr_predictor import predict_cefr, FEATURES, CEFR_LABELS
 
 router = APIRouter(tags=["CEFR Prediction"])
 
-# ── Pydantic schemas ──────────────────────────────────────────────────────────
+# Pydantic schemas 
 
 class CefrFeatures(BaseModel):
     """The 7 lexico-syntactic features the deployed Ordinal LR + SVM model uses."""
@@ -71,7 +70,7 @@ class BatchResponse(BaseModel):
     n_samples:   int
 
 
-# ── Routes ────────────────────────────────────────────────────────────────────
+#Routes 
 
 @router.post("/predict", response_model=CefrPrediction,
              summary="Predict CEFR level from 7 CAF indicators")

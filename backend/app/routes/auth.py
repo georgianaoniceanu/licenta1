@@ -68,9 +68,7 @@ async def get_history(authorization: str = Header(None)):
         raise HTTPException(status_code=401, detail="Token invalid")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # ONBOARDING ENDPOINTS
-# ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/onboarding/questions")
 async def get_questions():

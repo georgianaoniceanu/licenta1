@@ -1,5 +1,4 @@
-"""
-Research-Based Assessment Routes
+"""Research-Based Assessment Routes
 Integrates vocabulary, POS errors, module effectiveness, learning curves,
 and assessment indicators into the assessment system.
 
@@ -42,9 +41,9 @@ from app.services.assessment_workflow import (
 from datetime import datetime
 
 
-# ============================================================================
+
 # PYDANTIC MODELS
-# ============================================================================
+
 
 class VocabularyResponse(BaseModel):
     """Response for vocabulary queries"""

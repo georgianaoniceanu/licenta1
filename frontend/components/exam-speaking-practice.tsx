@@ -81,7 +81,7 @@ export function ExamSpeakingPractice() {
   const durationRef = useRef(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── Load the chosen exam's tasks ────────────────────────────────────────────
+  // Load the chosen exam's tasks
   useEffect(() => {
     (async () => {
       try {
