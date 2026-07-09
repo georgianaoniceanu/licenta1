@@ -1,8 +1,7 @@
-"""
-Onboarding Service — Initial Learner Profiling
+"""Onboarding Service - Initial Learner Profiling
 
 Research Foundation:
-───────────────────────────────────────────────────────────────────────────────
+
 1. CEFR Global Scale (Council of Europe, 2001; 2020)
    - Self-assessment grids use "can-do" descriptors at each CEFR level.
    - Present-Thomas, Weltens & de Jong (2013) demonstrate self-assessment as
@@ -53,9 +52,9 @@ from datetime import datetime
 from app.services.firestore import db
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # DATA MODELS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class OnboardingData:
@@ -106,9 +105,8 @@ class OnboardingData:
         return asdict(self)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # QUESTION DEFINITIONS (used by frontend to render each step)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # Step 1 — CEFR self-assessment
 # Can-do descriptors from CEFR Global Scale (Council of Europe 2001/2020)
@@ -426,9 +424,9 @@ STUDY_TIME_OPTIONS = [
 ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # ONBOARDING QUESTIONS (full structure returned to frontend)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def get_onboarding_questions() -> Dict:
     """
@@ -537,9 +535,9 @@ def get_onboarding_questions() -> Dict:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+ 
 # FIRESTORE PERSISTENCE
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def save_onboarding(data: OnboardingData) -> bool:
     """Persist onboarding data to Firestore under users/{user_id}/onboarding."""
@@ -579,9 +577,8 @@ def is_onboarding_complete(user_id: str) -> bool:
         return False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # INDICATOR MAPPING (for dual-diagnosis integration)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # Maps perceived_weak_areas values → indicator_type names used in assessment_indicators.py
 WEAK_AREA_TO_INDICATOR = {

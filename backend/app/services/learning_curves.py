@@ -1,5 +1,4 @@
-"""
-Learning Curves & Learner Progression Module
+"""Learning Curves & Learner Progression Module
 Models learner development trajectories based on SLA research.
 
 Research Foundation:
@@ -19,8 +18,7 @@ Key Principles:
 2. Individual differences: aptitude, motivation, strategies affect rate
 3. CAF (Complexity-Accuracy-Fluency) develop at different rates
 4. Lexical knowledge grows fastest, phonological most slowly
-5. Fossilization possible at any proficiency level
-"""
+5. Fossilization possible at any proficiency level"""
 
 from enum import Enum
 from typing import Dict, List, Optional, Tuple

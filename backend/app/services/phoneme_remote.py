@@ -1,9 +1,8 @@
-"""
-Phoneme Assessment — Primary: local CMU-dict scorer; Optional: Colab upgrade
-=============================================================================
+"""Phoneme Assessment — Primary: local CMU-dict scorer; Optional: Colab upgrade
+
 
 Architecture (two-tier, always available)
-------------------------------------------
+
 Tier 1 (ALWAYS ON):
   phoneme_local.score_pronunciation(original_text, transcribed_text)
   → CMU Pronouncing Dictionary + Levenshtein PER
@@ -22,7 +21,7 @@ to "unavailable" — it degrades gracefully to a slightly less precise
 (but still scientifically grounded) text-based PER score.
 
 Upgrade path for production
-----------------------------
+
 Replace Tier 2 with any of:
   - Azure Cognitive Services Pronunciation Assessment API
   - Google Cloud Speech-to-Text with word confidence scores
@@ -77,19 +76,7 @@ def assess_pronunciation(audio_path: str, original_text: str, transcribed_text: 
     Primary entry point for phoneme-level pronunciation assessment.
 
     Always returns a result dict (never raises, never returns None).
-    The dict is compatible with build_phoneme_result() in accent_dna.py.
-
-    Parameters
-    ----------
-    audio_path      : path to the learner's audio file (WAV/MP3)
-    original_text   : target text the learner should have said
-    transcribed_text: Whisper ASR transcription of the learner's audio
-
-    Returns
-    -------
-    dict with keys: accuracy_score, errors, expected_phonemes,
-                    produced_phonemes, alignment, word_breakdown, engine, ...
-    """
+    The dict is compatible with build_phoneme_result() in accent_dna.py."""
     # Tier 2: try Colab first (optional, higher acoustic precision)
     if _colab_url():
         colab = _assess_via_colab(audio_path, original_text)
@@ -103,15 +90,13 @@ def assess_pronunciation(audio_path: str, original_text: str, transcribed_text: 
     return result
 
 
-# ── Backwards-compatibility shim ──────────────────────────────────────────────
+# Backwards-compatibility shim 
 # Old call sites used assess_via_colab(audio_path, target_text) → dict | None.
 # Replace all call sites with assess_pronunciation(), but keep this shim so that
 # any code not yet updated still works (returns None only if both tiers fail,
 # which is now impossible since Tier 1 is deterministic).
 
 def assess_via_colab(audio_path: str, target_text: str) -> dict | None:
-    """
-    Deprecated shim — use assess_pronunciation() for new code.
-    Returns None only when Colab was never configured; kept for legacy callers.
-    """
+    """Deprecated shim — use assess_pronunciation() for new code.
+    Returns None only when Colab was never configured; kept for legacy callers."""
     return _assess_via_colab(audio_path, target_text)

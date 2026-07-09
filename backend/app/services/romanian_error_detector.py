@@ -1,6 +1,6 @@
 """
 Romanian Interference Error Detector
-─────────────────────────────────────────────────────────────────────────────
+
 
 Research Foundation:
   Pungă & Pârlog (2015): Rule-based patterns for automatic detection of L1
@@ -35,17 +35,16 @@ Error Categories Implemented:
      Adj+N (domestic market vs. *intern market), V+Prep (participate in,
      depend on, benefit from), prepositional phrases (on vacation, on the
      first of January).
-─────────────────────────────────────────────────────────────────────────────
+
 """
 
 import re
 from typing import List, Dict, Any
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # RULE DEFINITIONS
 # Each rule: pattern (regex), error_type, message, severity (1–3)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # Category 1: Article errors — Pungă & Pârlog (2015) pp.163–164
 # Romanians omit "the" before known referents and use "a" before vowels incorrectly
@@ -312,9 +311,8 @@ ALL_RULES = (
 )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # DETECTOR
-# ─────────────────────────────────────────────────────────────────────────────
 
 def detect_romanian_errors(text: str) -> Dict[str, Any]:
     """
