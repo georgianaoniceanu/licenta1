@@ -1,7 +1,4 @@
-"""
-CEFR Vocabulary Level Classifier
-─────────────────────────────────────────────────────────────────────────────
-
+"""CEFR Vocabulary Level Classifier
 Primary Source (loaded at runtime):
   English Vocabulary Profile / EVP Online (Cambridge) — 6,345 single-word
   entries classified A1–C2 based on learner corpus evidence collected by the
@@ -11,34 +8,32 @@ Primary Source (loaded at runtime):
   englishprofile.org, accessed 28 Apr 2026). Stored as evp_words.json.
 
 Supplementary sources (for words absent from EVP):
-  NAWL — New Academic Word List (article 26): 963 academic word families
-  at B2–C1 (corpus of 15M academic words).
+  NAWL - New Academic Word List (article 26): 963 academic word families
+  at B2-C1 (corpus of 15M academic words).
 
-  General Service List (A1–B1) — high-frequency English word families
+  General Service List (A1-B1) - high-frequency English word families
   classified by corpus frequency bands.
 
-  Davies AVL (article 47): Academic Vocabulary List from COCA, B2–C1.
+  Davies AVL (article 47): Academic Vocabulary List from COCA, B2-C1.
 
-  TAALES (Crossley & Kyle 2018) — article 3: morphological suffix heuristics
+  TAALES (Crossley & Kyle 2018) - article 3: morphological suffix heuristics
   as last-resort fallback when a word is absent from all lists.
 
 Classification Strategy:
   1. EVP lookup (6,345 entries, corpus-verified)
   2. Supplementary AWL/NAWL/GSL lookup (~600 extra entries)
-  3. Morphological heuristic fallback (word length + suffix → level)
-─────────────────────────────────────────────────────────────────────────────
-"""
+  3. Morphological heuristic fallback (word length + suffix → level)"""
 
 import re
 import json
 import os
 from typing import Dict, List
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # LOAD EVP WORD MAP (primary source)
 # 6,345 entries extracted from EVP Online (Cambridge English Profile project).
 # evp_words.json lives next to this file.
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 _EVP_PATH = os.path.join(os.path.dirname(__file__), "evp_words.json")
 try:
@@ -54,12 +49,12 @@ except Exception as _evp_err:
           f"({_evp_err}) — CEFR classification will be degraded.")
     _EVP_MAP = {}
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # SUPPLEMENTARY WORD LISTS (AWL / NAWL / new-GSL)
 # Used only for words absent from EVP — keeps EVP as authoritative source.
 # Sources: EVP Online (Cambridge), AWL (Coxhead 2000), NAWL (article 26),
 #          general frequency bands (A1–B1), AVL (Davies, article 47)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 CEFR_WORDS: Dict[str, List[str]] = {
     "A1": [
@@ -236,12 +231,12 @@ _WORD_LEVEL_MAP.update(_EVP_MAP)
 
 _TOTAL_LOOKUP = len(_WORD_LEVEL_MAP)  # ~6,800 entries after merge
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # BRITISH ENGLISH ALIASES
 # EVP file is American English (dict=us). Romanian learners often write
 # British spellings (school curriculum). Map each British form to the same
 # CEFR level as its American counterpart.
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 _BRITISH_TO_AMERICAN = {
     # -our / -or
@@ -300,7 +295,7 @@ _LEVEL_ORDER = ["A1", "A2", "B1", "B2", "C1", "C2"]
 _LEVEL_RANK = {lvl: i for i, lvl in enumerate(_LEVEL_ORDER)}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # LEMMATIZER (rule-based + irregular-verb table)
 #
 # EVP Online stores only base forms (`come`, `go`, `eat`, …). Without lemmatising
@@ -311,7 +306,7 @@ _LEVEL_RANK = {lvl: i for i, lvl in enumerate(_LEVEL_ORDER)}
 #
 # Approach: try the surface form first; if missing, generate candidate lemmas
 # via common English inflection rules, then try the irregular table.
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 # Common irregular verb forms (past, past participle, -ing) → base form
 _IRREGULAR_VERBS: Dict[str, str] = {
@@ -410,13 +405,11 @@ def _candidate_lemmas(word: str) -> list:
 
 
 def _lookup_level(word: str) -> tuple:
-    """
-    Return (level, source) where source is 'direct', 'lemma', or 'heuristic'.
+    """Return (level, source) where source is 'direct', 'lemma', or 'heuristic'.
     Checks both the surface form and candidate lemmas, taking the lower level.
     This prevents inflected forms of basic words (e.g. "saying" → say/A1) from
     being over-classified by a higher-level EVP entry for a different sense
-    (e.g. EVP "saying" = C2 noun/proverb).
-    """
+    (e.g. EVP "saying" = C2 noun/proverb)."""
     w = word.lower()
     direct_level = _WORD_LEVEL_MAP.get(w)
 
@@ -439,13 +432,12 @@ def _lookup_level(word: str) -> tuple:
     return _heuristic_level(w), "heuristic"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # HEURISTIC FALLBACK (for words not in the lookup table)
 # Based on: word length, morphological suffixes, frequency estimation
 # Sources: TAALES (Crossley & Kyle 2018), NAWL (article 26)
-# ─────────────────────────────────────────────────────────────────────────────
 
-# C1/C2 suffixes — typically formal/academic register (AWL, NAWL)
+
+# C1/C2 suffixes - typically formal/academic register (AWL, NAWL)
 _C1_SUFFIXES = (
     "tion", "sion", "ment", "ance", "ence", "ity", "ism", "ist",
     "ize", "ise", "ify", "ous", "ive", "ary", "ory", "ic", "al",
@@ -476,9 +468,8 @@ def _heuristic_level(word: str) -> str:
     return "B1"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # MAIN CLASSIFIER
-# ─────────────────────────────────────────────────────────────────────────────
 
 def classify_vocabulary(text: str) -> Dict:
     """
@@ -498,7 +489,7 @@ def classify_vocabulary(text: str) -> Dict:
             "research": "..."
         }
     """
-    # Tokenize — only alphabetic words, no stopwords for level counting
+    # Tokenize - only alphabetic words, no stopwords for level counting
     tokens = re.findall(r"\b[a-zA-Z]{3,}\b", text.lower())
     if not tokens:
         return _empty_result()

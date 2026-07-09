@@ -1,15 +1,11 @@
-"""
-Simple in-memory TTL cache for API responses
-─────────────────────────────────────────────────────────────────────────────
+"""Simple in-memory TTL cache for API responses
 Purpose: reduce calls to expensive external APIs (Groq LLM, ElevenLabs)
 during demos / development. Identical text inputs produce identical outputs,
 so we cache them by hash for a configurable TTL (default 1 hour).
 
 This is a process-local cache — it lives in RAM and dies when the server
 restarts. Sufficient for thesis demonstrations and dev work. For production
-multi-worker deploys, swap to Redis.
-─────────────────────────────────────────────────────────────────────────────
-"""
+multi-worker deploys, swap to Redis."""
 
 import hashlib
 import json
@@ -85,15 +81,13 @@ def make_key(namespace: str, *parts: Any) -> str:
 
 
 def cached(namespace: str, ttl: Optional[int] = None):
-    """
-    Decorator: cache the return value of a function by its arguments.
+    """Decorator: cache the return value of a function by its arguments.
     Skips caching automatically if the function raises.
 
     Usage:
         @cached("vocab_suggestions", ttl=3600)
         def analyze_vocabulary(user_id, text):
-            ...
-    """
+            ..."""
     def decorator(fn: Callable):
         @functools.wraps(fn)
         def wrapper(*args, **kwargs):
