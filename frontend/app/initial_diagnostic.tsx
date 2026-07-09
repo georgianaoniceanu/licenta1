@@ -146,8 +146,10 @@ export default function InitialDiagnosticScreen() {
       });
       if (res.ok) {
         const data = await res.json();
-        const d = data.profile?.target_domain || 'description';
-        const c = data.profile?.self_assessed_cefr || 'B1';
+        // /auth/onboarding returns the profile FLAT (fields at top level),
+        // not nested under .profile — read the fields directly.
+        const d = data.target_domain || 'description';
+        const c = data.self_assessed_cefr || 'B1';
         setDomain(d);
         setCefr(c);
         fetchPrompt(d, token);
