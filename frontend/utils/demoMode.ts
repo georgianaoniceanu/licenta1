@@ -47,7 +47,7 @@ const DEMO_OVERWRITE_KEYS: readonly string[] = [
   'rawIndicators',
   'vf_caf_sessions', 'vf_exam_sessions', 'vf_grammar_sessions',
   'vf_genre_sessions', 'vf_shadow_sessions', 'vf_accent_sessions',
-  'vf_vocab_sessions', 'vf_phoneme_scores',
+  'vf_vocab_sessions', 'vf_phoneme_scores', 'vf_practice_sessions',
   'userTargetExam', 'userPrimaryGoal', 'userJob', 'userIndustry',
   'userCurrentCEFR', 'userDomain', 'userIntensity', 'userWeaknesses',
   'userDisplayName',
@@ -539,6 +539,107 @@ function withShadowFeedback<T extends { score: number; target_text: string; tran
   return arr.map(e => ({ ...e, feedback: buildShadowFeedback(e) }));
 }
 
+// ── Practice Hub (exam speaking) demo sessions ──────────────────────────────
+// Seeds `vf_practice_sessions` with completed exam-speaking sessions, each
+// carrying a full ScoreResult (matching the user's target exam), so tapping one
+// in the Practice Hub reopens the results instantly — parity with Shadow /
+// Accent / Vocabulary saved sessions.
+type _PracticeSpec = { examKey: string; level: string; band: number };
+const _PRACTICE_SPEC: Record<string, _PracticeSpec> = {
+  weak:   { examKey: 'general', level: 'B1', band: 4.5 },
+  medium: { examKey: 'cambridge_cae', level: 'C1', band: 6.5 },
+  strong: { examKey: 'cambridge_cpe', level: 'C2', band: 8.0 },
+  ana:    { examKey: 'ielts_academic', level: 'B1', band: 5.0 },
+  mihai:  { examKey: 'cambridge_cae',  level: 'B2', band: 6.0 },
+  elena:  { examKey: 'cambridge_cae',  level: 'C1', band: 7.0 },
+  radu:   { examKey: 'cambridge_cpe',  level: 'C1', band: 7.5 },
+  sorin:  { examKey: 'ielts_general',  level: 'B2', band: 6.0 },
+  diana:  { examKey: 'cambridge_cae',  level: 'B2', band: 6.5 },
+};
+// Real exam structure (parts + one representative task each), mirrored from
+// backend/app/data/speaking_tasks.json so seeded sessions span ALL exam parts.
+const _EXAM_PARTS: Record<string, { partName: string; topic: string; prompt: string; level: string }[]> = {
+  ielts: [
+    { partName: 'Part 1 — Introduction & interview',       topic: 'Hometown',           level: 'B1', prompt: "Let's talk about where you live. Where is your hometown and what is it like?" },
+    { partName: 'Part 2 — Individual long turn (cue card)', topic: 'A skill',             level: 'B2', prompt: 'Describe a skill you would like to learn. Say what it is, why you want to learn it, and how you would do it.' },
+    { partName: 'Part 3 — Two-way discussion',             topic: 'Learning & society',  level: 'C1', prompt: 'Some people say schools should focus more on practical skills than on academic subjects. To what extent do you agree?' },
+  ],
+  cambridge_cae: [
+    { partName: 'Part 1 — Interview',                       topic: 'Ambitions',            level: 'C1', prompt: 'What are your main ambitions for the next few years, and what is driving them?' },
+    { partName: 'Part 2 — Long turn (compare & speculate)', topic: 'Working environments', level: 'C1', prompt: 'Compare these two working situations and speculate about the challenges each person might face.' },
+    { partName: 'Part 3 — Collaborative task',              topic: 'Improving a city',     level: 'C1', prompt: 'A city council has limited funds. Evaluate how effectively each option could improve quality of life, then decide together.' },
+    { partName: 'Part 4 — Discussion',                      topic: 'Society & priorities', level: 'C1', prompt: 'Should governments prioritise economic growth or environmental protection when the two conflict?' },
+  ],
+  cambridge_cpe: [
+    { partName: 'Part 1 — Interview',               topic: 'Change',             level: 'C2', prompt: 'How well do you tend to cope with major changes in your life?' },
+    { partName: 'Part 2 — Collaborative task',      topic: 'Measuring progress', level: 'C2', prompt: "Consider different ways a society might measure 'progress' and decide together which matters most." },
+    { partName: 'Part 3 — Long turn & discussion',  topic: 'Knowledge',          level: 'C2', prompt: "'In the age of the internet, knowing how to find information matters more than knowing facts.' How far do you agree?" },
+  ],
+  general: [
+    { partName: 'Everyday speaking', topic: 'Daily life',  level: 'B1', prompt: 'Tell me about a typical weekend for you. What do you enjoy doing and why?' },
+    { partName: 'Everyday speaking', topic: 'Opinions',    level: 'B2', prompt: 'What is something you feel strongly about, and why?' },
+    { partName: 'Everyday speaking', topic: 'The future',  level: 'C1', prompt: 'How do you think your city will change over the next ten years?' },
+  ],
+};
+const _PRACTICE_ANSWERS = [
+  'I think it depends on the situation, but generally I try to look at it from different angles before I decide. For example, I usually weigh the advantages and disadvantages and then commit to a plan.',
+  'That is an interesting question. On the one hand there are clear benefits, yet on the other hand we should not ignore the drawbacks. Overall I would lean towards a balanced approach.',
+  'From my own experience, this has become increasingly important over the last few years. The key is to stay flexible and keep learning, because things change so quickly nowadays.',
+  'To be honest, I feel quite strongly about this. With the right preparation and a positive attitude, most challenges can be managed effectively.',
+];
+function _partsKeyFor(examKey: string): keyof typeof _EXAM_PARTS {
+  if (examKey.startsWith('ielts')) return 'ielts';
+  if (examKey === 'cambridge_cae' || examKey === 'cambridge_fce') return 'cambridge_cae';
+  if (examKey === 'cambridge_cpe') return 'cambridge_cpe';
+  return 'general';
+}
+function practiceSessionsFor(preset: AnyPreset) {
+  const spec = _PRACTICE_SPEC[preset as string] ?? _PRACTICE_SPEC.medium;
+  const parts = _EXAM_PARTS[_partsKeyFor(spec.examKey)];
+  const fam = spec.examKey.startsWith('cambridge') ? 'cambridge'
+            : spec.examKey.startsWith('ielts') ? 'ielts' : 'cefr';
+  const half = (v: number) => Math.max(3, Math.min(9, Math.round(v * 2) / 2));
+  // One saved session per exam PART, so the list covers the whole exam.
+  return parts.map((part, i) => {
+    const band = half(spec.band + [0, -0.5, 0.5, 0][i % 4]);
+    const transcript = _PRACTICE_ANSWERS[i % _PRACTICE_ANSWERS.length];
+    const ielts = {
+      overall: band,
+      band_label: band >= 7 ? 'Good user' : band >= 6 ? 'Competent user' : band >= 5 ? 'Modest user' : 'Limited user',
+      criteria: [
+        { label: 'Fluency & Coherence', val: half(band - 0.5), color: '#0FBA9A' },
+        { label: 'Lexical Resource',    val: half(band),       color: '#8B5CF6' },
+        { label: 'Grammar Range',       val: half(band - 1.0), color: '#F59E0B' },
+        { label: 'Pronunciation',       val: half(band + 0.5), color: '#38BDF8' },
+      ],
+    };
+    const result: any = {
+      examKey: spec.examKey, cefrLevel: spec.level,
+      wps: Math.round((2.0 + band * 0.12) * 10) / 10, pronMeasured: false,
+      transcript, words: transcript.split(/\s+/).length, ielts,
+    };
+    if (fam === 'cambridge') {
+      result.cambridge = {
+        level: spec.level,
+        advice: band >= 6.5
+          ? 'Strong control overall — extend answers with more complex structures and precise vocabulary.'
+          : 'Good foundation — focus on linking ideas smoothly and reducing hesitation.',
+        criteria: [
+          { label: 'Grammar & Vocabulary',     level: spec.level, descriptor: 'Good range with occasional slips under time pressure.' },
+          { label: 'Discourse Management',      level: spec.level, descriptor: 'Coherent and well linked; some hesitation on complex ideas.' },
+          { label: 'Pronunciation',             level: spec.level, descriptor: 'Generally clear; slight Romanian L1 influence on some sounds.' },
+          { label: 'Interactive Communication', level: spec.level, descriptor: 'Maintains the exchange with minimal support.' },
+        ],
+      };
+    }
+    return {
+      ts: tsBack(i * 2 + 1),
+      partName: part.partName, topic: part.topic, prompt: part.prompt, level: part.level,
+      result,
+    };
+  });
+}
+
 // Persona shadow sessions (with real audio recordings)
 // Each persona has 2 recordings stored in assets/audio. The audio_id field
 // resolves to a bundled MP3 at playback time (see constants/demoAudio.ts).
@@ -952,6 +1053,7 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
       ['vf_shadow_sessions',        JSON.stringify(withShadowFeedback(p.shadow))],
       ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
       ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
+      ['vf_practice_sessions',      JSON.stringify(practiceSessionsFor(preset))],
       ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],
       ['userTargetExam',            p.exam_goal],
       ['userPrimaryGoal',           p.goal],
@@ -994,6 +1096,7 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
     ['vf_shadow_sessions',        JSON.stringify(withShadowFeedback(SHADOW_SESSIONS[preset]))],
     ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
     ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
+    ['vf_practice_sessions',      JSON.stringify(practiceSessionsFor(preset))],
     ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],
   ];
   await Promise.all(writes.map(([k, v]) => AsyncStorage.setItem(k, v)));

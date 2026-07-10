@@ -52,6 +52,12 @@ interface ScoreResult {
   cambridge?: { level: string; advice: string; criteria: CamCrit[] };
   pte?: { score: number; range: string; clb: number | null; cefr: string };
 }
+// A previously practised session (seeded for demo users), stored with its full
+// ScoreResult so tapping it reopens the results view instantly.
+interface SavedPractice {
+  ts: number; partName: string; topic: string; prompt: string; level: string;
+  result: ScoreResult;
+}
 
 // Which result layout to show for each exam family.
 const examFamily = (k: string): 'ielts' | 'cambridge' | 'pte' | 'cefr' =>
@@ -75,6 +81,7 @@ export function ExamSpeakingPractice() {
   const [countdown, setCountdown] = useState(0);
   const [statusMsg, setStatusMsg] = useState('');
   const [result, setResult] = useState<ScoreResult | null>(null);
+  const [saved, setSaved] = useState<SavedPractice[]>([]);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
   const audioUriRef = useRef<string | null>(null);
@@ -122,6 +129,13 @@ export function ExamSpeakingPractice() {
     })();
   }, []);
 
+  // Load previously practised sessions (seeded for demo users; empty otherwise).
+  useEffect(() => {
+    AsyncStorage.getItem('vf_practice_sessions').then(raw => {
+      try { const arr = raw ? JSON.parse(raw) : []; if (Array.isArray(arr)) setSaved(arr); } catch {}
+    });
+  }, []);
+
   const clearTick = () => { if (tickRef.current) { clearInterval(tickRef.current); tickRef.current = null; } };
   useEffect(() => () => clearTick(), []);
 
@@ -137,6 +151,17 @@ export function ExamSpeakingPractice() {
 
   const openTask = (part: Part, task: Task) => { reset(); setActive({ part, task }); setPhase('card'); };
   const backToBrowse = () => { reset(); setActive(null); setPhase('browse'); };
+
+  // Reopen a saved session straight in the results view (instant, no recording).
+  const openSaved = (sp: SavedPractice) => {
+    reset();
+    setActive({
+      part: { id: 'saved', name: sp.partName, description: '', format: '', prep_seconds: 0, speak_seconds: 0, tasks: [] },
+      task: { id: 'saved', level: sp.level, topic: sp.topic, prompt: sp.prompt },
+    });
+    setResult(sp.result);
+    setPhase('result');
+  };
 
   // ── Recording lifecycle ─────────────────────────────────────────────────────
   const startRecording = useCallback(async () => {
@@ -502,6 +527,31 @@ export function ExamSpeakingPractice() {
       </Text>
       {!!exam.note && <Text style={s.examNote}>{exam.note}</Text>}
 
+      {saved.length > 0 && (
+        <View style={s.savedBlock}>
+          <Text style={s.savedTitle}>Practised sessions</Text>
+          {saved.map((sp, i) => {
+            const fam = examFamily(sp.result.examKey);
+            const scoreText = fam === 'ielts'
+              ? String(sp.result.ielts.overall)
+              : (sp.result.cambridge?.level ?? sp.result.cefrLevel);
+            const col = CEFR_COLOR[sp.level] ?? TEAL;
+            return (
+              <TouchableOpacity key={i} style={s.taskCard} onPress={() => openSaved(sp)} activeOpacity={0.8}>
+                <View style={[s.savedScore, { borderColor: col }]}>
+                  <Text style={[s.savedScoreText, { color: col }]}>{scoreText}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={s.taskTopic}>{sp.topic}</Text>
+                  <Text style={s.taskPrompt} numberOfLines={1}>{sp.prompt}</Text>
+                </View>
+                <Feather name="chevron-right" size={18} color={MUTED} />
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+
       {exam.parts.map(part => (
         <View key={part.id} style={s.partBlock}>
           <Text style={s.partName}>{part.name}</Text>
@@ -534,6 +584,14 @@ const s = StyleSheet.create({
   examName: { fontSize: 26, fontWeight: '900', color: TEXT, letterSpacing: -0.5 },
   examSub: { fontSize: 13, color: TEAL, fontWeight: '700', marginTop: 4 },
   examNote: { fontSize: 12, color: MUTED, marginTop: 8, lineHeight: 17, fontStyle: 'italic' },
+
+  savedBlock: { marginTop: 20 },
+  savedTitle: { fontSize: 14, fontWeight: '800', color: TEAL, letterSpacing: 0.2, marginBottom: 10 },
+  savedScore: {
+    width: 38, height: 38, borderRadius: 19, borderWidth: 2,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  savedScoreText: { fontSize: 13, fontWeight: '800' },
 
   partBlock: { marginTop: 20 },
   partName: { fontSize: 15, fontWeight: '800', color: TEXT },
