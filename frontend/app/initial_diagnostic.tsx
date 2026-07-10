@@ -105,11 +105,13 @@ const INDICATOR_LABELS: Record<string, string> = {
   morphosyntactic_accuracy: 'Grammar Accuracy',
 };
 
+// Keyed by the plain severity string the backend returns (assessment.py):
+// "CRITICAL" | "HIGH" | "MEDIUM" | "LOW". No emoji — the API never sends any.
 const SEVERITY_COLOR: Record<string, string> = {
-  '🔴 CRITICAL': '#ef4444',
-  '🟡 HIGH':     '#f59e0b',
-  '🟢 MEDIUM':   '#10b981',
-  '🟢 LOW':      '#10b981',
+  CRITICAL: '#ef4444',
+  HIGH:     '#f59e0b',
+  MEDIUM:   '#10b981',
+  LOW:      '#10b981',
 };
 
 // COMPONENT

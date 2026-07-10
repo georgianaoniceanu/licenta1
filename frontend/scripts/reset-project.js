@@ -66,7 +66,7 @@ const moveDirectories = async (userInput) => {
           console.log(`/${dir} deleted.`);
         }
       } else {
-        console.log(`➡️ /${dir} does not exist, skipping.`);
+        console.log(`/${dir} does not exist, skipping.`);
       }
     }
 

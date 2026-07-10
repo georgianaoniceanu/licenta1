@@ -26,6 +26,7 @@ import SavedSessions from '@/components/saved-sessions';
 type SavedShadow = {
   ts: number; category: string; difficulty: string; score: number;
   target_text: string; transcribed: string; audio_id?: string;
+  feedback?: Feedback;   // full result — lets a tapped session restore results instantly
 };
 
 const FRAGMENTS = [
@@ -164,6 +165,7 @@ type ShadowStorageEntry = {
   score: number;
   transcribed: string;
   target_text: string;
+  feedback?: Feedback;   // full result, stored so a saved session reopens instantly
 };
 
 const DIFF_COLORS: Record<string, string> = {
@@ -205,6 +207,8 @@ export default function ShadowSpeakingScreen() {
   const audioRef = useRef<Audio.Sound | null>(null);
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
+  const feedbackYRef = useRef(0);   // y-offset of the results section, for scroll-on-tap
 
   useEffect(() => {
     if (feedback) {
@@ -307,6 +311,7 @@ export default function ShadowSpeakingScreen() {
           score: data.accuracy_score,
           transcribed: data.transcribed_text,
           target_text: selectedFragment.text,
+          feedback: data,
         };
         const raw = await AsyncStorage.getItem('vf_shadow_sessions');
         const existing: ShadowStorageEntry[] = raw ? JSON.parse(raw) : [];
@@ -355,7 +360,7 @@ export default function ShadowSpeakingScreen() {
           setStep('feedback');
           setSessionScores(prev => [...prev.slice(-4), { category: selectedFragment.category, score: data.accuracy_score }]);
           try {
-            const entry: ShadowStorageEntry = { ts: Date.now(), category: selectedFragment.category, difficulty: selectedFragment.difficulty, score: data.accuracy_score, transcribed: data.transcribed_text, target_text: selectedFragment.text };
+            const entry: ShadowStorageEntry = { ts: Date.now(), category: selectedFragment.category, difficulty: selectedFragment.difficulty, score: data.accuracy_score, transcribed: data.transcribed_text, target_text: selectedFragment.text, feedback: data };
             const raw = await AsyncStorage.getItem('vf_shadow_sessions');
             const existing: ShadowStorageEntry[] = raw ? JSON.parse(raw) : [];
             await AsyncStorage.setItem('vf_shadow_sessions', JSON.stringify([entry, ...existing].slice(0, 50)));
@@ -554,6 +559,7 @@ export default function ShadowSpeakingScreen() {
   return (
     <View style={styles.root}>
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
@@ -582,21 +588,33 @@ export default function ShadowSpeakingScreen() {
           getScore={(s) => s.score}
           getTs={(s) => s.ts}
           getMeta={(s) => `${s.category} · ${s.difficulty}`}
-          renderDetail={(s) => (
-            <>
-              <Text style={styles.savedTranscribed}>
-                You said: <Text style={styles.transcribedText}>&quot;{s.transcribed}&quot;</Text>
-              </Text>
-              <Text style={styles.savedDetailLabel}>Word match</Text>
-              <View style={styles.wordDiffRow}>
-                {getWordDiff(s.target_text, s.transcribed).map((item, i) => (
-                  <View key={i} style={[styles.wordDiffChip, { backgroundColor: item.hit ? '#0FBA9A20' : '#EF444420', borderColor: item.hit ? '#0FBA9A40' : '#EF444440' }]}>
-                    <Text style={[styles.wordDiffText, { color: item.hit ? '#0FBA9A' : '#EF4444' }]}>{item.word}</Text>
-                  </View>
-                ))}
-              </View>
-            </>
-          )}
+          onPress={(s) => {
+            // Reopen the saved session directly in the results view (Step 3),
+            // just like Accent DNA and Vocabulary do with their saved sessions.
+            setSelectedFragment({
+              id: 'saved',
+              category: s.category,
+              text: s.target_text,
+              difficulty: s.difficulty,
+              focus: 'Connected speech & rhythm',
+              tips: s.feedback?.connected_speech_tips ?? 'Focus on linking words naturally.',
+              phoneme_targets: [],
+            });
+            setFeedback(s.feedback ?? {
+              accuracy_score: s.score,
+              transcribed_text: s.transcribed,
+              missing_words: [],
+              extra_words: [],
+              fluency_feedback: '',
+              connected_speech_tips: '',
+            });
+            setStep('feedback');
+            setError('');
+            setTimeout(
+              () => scrollRef.current?.scrollTo({ y: Math.max(0, feedbackYRef.current - 12), animated: true }),
+              220,
+            );
+          }}
         />
 
         {/* Session Score History */}
@@ -909,6 +927,7 @@ export default function ShadowSpeakingScreen() {
         {/* Step 3: Feedback */}
         {step === 'feedback' && feedback && (
           <Animated.View
+            onLayout={(e) => { feedbackYRef.current = e.nativeEvent.layout.y; }}
             style={[styles.feedbackSection, { opacity: feedbackOpacity, transform: [{ scale: feedbackScale }] }]}
           >
             <Text style={styles.stepTitle}>Step 3: Your Results</Text>
