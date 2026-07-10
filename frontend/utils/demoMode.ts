@@ -485,6 +485,60 @@ const SHADOW_SESSIONS = {
   strong: buildShadow([84, 88, 86, 90, 92, 89], ['B2', 'C1', 'C1', 'C1', 'C1', 'C1'], TRANSCRIBED_MEDIUM),
 };
 
+// Reconstruct a full Shadow feedback object from a saved entry, so tapping a
+// demo session opens the results view instantly (parity with Accent/Vocabulary).
+// The shape matches the `Feedback` type consumed by app/(tabs)/shadow.tsx.
+function buildShadowFeedback(e: { score: number; target_text: string; transcribed: string }) {
+  const clamp = (v: number) => Math.max(0, Math.min(100, Math.round(v)));
+  const norm  = (w: string) => w.toLowerCase().replace(/[^a-z']/g, '');
+  const tgtWords  = e.target_text.split(/\s+/).filter(Boolean);
+  const saidWords = e.transcribed.split(/\s+/).filter(Boolean);
+  const saidSet = new Set(saidWords.map(norm).filter(Boolean));
+  const tgtSet  = new Set(tgtWords.map(norm).filter(Boolean));
+  const missing_words = tgtWords.filter(w => norm(w) && !saidSet.has(norm(w)));
+  const extra_words   = saidWords.filter(w => norm(w) && !tgtSet.has(norm(w)));
+  const s = e.score;
+  const band = s >= 80 ? 'strong' : s >= 60 ? 'good' : 'weak';
+  const fluency =
+    band === 'strong' ? 'Smooth, confident delivery. Your rhythm closely mirrors the native model.'
+    : band === 'good' ? 'Good overall flow with a few hesitations. Keep linking words together.'
+    : 'Delivery is a little choppy. Focus on connecting words rather than pausing between them.';
+  const tips =
+    band === 'strong' ? 'Excellent connected speech. Fine-tune intonation on the stressed syllables.'
+    : band === 'good' ? 'Blend function words (to, of, and) into the surrounding words for a more natural rhythm.'
+    : 'Slow down slightly and reduce weak vowels to schwa /ə/ in unstressed syllables.';
+  const wpm      = band === 'strong' ? 138 : band === 'good' ? 126 : 108;
+  const wpmLabel = band === 'weak' ? 'too_slow' : 'ideal';
+  return {
+    accuracy_score: s,
+    transcribed_text: e.transcribed,
+    missing_words,
+    extra_words,
+    fluency_feedback: fluency,
+    connected_speech_tips: tips,
+    phoneme_score: clamp(s - 4),
+    prosody: {
+      prosody_score: clamp(s - 2),
+      pitch_score:   clamp(s + 3),
+      rhythm_score:  clamp(s - 6),
+      energy_score:  clamp(s),
+    },
+    wpm,
+    wpm_assessment: {
+      label: wpmLabel,
+      message: wpmLabel === 'ideal'
+        ? 'Great pace — right in the natural speaking range.'
+        : 'A little slow. Try to keep a steady, connected pace.',
+      target: '120-150 WPM',
+    },
+  };
+}
+
+// Attach a reconstructed feedback object to each saved shadow entry.
+function withShadowFeedback<T extends { score: number; target_text: string; transcribed: string }>(arr: T[]) {
+  return arr.map(e => ({ ...e, feedback: buildShadowFeedback(e) }));
+}
+
 // Persona shadow sessions (with real audio recordings)
 // Each persona has 2 recordings stored in assets/audio. The audio_id field
 // resolves to a bundled MP3 at playback time (see constants/demoAudio.ts).
@@ -895,7 +949,7 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
       ['vf_exam_sessions',          JSON.stringify(p.exam)],
       ['vf_grammar_sessions',       JSON.stringify(p.grammar)],
       ['vf_genre_sessions',         JSON.stringify(p.genre)],
-      ['vf_shadow_sessions',        JSON.stringify(p.shadow)],
+      ['vf_shadow_sessions',        JSON.stringify(withShadowFeedback(p.shadow))],
       ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
       ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
       ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],
@@ -937,7 +991,7 @@ export async function loadDemoProfile(preset: AnyPreset): Promise<void> {
     ['learner_profile_anonymous', JSON.stringify(LEARNER_PROFILES[preset])],
     ['demo_rt_stats',             JSON.stringify(RT_STATS[preset])],
     ['demo_srs_state',            JSON.stringify(SRS_STATES[preset])],
-    ['vf_shadow_sessions',        JSON.stringify(SHADOW_SESSIONS[preset])],
+    ['vf_shadow_sessions',        JSON.stringify(withShadowFeedback(SHADOW_SESSIONS[preset]))],
     ['vf_accent_sessions',        JSON.stringify(accentSessionsFor(preset))],
     ['vf_vocab_sessions',         JSON.stringify(vocabSessionsFor(preset))],
     ['vf_phoneme_scores',         JSON.stringify(phonemeScoresFor(preset))],

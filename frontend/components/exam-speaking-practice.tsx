@@ -342,7 +342,12 @@ export function ExamSpeakingPractice() {
           {part.image_based_in_exam && (
             <Text style={s.cueNote}>Image-based in the real exam — described in words here.</Text>
           )}
-          {!!task.tip && <Text style={s.cueTip}>💡 {task.tip}</Text>}
+          {!!task.tip && (
+            <View style={s.cueTipRow}>
+              <Feather name="info" size={13} color={TEAL} style={{ marginTop: 2 }} />
+              <Text style={s.cueTip}>{task.tip}</Text>
+            </View>
+          )}
         </View>
 
         {/* Phase-specific control */}
@@ -559,7 +564,8 @@ const s = StyleSheet.create({
   cuePrompt: { fontSize: 15, color: TEXT, lineHeight: 22, fontWeight: '600' },
   cueBullet: { fontSize: 13, color: MUTED, lineHeight: 19, marginTop: 4, marginLeft: 4 },
   cueNote: { fontSize: 11, color: MUTED, fontStyle: 'italic', marginTop: 8 },
-  cueTip: { fontSize: 12, color: TEAL, marginTop: 12, lineHeight: 17 },
+  cueTipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: 12 },
+  cueTip: { flex: 1, fontSize: 12, color: TEAL, lineHeight: 17 },
 
   runBox: { alignItems: 'center', marginTop: 20, gap: 12 },
   runMeta: { fontSize: 12, color: MUTED, textAlign: 'center' },

@@ -42,7 +42,6 @@ const MENU_ITEMS: { key: TKey; route: string; icon: FeatherIconName; color: stri
   { key: 'shadowSpeak',   route: '/(tabs)/shadow',        icon: 'headphones',  color: '#0FBA9A' },
   { key: 'practiceHub',   route: '/(tabs)/practice',      icon: 'zap',         color: '#0FBA9A' },
   { key: 'progress',      route: '/(tabs)/progress',      icon: 'trending-up', color: '#8B5CF6' },
-  { key: 'examProfile',   route: '/(tabs)/exam-profile',  icon: 'award',       color: '#8B5CF6' },
   { key: 'history',       route: '/(tabs)/history',       icon: 'clock',       color: '#64748B' },
   { key: 'dualDiagnosis', route: '/(tabs)/dual_diagnosis', icon: 'bar-chart-2', color: TEAL      },
   { key: 'coverageMap',   route: '/(tabs)/coverage-map',  icon: 'map',         color: '#8B5CF6' },
