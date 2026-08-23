@@ -1,28 +1,4 @@
-"""Prosody Assessment — Primary: Colab parselmouth+librosa; Fallback: local librosa
-
-
-Architecture (two-tier, always available)
-
-Tier 1 (OPTIONAL — full acoustic prosody):
-  Google Colab notebook (backend/colab/prosody_analysis_colab.py)
-  Exposed via Cloudflare tunnel → parselmouth (Praat) + librosa + DTW
-  Set COLAB_PROSODY_URL in .env to enable.
-  Measures: F0 pitch contour, onset-strength rhythm, RMS energy envelope.
-
-Tier 2 (ALWAYS ON — lightweight local fallback):
-  librosa-based approximation (no Praat, no external server).
-  Uses librosa.yin() for pitch, onset_strength for rhythm, RMS for energy.
-  Less accurate than Tier 1 but deterministic and always available.
-  Returns score with a "local_fallback": True flag so the frontend can
-  display a note explaining the reduced precision.
-
-Scientific basis:
-  Boersma & Weenink (2001) Praat — Glot International 5(9/10), 341-347.
-  Sakoe & Chiba (1978) DTW — IEEE Trans ASSP 26(1), 43-49.
-  Ramus et al. (1999) Rhythm metrics — Cognition 73(3), 265-292.
-  Pallotti (2009) CAF framework — Applied Linguistics 30(4), 590-601.
-"""
-
+#Prosody Assessment: local librosa
 from __future__ import annotations
 import os, math, logging
 import numpy as np

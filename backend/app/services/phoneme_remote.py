@@ -1,36 +1,4 @@
-"""Phoneme Assessment — Primary: local CMU-dict scorer; Optional: Colab upgrade
-
-
-Architecture (two-tier, always available)
-
-Tier 1 (ALWAYS ON):
-  phoneme_local.score_pronunciation(original_text, transcribed_text)
-  → CMU Pronouncing Dictionary + Levenshtein PER
-  → deterministic, no network, no GPU, startup-time import only
-  → available 100% of the time
-
-Tier 2 (OPTIONAL — higher acoustic precision):
-  Google Colab notebook (backend/colab/phoneme_assessment_colab.py)
-  exposed via Cloudflare tunnel → wav2vec2-xlsr-53-espeak-cv-ft phoneme recognition
-  Set COLAB_PHONEME_URL in .env to enable. When reachable, replaces
-  Tier 1 with genuine audio-level phoneme transcription.
-
-When COLAB_PHONEME_URL is unset or the Colab server is down,
-Tier 1 handles all requests transparently. The system never degrades
-to "unavailable" — it degrades gracefully to a slightly less precise
-(but still scientifically grounded) text-based PER score.
-
-Upgrade path for production
-
-Replace Tier 2 with any of:
-  - Azure Cognitive Services Pronunciation Assessment API
-  - Google Cloud Speech-to-Text with word confidence scores
-  - SpeechBrain (GPU inference on the same server)
-  - Self-hosted wav2vec2 via FastAPI + Docker
-
-This file is the only place that needs to change for any upgrade —
-all consumers (accent.py, shadow.py) call assess_pronunciation() here.
-"""
+"""Phoneme estimation using Colab model"""
 
 import os
 import logging

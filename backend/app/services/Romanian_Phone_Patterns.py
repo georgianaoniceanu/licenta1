@@ -1,11 +1,9 @@
-"""
-Romanian Phonological Transfer Patterns in English (L2) Acquisition
+"""Romanian Phonological Transfer Patterns in English (L2) Acquisition
 
 Based on: Măchiță, O.-M. (2021). The Acquisition of English Phonology 
 by Romanian and French Learners of English. University of Bucharest.
 
-This module maps specific phonological errors expected from Romanian speakers learning English.
-"""
+This module maps specific phonological errors expected from Romanian speakers learning English."""
 
 # 1. VOWEL SYSTEMS - Tense-Lax Confusion
 

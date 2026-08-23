@@ -1,39 +1,3 @@
-"""
-VocaFlow — Shadow Speaking Analysis Service
-============================================
-Shadow speaking is a technique in SLA research where the learner listens to a
-native speaker and immediately repeats the utterance, trying to match rhythm,
-intonation, and phoneme accuracy.
-
-Scientific basis:
-  - Foster, P. & Tavakoli, P. (2009). Native speakers and task performance:
-    comparing effects on complexity, fluency, and lexical diversity.
-    Language Learning, 59(4), 866-896.
-    → Speech rate (WPM) as a core dimension of utterance fluency; native speaker
-      norms provide the benchmark for learner fluency assessment (120-180 WPM).
-  - Pallotti, G. (2009). CAF: Defining, refining and differentiating constructs.
-    Applied Linguistics, 30(4), 590-601.
-    → Complexity, Accuracy, and Fluency (CAF) framework — WPM is the standard
-      operationalisation of utterance fluency in SLA research.
-  - Saito, K. & Lyster, R. (2012). Effects of form-focused instruction and
-    corrective feedback on L2 pronunciation development of /ɹ/ by Japanese
-    learners of English. Language Learning, 62(2), 595-633.
-    → Explicit phoneme-level feedback improves L2 pronunciation accuracy.
-  - Măchiță, O.-M. (2021). The Acquisition of English Phonology by Romanian
-    and French Learners of English. University of Bucharest.
-    → Romanian-specific phonological transfer patterns used for phoneme feedback.
-  - Boersma, P. & van Heuven, V. (2001). Speak and unSpeak with PRAAT.
-    Glot International, 5(9/10), 341-347.
-    → Praat phonetic framework underlying the acoustic/phoneme analysis.
-
-Metrics computed:
-  1. word_accuracy   - difflib word-match (deterministic, no LLM)
-  2. wpm             - words/min from Whisper verbose_json timestamps
-  3. wpm_assessment  - slow/ideal/fast compared to native speaker norms (120-180 WPM)
-  4. phoneme_score   - wav2vec2-espeak via Colab if available
-  5. qualitative tips - LLM constrained to computed scores only
-"""
-
 from groq import Groq
 from dotenv import load_dotenv
 import os
