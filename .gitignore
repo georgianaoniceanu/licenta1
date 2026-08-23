@@ -4,6 +4,8 @@
 /*
 !/backend/
 !/frontend/
+!/assets/
+!/assets/**
 !/.gitignore
 !/.github/
 
